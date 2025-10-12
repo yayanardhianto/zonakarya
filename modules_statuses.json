@@ -1,0 +1,23 @@
+{
+    "Language": true,
+    "Blog": true,
+    "GlobalSetting": true,
+    "PageBuilder": true,
+    "NewsLetter": true,
+    "ContactMessage": true,
+    "OurTeam": true,
+    "Testimonial": true,
+    "Faq": true,
+    "CustomMenu": true,
+    "SocialLink": true,
+    "Sitemap": true,
+    "SiteAppearance": true,
+    "Frontend": true,
+    "Project": true,
+    "Service": true,
+    "Brand": true,
+    "Marquee": true,
+    "Location": true,
+    "Award": true,
+    "Installer": true
+}

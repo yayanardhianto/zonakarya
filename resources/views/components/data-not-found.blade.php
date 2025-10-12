@@ -1,0 +1,1 @@
+<h4 class="text-danger text-center my-5">{{ __('No data found!') }}</h4>

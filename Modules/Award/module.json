@@ -1,0 +1,11 @@
+{
+    "name": "Award",
+    "alias": "award",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Award\\app\\Providers\\AwardServiceProvider"
+    ],
+    "files": []
+}

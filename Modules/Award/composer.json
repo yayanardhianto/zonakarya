@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/award",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Award\\": "",
+            "Modules\\Award\\App\\": "app/",
+            "Modules\\Award\\Database\\Factories\\": "database/factories/",
+            "Modules\\Award\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Award\\Tests\\": "tests/"
+        }
+    }
+}
