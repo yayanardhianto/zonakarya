@@ -17,9 +17,7 @@
                         <div class="navbar-right d-inline-flex d-lg-none">
                             
                             <button type="button" class="menu-toggle sidebar-btn" aria-label="hamburger">
-                                <span class="line"></span>
-                                <span class="line"></span>
-                                <span class="line"></span>
+                                <i class="fa fa-bars fs-3"></i>
                             </button>
                         </div>
                     </div>

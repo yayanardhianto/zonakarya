@@ -1,7 +1,7 @@
 <div class="mobile-menu-wrapper">
     <div class="mobile-menu-area">
         <button class="menu-toggle"><i class="fas fa-times"></i></button>
-        <div class="mobile-logo">
+        <div class="mobile-logo" style="max-width: 200px;">
             <a href="{{ route('home') }}"><img src="{{ asset($setting?->logo) }}" alt="{{ $setting?->app_name }}"></a>
         </div>
         <div class="mobile-menu">
@@ -47,13 +47,36 @@
                     @endif
                 @endforeach
             </ul>
+
             @auth('web')
+                @php
+                    $user = auth('web')->user();
+                    $hasApplications = $user->applications()->exists();
+                @endphp
+            
+                @if($hasApplications)
+                <a href="{{ route('applicant.status') }}" class="btn btn-primary w-75">
+                    <span class="link-effect text-uppercase">
+                        <span class="effect-1">{{ __('LamaranKerja Saya') }}</span>
+                        <span class="effect-1">{{ __('LamaranKerja Saya') }}</span>
+                    </span>
+                </a>
+                <br>
+                <a href="{{ route('dashboard') }}" class="btn mt-3 w-75">
+                    <span class="link-effect text-uppercase">
+                        <span class="effect-1">{{ __('Dashboard') }}</span>
+                        <span class="effect-1">{{ __('Dashboard') }}</span>
+                    </span>
+                </a>
+
+                @else
                 <a href="{{ route('dashboard') }}" class="btn">
                     <span class="link-effect text-uppercase">
                         <span class="effect-1">{{ __('Dashboard') }}</span>
                         <span class="effect-1">{{ __('Dashboard') }}</span>
                     </span>
                 </a>
+                @endif
             @else
                 <button type="button" class="btn" data-bs-toggle="modal" data-bs-target="#loginModal">
                     <span class="link-effect text-uppercase">

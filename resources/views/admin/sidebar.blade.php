@@ -38,6 +38,12 @@
                     <a class="nav-link" href="{{ route('admin.section-setting.index') }}"><i class="ki-solid ki-toggle-on"></i><span>{{ __('Home Section Setting') }}</span>
 
                     </a></li>
+                <li class="{{ isRoute('admin.contact-section.index', 'active') }}">
+                    <a class="nav-link" href="{{ route('admin.contact-section.index') }}">
+                        <i class="ki-solid ki-phone"></i>
+                        <span>{{ __('Contact Page Section') }}</span>
+                    </a>
+                </li>
 
 
                 @if (Module::isEnabled('OurTeam') && checkAdminHasPermission('team.management'))
@@ -104,7 +110,8 @@
                 @if (Module::isEnabled('SocialLink') && checkAdminHasPermission('social.link.management'))
                     @include('sociallink::sidebar')
                 @endif
-               
+                <li class="{{ isRoute('admin.contact-messages') || isRoute('admin.contact-message') ? 'active' : '' }}"><a class="nav-link" href="{{ route('admin.contact-messages') }}"><i class="fas fa-envelope"></i> <span>{{ __('Contact Messages') }}</span></a></li>
+
                 @endif
                 @if (checkAdminHasPermission('job.vacancy.view'))
                     <li class="menu-header">{{ __('Job Management') }}</li>
@@ -137,6 +144,12 @@
                         <a class="nav-link" href="{{ route('admin.talents.index') }}">
                             <i class="fas fa-star"></i>
                             <span>{{ __('Talents') }}</span>
+                        </a>
+                    </li>
+                    <li class="{{ isRoute('admin.onboard.*', 'active') }}">
+                        <a class="nav-link" href="{{ route('admin.onboard.index') }}">
+                            <i class="fas fa-check-circle"></i>
+                            <span>{{ __('Onboard') }}</span>
                         </a>
                     </li>
                 @endif
@@ -211,44 +224,12 @@
                     </li>
                 @endif
             @endif
-
-            <!-- @if (checkAdminHasPermission('newsletter.view') ||
-                    checkAdminHasPermission('newsletter.mail') ||
-                    checkAdminHasPermission('testimonial.view') ||
-                    checkAdminHasPermission('contact.message.view'))
-                <li class="menu-header">{{ __('Utility') }}</li>
-
-
-                @if (Module::isEnabled('NewsLetter') &&
-                        (checkAdminHasPermission('newsletter.view') || checkAdminHasPermission('newsletter.mail')))
-                    @include('newsletter::sidebar')
-                @endif
-
-                @if (Module::isEnabled('Testimonial') && checkAdminHasPermission('testimonial.view'))
-                    @include('testimonial::sidebar')
-                @endif
-
-                @if (Module::isEnabled('ContactMessage') && checkAdminHasPermission('contact.message.view'))
-                    @include('contactmessage::sidebar')
-                @endif
-            @endif -->
-
-            <li class="nav-item dropdown {{ isRoute('admin.addon.*') ? 'active' : '' }}" id="addon_sidemenu">
-                <a class="nav-link has-dropdown" data-toggle="dropdown" href="#"><i class="fas fa-gem"></i>
-                    <span>{{ __('Manage Addons') }} </span>
-    
-                </a>
-                <ul class="dropdown-menu addon_menu">
-    
-                    @includeIf('admin.addons')
-                </ul>
-            </li>
         </ul>
-        <div class="py-3 text-center">
+        <div class="py-3 px-4">
             <div class="btn-sm-group-vertical version_button" role="group" aria-label="Responsive button group">
                 <!-- <button class="btn btn-primary logout_btn mt-2" disabled>{{ __('version') }}
                     {{ $setting->version ?? '1.0.0' }}</button> -->
-                <button class="logout-button btn btn-danger mt-2"><i class="fas fa-sign-out-alt"></i></button>
+                <button class="logout-button btn btn-danger mt-2"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
             </div>
         </div>
     </aside>

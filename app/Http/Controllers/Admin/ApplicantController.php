@@ -28,6 +28,7 @@ class ApplicantController extends Controller
             $query->where('job_vacancy_id', $request->job_vacancy_id);
         }
 
+
         // Search
         if ($request->filled('search')) {
             $search = $request->search;
@@ -47,7 +48,25 @@ class ApplicantController extends Controller
         $applications = $query->latest()->paginate(20);
         $jobVacancies = JobVacancy::where('status', 'active')->get();
 
-        return view('admin.applicants.index', compact('applications', 'jobVacancies'));
+        // Get status counts if job_vacancy_id filter is applied
+        $statusCounts = [];
+        if ($request->filled('job_vacancy_id')) {
+            // Get all possible statuses
+            $allStatuses = ['pending', 'sent', 'check', 'short_call', 'group_interview', 'test_psychology', 'ojt', 'final_interview', 'sent_offering_letter', 'rejected', 'rejected_by_applicant'];
+            
+            // Get counts for existing statuses
+            $existingCounts = Application::where('job_vacancy_id', $request->job_vacancy_id)
+                ->selectRaw('status, COUNT(*) as count')
+                ->groupBy('status')
+                ->pluck('count', 'status')
+                ->toArray();
+            
+            // Initialize all statuses with 0, then merge with existing counts
+            $statusCounts = array_fill_keys($allStatuses, 0);
+            $statusCounts = array_merge($statusCounts, $existingCounts);
+        }
+
+        return view('admin.applicants.index', compact('applications', 'jobVacancies', 'statusCounts'));
     }
 
     public function show(Applicant $applicant)

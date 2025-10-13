@@ -72,7 +72,7 @@
                                             <th>{{ __('Points') }}:</th>
                                             <td>{{ $testQuestion->points }}</td>
                                         </tr>
-                                        <tr>
+                                        <tr style="display: none;">
                                             <th>{{ __('Order') }}:</th>
                                             <td>{{ $testQuestion->order }}</td>
                                         </tr>
@@ -115,15 +115,15 @@
                                     <table class="table table-bordered table-striped">
                                         <thead>
                                             <tr>
-                                                <th>{{ __('Order') }}</th>
+                                                <th>{{ __('No') }}</th>
                                                 <th>{{ __('Option Text') }}</th>
                                                 <th>{{ __('Correct') }}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($testQuestion->options->sortBy('order') as $option)
+                                            @foreach($testQuestion->options->sortBy('order') as $index => $option)
                                                 <tr class="{{ $option->is_correct ? 'table-success' : '' }}">
-                                                    <td>{{ $option->order }}</td>
+                                                    <td>{{ $index + 1 }}</td>
                                                     <td>{{ $option->option_text }}</td>
                                                     <td>
                                                         @if($option->is_correct)

@@ -109,7 +109,7 @@
                                             @enderror
                                         </div>
 
-                                        <div class="mb-3">
+                                        <div class="mb-3" style="display: none;">
                                             <label for="order" class="form-label">{{ __('Order') }} <span class="text-danger">*</span></label>
                                             <input type="number" class="form-control @error('order') is-invalid @enderror" 
                                                 id="order" name="order" value="{{ old('order', $testQuestion->order) }}" min="1" required>

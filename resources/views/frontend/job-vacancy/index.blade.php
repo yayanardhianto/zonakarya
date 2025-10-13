@@ -5,17 +5,20 @@
 @endsection
 
 @section('contents')
-    <x-breadcrumb :image="$setting?->service_page_breadcrumb_image" :title="__('Job Vacancies')" />
 
-    <div class="job-vacancy-section py-50 mt-25">
-        <div class="container">
+    <div class="d-lg-none">
+        <x-breadcrumb :image="$setting?->service_page_breadcrumb_image" :title="__('Karir')" />
+    </div>
+
+    <div class="job-vacancy-section py-50 mt-25 mt-lg-5">
+        <div class="container pt-lg-5">
             <div class="row">
-                <div class="d-flex justify-content-between w-100 mb-45">
+                <div class="d-flex justify-content-between w-100 mb-45 gap-3">
                     <div class="col-md-6">
                         <h2 class="display-4 fw-bold">{{ __('Rise Together') }}</h2>
                     </div>
                     <div class="col-md-6">
-                        <p class="lead text-muted">{{ __('Start your journey with our company and strengthen to your career, now join us with our company.') }}</p>
+                        <p class="lead text-muted">{{ __('Mulai perjalanan Anda dengan perusahaan kami,  mari bergabung bersama kami.') }}</p>
                     </div>
                 </div>
             </div>
@@ -25,9 +28,15 @@
                     <div class="filter-sidebar filter-search">
                         <div class="card rounded-0">
                             <div class="card-header bg-black">
-                                <h5 class="mb-0 pt-2 pb-2 text-white">{{ __('Filter') }}</h5>
+                                <h5 class="mb-0 pt-2 pb-2 text-white d-flex justify-content-between align-items-center">
+                                    <span>{{ __('Filter') }}</span>
+                                    <button class="btn btn-sm btn-outline-light d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                                        <i class="fas fa-chevron-down" id="filterToggleIcon"></i>
+                                    </button>
+                                </h5>
                             </div>
-                            <div class="card-body pt-4">
+                            <div class="collapse d-lg-block" id="filterCollapse">
+                                <div class="card-body pt-4">
                                 <form method="GET" action="{{ route('jobs.index') }}">
                                     <div class="form-group mb-4">
                                         <label>{{ __('Position') }}</label>
@@ -81,6 +90,7 @@
                                     <button type="submit" class="btn btn-primary btn-block me-2">{{ __('Filter') }}</button>
                                     <a href="{{ route('jobs.index') }}" class="btn btn-secondary btn-block">{{ __('Clear') }}</a>
                                 </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -88,7 +98,7 @@
 
                 <div class="col-lg-9 ps-lg-5">
                     <!-- Search Bar -->
-                    <div class="sidebar__search mb-40">
+                    <div class="sidebar__search mb-40 mt-5 mt-md-0">
                         <form method="GET" action="{{ route('jobs.search') }}" id="search-form">
                             <div class="search-container position-relative">
                                 <input class="search-input" 
@@ -96,7 +106,7 @@
                                        id="search-input"
                                        value="{{ request('q') }}" 
                                        type="text" 
-                                       placeholder="Search jobs, company, location..."
+                                       placeholder="Cari lowongan, lokasi, posisi..."
                                        autocomplete="off">
                                 <button class="search-product-btn" type="submit">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none">
@@ -163,7 +173,7 @@
                                                     @endif
                                                     <div class="flex-grow-1 ms-3">
                                                         <h5 class="job-title mb-0">
-                                                            <a href="{{ route('jobs.show', $job->id) }}" class="text-decoration-none">
+                                                            <a href="{{ route('jobs.show', $job->unique_code) }}" class="text-decoration-none">
                                                                 {{ $job->position }}
                                                             </a>
                                                         </h5>
@@ -228,9 +238,9 @@
                                                 </div>
 
                                                 <div class="mt-4 d-flex justify-content-end">
-                                                    <a href="{{ route('jobs.show', $job->id) }}" 
+                                                    <a href="{{ route('jobs.show', $job->unique_code) }}" 
                                                        class="btn btn-primary btn-sm btn-block">
-                                                        {{ __('View Details') }}
+                                                        {{ __('Lihat Detail') }}
                                                     </a>
                                                 </div>
                                             </div>
@@ -260,6 +270,42 @@
 
 @push('css')
 <style>
+/* Mobile Filter Accordion Styles */
+@media (max-width: 991.98px) {
+    .filter-sidebar .card-header {
+        cursor: pointer;
+    }
+    
+    .filter-sidebar .card-header:hover {
+        background-color: #333 !important;
+    }
+    
+    .filter-sidebar .btn-outline-light {
+        border-color: rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+    
+    .filter-sidebar .btn-outline-light:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .filter-sidebar .collapse {
+        transition: all 0.3s ease;
+    }
+    
+    .filter-sidebar .card-body {
+        border-top: 1px solid #dee2e6;
+    }
+}
+
+/* Desktop - Always show filter */
+@media (min-width: 992px) {
+    .filter-sidebar .collapse {
+        display: block !important;
+    }
+}
+
     .job-card {
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         border: 1px solid #e9ecef;
@@ -506,5 +552,23 @@ function highlightSearchTerms(term) {
         });
     });
 }
+
+// Filter accordion functionality for mobile
+document.addEventListener('DOMContentLoaded', function() {
+    const filterCollapse = document.getElementById('filterCollapse');
+    const filterToggleIcon = document.getElementById('filterToggleIcon');
+    
+    if (filterCollapse && filterToggleIcon) {
+        filterCollapse.addEventListener('show.bs.collapse', function () {
+            filterToggleIcon.classList.remove('fa-chevron-down');
+            filterToggleIcon.classList.add('fa-chevron-up');
+        });
+        
+        filterCollapse.addEventListener('hide.bs.collapse', function () {
+            filterToggleIcon.classList.remove('fa-chevron-up');
+            filterToggleIcon.classList.add('fa-chevron-down');
+        });
+    }
+});
 </script>
 @endpush

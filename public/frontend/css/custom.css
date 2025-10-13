@@ -617,10 +617,102 @@ p.ajax-response.error {
 }
 
 .blog-post-description p {
+    display: block !important;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.blog-post-description p:has(img) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 25px;
+}
+
+/* Fix text formatting in blog content */
+.blog-post-description strong,
+.blog-post-description b {
+    font-weight: 600;
+    color: inherit;
+    display: inline;
+}
+
+.blog-post-description em,
+.blog-post-description i {
+    font-style: italic;
+    display: inline;
+}
+
+.blog-post-description u {
+    text-decoration: underline;
+    display: inline;
+}
+
+.blog-post-description a {
+    color: #007bff;
+    text-decoration: none;
+    display: inline;
+}
+
+.blog-post-description a:hover {
+    text-decoration: underline;
+}
+
+.blog-post-description ul,
+.blog-post-description ol {
+    margin: 1rem 0;
+    padding-left: 2rem;
+}
+
+.blog-post-description li {
+    margin-bottom: 0.5rem;
+    display: list-item;
+}
+
+/* Apply same fixes to details-text class */
+.details-text strong,
+.details-text b {
+    font-weight: 600;
+    color: inherit;
+    display: inline;
+}
+
+.details-text em,
+.details-text i {
+    font-style: italic;
+    display: inline;
+}
+
+.details-text u {
+    text-decoration: underline;
+    display: inline;
+}
+
+.details-text a {
+    color: #007bff;
+    text-decoration: none;
+    display: inline;
+}
+
+.details-text a:hover {
+    text-decoration: underline;
+}
+
+.details-text ul,
+.details-text ol {
+    margin: 1rem 0;
+    padding-left: 2rem;
+}
+
+.details-text li {
+    margin-bottom: 0.5rem;
+    display: list-item;
+}
+
+.details-text p {
+    display: block !important;
+    margin-bottom: 1rem;
+    line-height: 1.75;
 }
 
 .blog-post-description img {
@@ -832,7 +924,6 @@ p.ajax-response.error {
 .home_two .header-button a.btn.btn .link-effect span {
     color: var(--white-color);
 }
-The image may not be greater than 2048 kilobytes.
 .product-about .actions .btn {
     padding: 21.5px 30px;
 }

@@ -123,6 +123,7 @@
                                             <button class="btn btn-sm btn-outline-warning me-2" onclick="disableRandomOrder()">
                                                 <i class="fas fa-sort"></i> {{ __('Disable Random') }}
                                             </button>
+                                            <small class="text-muted">{{ __('Use checkboxes below to fix first and last questions') }}</small>
                                         @else
                                             <button class="btn btn-sm btn-outline-primary me-2" onclick="enableDragDrop()">
                                                 <i class="fas fa-sort"></i> {{ __('Reorder Questions') }}
@@ -255,6 +256,10 @@
                                                 <th>{{ __('Type') }}</th>
                                                 <th>{{ __('Points') }}</th>
                                                 <th>{{ __('Options') }}</th>
+                                                @if($testPackage->randomize_questions)
+                                                    <th width="80" class="text-center">{{ __('First') }}</th>
+                                                    <th width="80" class="text-center">{{ __('Last') }}</th>
+                                                @endif
                                                 <th width="150" id="time-column" style="display: none;">{{ __('Time (seconds)') }}</th>
                                                 <th width="120">{{ __('Actions') }}</th>
                                             </tr>
@@ -292,6 +297,36 @@
                                                     </td>
                                                     <td>{{ $question->points }}</td>
                                                     <td>{{ $question->options->count() }}</td>
+                                                    @if($testPackage->randomize_questions)
+                                                        <td class="text-center">
+                                                            <div class="form-check d-inline-block">
+                                                                <input class="form-check-input fixed-question-checkbox" 
+                                                                       type="checkbox" 
+                                                                       id="first-{{ $question->id }}"
+                                                                       data-question-id="{{ $question->id }}"
+                                                                       data-type="first"
+                                                                       {{ $testPackage->fixed_first_question_id == $question->id ? 'checked' : '' }}
+                                                                       onchange="updateFixedQuestion('first', {{ $question->id }}, this.checked)">
+                                                                <label class="form-check-label" for="first-{{ $question->id }}">
+                                                                    <small>{{ __('First') }}</small>
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <div class="form-check d-inline-block">
+                                                                <input class="form-check-input fixed-question-checkbox" 
+                                                                       type="checkbox" 
+                                                                       id="last-{{ $question->id }}"
+                                                                       data-question-id="{{ $question->id }}"
+                                                                       data-type="last"
+                                                                       {{ $testPackage->fixed_last_question_id == $question->id ? 'checked' : '' }}
+                                                                       onchange="updateFixedQuestion('last', {{ $question->id }}, this.checked)">
+                                                                <label class="form-check-label" for="last-{{ $question->id }}">
+                                                                    <small>{{ __('Last') }}</small>
+                                                                </label>
+                                                            </div>
+                                                        </td>
+                                                    @endif
                                                     <td class="time-input" style="display: none;">
                                                         <input type="number" 
                                                                class="form-control form-control-sm question-time-input" 
@@ -503,6 +538,57 @@ function disableRandomOrder() {
             showAlert('error', 'An error occurred while disabling random order');
         });
     }
+}
+
+function updateFixedQuestion(type, questionId, isChecked) {
+    const fieldName = type === 'first' ? 'fix_first_question' : 'fix_last_question';
+    const questionFieldName = type === 'first' ? 'fixed_first_question_id' : 'fixed_last_question_id';
+    
+    // If unchecking, clear all checkboxes of the same type
+    if (!isChecked) {
+        document.querySelectorAll(`input[data-type="${type}"]`).forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    } else {
+        // If checking, uncheck all other checkboxes of the same type
+        document.querySelectorAll(`input[data-type="${type}"]`).forEach(checkbox => {
+            if (checkbox.dataset.questionId != questionId) {
+                checkbox.checked = false;
+            }
+        });
+    }
+    
+    // Determine if any checkbox of this type is checked
+    const anyChecked = document.querySelector(`input[data-type="${type}"]:checked`) !== null;
+    const selectedQuestionId = anyChecked ? questionId : null;
+    
+    fetch('{{ route("admin.test-package.update-fixed-question", $testPackage) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            [fieldName]: anyChecked,
+            [questionFieldName]: selectedQuestionId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+        } else {
+            showAlert('error', data.message || 'Failed to update fixed question');
+            // Revert checkbox state on error
+            document.getElementById(`${type}-${questionId}`).checked = !isChecked;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while updating fixed question');
+        // Revert checkbox state on error
+        document.getElementById(`${type}-${questionId}`).checked = !isChecked;
+    });
 }
 
 // Functions moved to global scope for onclick handlers
@@ -796,6 +882,20 @@ function clearAllTimes() {
 
 .detail-table th {
     height: 40px !important;
+}
+
+.fixed-question-checkbox {
+    transform: scale(1.2);
+}
+
+.fixed-question-checkbox:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.form-check-label small {
+    font-size: 0.75rem;
+    color: #6c757d;
 }
 </style>
 @endpush

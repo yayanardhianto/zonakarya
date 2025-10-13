@@ -46,11 +46,11 @@
                 </li>
             @endif
         </ul>
-        <div class="py-3 text-center">
+        <div class="py-3 px-4">
             <div class="btn-sm-group-vertical version_button" role="group" aria-label="Responsive button group">
-                <button class="btn btn-primary logout_btn mt-2" disabled>{{ __('version') }}
-                    {{ $setting->version ?? '1.0.0' }}</button>
-                <button class="logout-button btn btn-danger mt-2"><i class="fas fa-sign-out-alt"></i></button>
+                <!-- <button class="btn btn-primary logout_btn mt-2" disabled>{{ __('version') }}
+                    {{ $setting->version ?? '1.0.0' }}</button> -->
+                <button class="logout-button btn btn-danger mt-2"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
             </div>
         </div>
     </aside>

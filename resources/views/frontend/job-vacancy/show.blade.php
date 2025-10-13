@@ -29,8 +29,8 @@
                                 <h1 class="job-title mb-2">{{ $jobVacancy->position }}</h1>
                                 <h3 class="company-name text-primary mb-2">{{ $jobVacancy->company_name }}</h3>
                                 <div class="job-meta">
-                                    <span class="badge badge-primary mr-2">{{ $jobVacancy->work_type }}</span>
-                                    <span class="badge badge-info mr-2">{{ $jobVacancy->education }}</span>
+                                    <span class="badge badge-primary me-2">{{ $jobVacancy->work_type }}</span>
+                                    <span class="badge badge-info me-2">{{ $jobVacancy->education }}</span>
                                     @if($jobVacancy->experience_years > 0)
                                         <span class="badge badge-warning">{{ $jobVacancy->experience_years }} {{ __('years exp') }}</span>
                                     @endif
@@ -44,9 +44,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Location') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ __('Lokasi') }}</h6>
                                     <p class="mb-0">
-                                        <i class="fas fa-map-marker-alt text-primary mr-2"></i>
+                                        <i class="fas fa-map-marker-alt text-primary me-2"></i>
                                         {{ $jobVacancy->location }}
                                     </p>
                                 </div>
@@ -54,9 +54,9 @@
                             @if($jobVacancy->show_salary)
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Salary Range') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ __('Range Gaji') }}</h6>
                                     <p class="mb-0">
-                                        <i class="fas fa-dollar-sign text-success mr-2"></i>
+                                        <i class="fas fa-dollar-sign text-success me-2"></i>
                                         {{ $jobVacancy->formatted_salary }}
                                     </p>
                                 </div>
@@ -65,9 +65,9 @@
                             @if($jobVacancy->show_age)
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Age Range') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ __('Range Usia') }}</h6>
                                     <p class="mb-0">
-                                        <i class="fas fa-calendar text-info mr-2"></i>
+                                        <i class="fas fa-calendar text-info me-2"></i>
                                         {{ $jobVacancy->formatted_age }}
                                     </p>
                                 </div>
@@ -75,9 +75,9 @@
                             @endif
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Gender') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ __('Jenis Kelamin') }}</h6>
                                     <p class="mb-0">
-                                        <i class="fas fa-user text-warning mr-2"></i>
+                                        <i class="fas fa-user text-warning me-2"></i>
                                         {{ $jobVacancy->gender }}
                                     </p>
                                 </div>
@@ -85,9 +85,9 @@
                             @if($jobVacancy->application_deadline)
                                 <div class="col-md-6">
                                     <div class="detail-item mb-3">
-                                        <h6 class="text-muted mb-1">{{ __('Application Deadline') }}</h6>
+                                        <h6 class="text-muted mb-1">{{ __('Deadline Pendaftaran') }}</h6>
                                         <p class="mb-0">
-                                            <i class="fas fa-clock text-danger mr-2"></i>
+                                            <i class="fas fa-clock text-danger me-2"></i>
                                             {{ $jobVacancy->application_deadline->format('d M Y') }}
                                         </p>
                                     </div>
@@ -98,7 +98,7 @@
 
                     <!-- Job Description -->
                     <div class="job-description mb-4">
-                        <h4 class="mb-3">{{ __('Job Description') }}</h4>
+                        <h4 class="mb-3">{{ __('Deskripsi Pekerjaan') }}</h4>
                         <div class="content">
                             {!! nl2br(e($jobVacancy->description)) !!}
                         </div>
@@ -107,7 +107,7 @@
                     <!-- Responsibilities -->
                     @if($jobVacancy->responsibilities)
                         <div class="job-responsibilities mb-4">
-                            <h4 class="mb-3">{{ __('Responsibilities') }}</h4>
+                            <h4 class="mb-3">{{ __('Tanggung Jawab') }}</h4>
                             <div class="content">
                                 {!! nl2br(e($jobVacancy->responsibilities)) !!}
                             </div>
@@ -117,11 +117,11 @@
                     <!-- Specific Requirements -->
                     @if($jobVacancy->specific_requirements && count($jobVacancy->specific_requirements) > 0)
                         <div class="job-requirements mb-4">
-                            <h4 class="mb-3">{{ __('Specific Requirements') }}</h4>
+                            <h4 class="mb-3">{{ __('Persyaratan Khusus') }}</h4>
                             <ul class="list-unstyled">
                                 @foreach($jobVacancy->specific_requirements as $requirement)
                                     <li class="mb-2">
-                                        <i class="fas fa-check text-success mr-2"></i>
+                                        <i class="fas fa-check text-success me-2"></i>
                                         {{ $requirement }}
                                     </li>
                                 @endforeach
@@ -132,7 +132,7 @@
                     <!-- Benefits -->
                     @if($jobVacancy->benefits)
                         <div class="job-benefits mb-4">
-                            <h4 class="mb-3">{{ __('Benefits') }}</h4>
+                            <h4 class="mb-3">{{ __('Keuntungan') }}</h4>
                             <div class="content">
                                 {!! nl2br(e($jobVacancy->benefits)) !!}
                             </div>
@@ -144,7 +144,7 @@
                     <!-- Company Info Card -->
                     <div class="company-info-card card mb-4">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ __('Company Information') }}</h5>
+                            <h5 class="mb-0">{{ __('Informasi Perusahaan') }}</h5>
                         </div>
                         <div class="card-body text-center">
                                 <img src="{{ asset('uploads/custom-images/wsus-img-2025-10-09-05-44-11-3128.png') }}" 
@@ -155,13 +155,13 @@
                             
                             <div class="contact-info">
                                 <div class="contact-item mb-2">
-                                    <i class="fas fa-envelope text-primary mr-2"></i>
+                                    <i class="fas fa-envelope text-primary me-2"></i>
                                     <a href="mailto:{{ $jobVacancy->contact_email }}">hr@zona-karya.id</a>
                                 </div>
                                 
                                 <!-- @if($jobVacancy->contact_phone)
                                     <div class="contact-item mb-2">
-                                        <i class="fas fa-phone text-success mr-2"></i>
+                                        <i class="fas fa-phone text-success me-2"></i>
                                         <a href="tel:{{ $jobVacancy->contact_phone }}">{{ $jobVacancy->contact_phone }}</a>
                                     </div>
                                 @endif -->
@@ -172,28 +172,28 @@
                     <!-- Application Card -->
                     <div class="application-card card mb-4">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ __('Apply for this Position') }}</h5>
+                            <h5 class="mb-0">{{ __('Lamar Posisi Ini') }}</h5>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted mb-3">{{ __('Interested in this position? Contact the company directly using the information provided.') }}</p>
+                            <p class="text-muted mb-3">{{ __('Tertarik dengan posisi ini? Hubungi perusahaan langsung menggunakan informasi yang tersedia.') }}</p>
                             
                             <div class="d-grid gap-2">
                                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal">
-                                    <i class="fas fa-paper-plane mr-2"></i>
-                                    {{ __('Send Application') }}
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    {{ __('Kirim Lamaran') }}
                                 </button>
                                 
                                 <a href="mailto:{{ $jobVacancy->contact_email }}?subject=Application for {{ $jobVacancy->position }}" 
                                    class="btn btn-outline-primary">
-                                    <i class="fas fa-envelope mr-2"></i>
-                                    {{ __('Email Company') }}
+                                    <i class="fas fa-envelope me-2"></i>
+                                    {{ __('Kirim Email') }}
                                 </a>
                                 
                                 @if($jobVacancy->contact_phone)
                                     <a href="tel:{{ $jobVacancy->contact_phone }}" 
                                        class="btn btn-outline-secondary">
-                                        <i class="fas fa-phone mr-2"></i>
-                                        {{ __('Call Company') }}
+                                        <i class="fas fa-phone me-2"></i>
+                                        {{ __('Telepon Perusahaan') }}
                                     </a>
                                 @endif
                             </div>
@@ -203,19 +203,19 @@
                     <!-- Job Stats -->
                     <div class="job-stats card">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ __('Job Statistics') }}</h5>
+                            <h5 class="mb-0">{{ __('Statistik Lowongan') }}</h5>
                         </div>
                         <div class="card-body">
                             <div class="stat-item d-flex justify-content-between mb-2">
-                                <span class="text-muted">{{ __('Views') }}:</span>
+                                <span class="text-muted">{{ __('Dilihat') }}:</span>
                                 <span class="font-weight-bold">{{ $jobVacancy->views }}</span>
                             </div>
                             <div class="stat-item d-flex justify-content-between mb-2">
-                                <span class="text-muted">{{ __('Posted') }}:</span>
+                                <span class="text-muted">{{ __('Diposting') }}:</span>
                                 <span class="font-weight-bold">{{ $jobVacancy->created_at->format('d M Y') }}</span>
                             </div>
                             <div class="stat-item d-flex justify-content-between">
-                                <span class="text-muted">{{ __('Last Updated') }}:</span>
+                                <span class="text-muted">{{ __('Terakhir Diupdate') }}:</span>
                                 <span class="font-weight-bold">{{ $jobVacancy->updated_at->format('d M Y') }}</span>
                             </div>
                         </div>
@@ -227,8 +227,8 @@
             <div class="row mt-4">
                 <div class="col-12">
                     <a href="{{ route('jobs.index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left mr-2"></i>
-                        {{ __('Back to All Jobs') }}
+                        <i class="fas fa-arrow-left me-2"></i>
+                        {{ __('Kembali ke Semua Lowongan') }}
                     </a>
                 </div>
             </div>
@@ -240,24 +240,63 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="applyModalLabel">{{ __('Apply for') }} {{ $jobVacancy->position }}</h5>
+                    <h5 class="modal-title" id="applyModalLabel">{{ __('Lamar untuk') }} {{ $jobVacancy->position }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    @auth
+                        @if($applicant)
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-info-circle"></i>
+                                {{ __('Data lamaran sebelumnya telah diisi otomatis. Anda dapat mengubah informasi jika diperlukan.') }}
+                            </div>
+                        @else
+                            <div class="alert alert-success mb-3">
+                                <i class="fas fa-check-circle"></i>
+                                {{ __('Selamat datang kembali! Informasi profil Anda telah diisi otomatis.') }}
+                            </div>
+                        @endif
+                    @endauth
+                    
                     <form id="applyForm" enctype="multipart/form-data">
                         @csrf
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="name">{{ __('Full Name') }} <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="name" name="name" required>
+                                    <label for="name">{{ __('Nama Lengkap') }} <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="name" name="name" 
+                                               value="{{ $user->name ?? ($applicant->name ?? '') }}" required>
+                                        <!-- @auth
+                                            @if($user->name || ($applicant && $applicant->name))
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text text-success" title="{{ __('Pre-filled from your profile') }}">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </span>
+                                                </div>
+                                            @endif
+                                        @endauth -->
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="whatsapp">{{ __('WhatsApp Number') }} <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="whatsapp" name="whatsapp" placeholder="+628123456789" required>
-                                    <small class="form-text text-muted">{{ __('We will contact you via WhatsApp for the next steps') }}</small>
+                                    <label for="whatsapp">{{ __('Nomor WhatsApp') }} <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="tel" class="form-control" id="whatsapp" name="whatsapp" 
+                                               placeholder="+628123456789" 
+                                               value="{{ $applicant->whatsapp ?? '' }}" required>
+                                        <!-- @auth
+                                            @if($applicant && $applicant->whatsapp)
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text text-success" title="{{ __('Pre-filled from your previous application') }}">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </span>
+                                                </div>
+                                            @endif
+                                        @endauth -->
+                                    </div>
+                                    <small class="form-text text-muted">{{ __('Kami akan menghubungi Anda via WhatsApp untuk langkah selanjutnya') }}</small>
                                 </div>
                             </div>
                         </div>
@@ -267,42 +306,42 @@
                                 <div class="form-group">
                                     <label for="cv">{{ __('CV/Resume') }} <span class="text-danger">*</span></label>
                                     <input type="file" class="form-control" id="cv" name="cv" accept=".pdf,.doc,.docx" required>
-                                    <small class="form-text text-muted">{{ __('Accepted formats: PDF, DOC, DOCX (Max: 2MB)') }}</small>
+                                    <small class="form-text text-muted">{{ __('Format yang diterima: PDF, DOC, DOCX (Maks: 2MB)') }}</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="photo">{{ __('Photo') }} <span class="text-danger">*</span></label>
+                                    <label for="photo">{{ __('Foto') }} <span class="text-danger">*</span></label>
                                     <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
-                                    <small class="form-text text-muted">{{ __('Accepted formats: JPG, PNG (Max: 1MB)') }}</small>
+                                    <small class="form-text text-muted">{{ __('Format yang diterima: JPG, PNG (Maks: 1MB)') }}</small>
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <div class="camera-section" id="cameraSection" style="display: none;">
-                                <label>{{ __('Take Photo with Camera') }}</label>
+                                <label>{{ __('Ambil Foto dengan Kamera') }}</label>
                                 <div class="camera-container">
                                     <video id="camera" width="320" height="240" autoplay></video>
                                     <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
                                 </div>
                                 <div class="camera-controls mt-2">
-                                    <button type="button" class="btn btn-sm btn-primary" id="captureBtn">{{ __('Capture') }}</button>
-                                    <button type="button" class="btn btn-sm btn-secondary" id="retakeBtn" style="display: none;">{{ __('Retake') }}</button>
+                                    <button type="button" class="btn btn-sm btn-primary" id="captureBtn">{{ __('Ambil') }}</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" id="retakeBtn" style="display: none;">{{ __('Ulang') }}</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <button type="button" class="btn btn-outline-primary" id="useCameraBtn">
-                                <i class="fas fa-camera"></i> {{ __('Use Camera Instead') }}
+                                <i class="fas fa-camera"></i> {{ __('Gunakan Kamera') }}
                             </button>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
-                    <button type="button" class="btn btn-primary" id="submitApplication">{{ __('Submit Application') }}</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Batal') }}</button>
+                    <button type="button" class="btn btn-primary" id="submitApplication">{{ __('Kirim Lamaran') }}</button>
                 </div>
             </div>
         </div>
@@ -313,18 +352,18 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="socialLoginModalLabel">{{ __('Complete Registration') }}</h5>
+                    <h5 class="modal-title" id="socialLoginModalLabel">{{ __('Lengkapi Pendaftaran') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-center mb-4">{{ __('Please sign in with your social account to complete the registration') }}</p>
+                    <p class="text-center mb-4">{{ __('Silakan masuk dengan akun Anda untuk melengkapi pendaftaran') }}</p>
                     
                     <div class="social-login-buttons">
                         <a href="#" class="btn btn-outline-danger w-100 mb-3" id="googleLoginBtn">
-                            <i class="fab fa-google"></i> {{ __('Continue with Google') }}
+                            <i class="fab fa-google"></i> {{ __('Lanjutkan dengan Google') }}
                         </a>
                         <a href="#" class="btn btn-outline-primary w-100" id="linkedinLoginBtn">
-                            <i class="fab fa-linkedin"></i> {{ __('Continue with LinkedIn') }}
+                            <i class="fab fa-linkedin"></i> {{ __('Lanjutkan dengan LinkedIn') }}
                         </a>
                     </div>
                 </div>
@@ -337,19 +376,19 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="successModalLabel">{{ __('Application Submitted') }}</h5>
+                    <h5 class="modal-title" id="successModalLabel">{{ __('Lamaran Terkirim') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
                     <div class="success-icon mb-3">
                         <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
                     </div>
-                    <h4>{{ __('Thank you for applying!') }}</h4>
-                    <p>{{ __('We have received your application and will contact you soon for the next steps.') }}</p>
-                    <p class="text-muted">{{ __('You will receive a WhatsApp message with test screening details.') }}</p>
+                    <h4>{{ __('Terima kasih telah melamar!') }}</h4>
+                    <p>{{ __('Kami telah menerima lamaran Anda, dan akan segera menghubungi Anda untuk langkah selanjutnya.') }}</p>
+                    <p class="text-muted">{{ __('Anda akan menerima pesan WhatsApp dengan detail tes screening.') }}</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">{{ __('Close') }}</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">{{ __('Tutup') }}</button>
                 </div>
             </div>
         </div>
@@ -478,10 +517,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 stream = mediaStream;
                 camera.srcObject = stream;
                 cameraSection.style.display = 'block';
-                useCameraBtn.textContent = '{{ __("Hide Camera") }}';
+                useCameraBtn.textContent = '{{ __("Sembunyikan Kamera") }}';
             })
             .catch(function(err) {
-                alert('{{ __("Camera access denied or not available") }}');
+                alert('{{ __("Akses kamera ditolak atau tidak tersedia") }}');
                 console.error('Camera error:', err);
             });
     }
@@ -492,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
             stream = null;
         }
         cameraSection.style.display = 'none';
-        useCameraBtn.textContent = '{{ __("Use Camera Instead") }}';
+        useCameraBtn.textContent = '{{ __("Gunakan Kamera") }}';
     }
 
     captureBtn.addEventListener('click', function() {
@@ -523,9 +562,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Show loading
         this.disabled = true;
-        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Submitting...") }}';
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Mengirim...") }}';
         
-        fetch('/jobs/{{ $jobVacancy->id }}/apply', {
+        fetch('/jobs/{{ $jobVacancy->unique_code }}/apply', {
             method: 'POST',
             body: formData,
             headers: {
@@ -547,16 +586,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     $('#socialLoginModal').modal('show');
                 @endauth
             } else {
-                alert('{{ __("Error submitting application") }}');
+                alert('{{ __("Error mengirim lamaran") }}');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('{{ __("Error submitting application") }}');
+            alert('{{ __("Error mengirim lamaran") }}');
         })
         .finally(() => {
             this.disabled = false;
-            this.innerHTML = '{{ __("Submit Application") }}';
+            this.innerHTML = '{{ __("Kirim Lamaran") }}';
         });
     });
 
@@ -575,6 +614,48 @@ document.addEventListener('DOMContentLoaded', function() {
     $('#applyModal').on('hidden.bs.modal', function() {
         stopCamera();
     });
+
+    // Highlight pre-filled fields
+    @auth
+        @if($applicant || $user)
+            document.addEventListener('DOMContentLoaded', function() {
+                const preFilledFields = ['name', 'whatsapp'];
+                preFilledFields.forEach(function(fieldId) {
+                    const field = document.getElementById(fieldId);
+                    if (field && field.value) {
+                        field.classList.add('pre-filled');
+                        // Add a subtle animation
+                        field.style.transition = 'all 0.3s ease';
+                        setTimeout(() => {
+                            field.style.backgroundColor = '#f8f9fa';
+                            field.style.borderColor = '#28a745';
+                        }, 100);
+                    }
+                });
+            });
+        @endif
+    @endauth
 });
 </script>
+
+<style>
+.pre-filled {
+    background-color: #f8f9fa !important;
+    border-color: #28a745 !important;
+}
+
+.pre-filled:focus {
+    background-color: #fff !important;
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+.alert-info {
+    border-left: 4px solid #17a2b8;
+}
+
+.alert-success {
+    border-left: 4px solid #28a745;
+}
+</style>
 @endpush

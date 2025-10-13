@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 class JobApplicationController extends Controller
 {
 
-    public function storeApplication(Request $request, $jobVacancy)
+    public function storeApplication(Request $request, JobVacancy $jobVacancy)
     {
         try {
             $request->validate([
@@ -62,11 +62,11 @@ class JobApplicationController extends Controller
                 ]);
             }
 
-            // Resolve job from route parameter
-            $job = JobVacancy::findOrFail($jobVacancy);
+            // Use the job from model binding
+            $job = $jobVacancy;
             
             \Log::info('JobApplicationController Debug:', [
-                'job_vacancy_param' => $jobVacancy,
+                'job_vacancy_param' => $jobVacancy->unique_code,
                 'job_object' => $job,
                 'job_id' => $job->id,
                 'job_position' => $job->position

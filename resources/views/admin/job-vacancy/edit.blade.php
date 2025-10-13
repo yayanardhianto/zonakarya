@@ -21,7 +21,7 @@
                                 <h4>{{ __('Job Information') }}</h4>
                             </div>
                             <div class="card-body">
-                                <form action="{{ route('admin.job-vacancy.update', $jobVacancy->id) }}" method="POST" enctype="multipart/form-data">
+                                <form action="{{ route('admin.job-vacancy.update', $jobVacancy->unique_code) }}" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     @method('PUT')
                                     
@@ -222,12 +222,19 @@
                                                 <div class="input-group mb-2">
                                                     <input type="text" class="form-control" name="specific_requirements[]" placeholder="{{ __('Enter requirement') }}">
                                                     <div class="input-group-append">
-                                                        <button type="button" class="btn btn-success" onclick="addRequirement()">
-                                                            <i class="fas fa-plus"></i>
+                                                        <button type="button" class="btn btn-danger" onclick="removeRequirement(this)">
+                                                            <i class="fas fa-minus"></i>
                                                         </button>
                                                     </div>
                                                 </div>
                                             @endif
+                                        </div>
+                                        
+                                        <!-- Always show Add Requirement button -->
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-success btn-sm" onclick="addRequirement()">
+                                                <i class="fas fa-plus"></i> {{ __('Add Requirement') }}
+                                            </button>
                                         </div>
                                         <small class="form-text text-muted">{{ __('Add specific requirements for this position') }}</small>
                                     </div>
@@ -307,5 +314,48 @@
     function removeRequirement(button) {
         button.closest('.input-group').remove();
     }
+
+    // Simple auto-resize on load only
+    document.addEventListener('DOMContentLoaded', function() {
+        const textareas = document.querySelectorAll('textarea.form-control');
+        
+        textareas.forEach(function(textarea) {
+            // Only auto-resize on initial load to fit content
+            if (textarea.value.trim()) {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            }
+        });
+    });
 </script>
+
+<style>
+/* Ensure textarea respects rows attribute and can be resized */
+textarea.form-control {
+    resize: vertical !important;
+    line-height: 1.5;
+    overflow-y: auto;
+}
+
+/* Specific minimum height for each textarea based on rows */
+textarea[name="description"] {
+    min-height: 120px; /* 5 rows * 24px */
+}
+
+textarea[name="responsibilities"],
+textarea[name="benefits"] {
+    min-height: 96px; /* 4 rows * 24px */
+}
+
+/* Ensure resize handle is visible */
+textarea.form-control::-webkit-resizer {
+    background: #dee2e6;
+    border-radius: 2px;
+}
+
+textarea.form-control::-moz-resizer {
+    background: #dee2e6;
+    border-radius: 2px;
+}
+</style>
 @endpush

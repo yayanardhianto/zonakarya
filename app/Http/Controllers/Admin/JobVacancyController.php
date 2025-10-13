@@ -68,6 +68,9 @@ class JobVacancyController extends Controller
         $data['show_salary'] = $request->has('show_salary') ? (bool) $request->show_salary : false;
         $data['show_age'] = $request->has('show_age') ? (bool) $request->show_age : false;
 
+        // Generate unique code
+        $data['unique_code'] = JobVacancy::generateUniqueCode();
+
         JobVacancy::create($data);
 
         return redirect()->route('admin.job-vacancy.index')

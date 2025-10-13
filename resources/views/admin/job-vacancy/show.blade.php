@@ -20,7 +20,7 @@
                             <div class="card-header">
                                 <h4>{{ $jobVacancy->position }}</h4>
                                 <div class="card-header-action">
-                                    <a href="{{ route('admin.job-vacancy.edit', $jobVacancy->id) }}" class="btn btn-primary">
+                                    <a href="{{ route('admin.job-vacancy.edit', $jobVacancy->unique_code) }}" class="btn btn-primary">
                                         <i class="fas fa-edit"></i> {{ __('Edit') }}
                                     </a>
                                     <a href="{{ route('admin.job-vacancy.index') }}" class="btn btn-secondary">

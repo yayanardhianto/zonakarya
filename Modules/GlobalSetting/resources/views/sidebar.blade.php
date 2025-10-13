@@ -19,20 +19,20 @@
     @include('language::sidebar')
 @endif
 
-<li class="{{ Route::is('admin.seo-setting') ? 'active' : '' }}">
+<!-- <li class="{{ Route::is('admin.seo-setting') ? 'active' : '' }}">
     <a class="nav-link" href="{{ route('admin.seo-setting') }}"><i class="fas fa-search"></i>
         <span>{{ __('SEO Setup') }}</span>
     </a>
-</li>
+</li> -->
 
 <li class="{{ Route::is('admin.whatsapp-setting') ? 'active' : '' }}">
     <a class="nav-link" href="{{ route('admin.whatsapp-setting') }}"><i class="fab fa-whatsapp"></i>
         <span>{{ __('WhatsApp Settings') }}</span>
     </a>
 </li>
-@if (Module::isEnabled('Sitemap') && checkAdminHasPermission('sitemap.management'))
+<!-- @if (Module::isEnabled('Sitemap') && checkAdminHasPermission('sitemap.management'))
     @include('sitemap::sidebar')
-@endif
+@endif -->
 <li class="menu-header">{{ __('Extra Settings') }}</li>
 
 <li class="{{ Route::is('admin.cache-clear') ? 'active' : '' }}"><a class="nav-link"
@@ -44,13 +44,13 @@
         href="{{ route('admin.database-clear') }}"><i class="fas fa-database"></i>
         <span>{{ __('Database Clear') }}</span></a></li>
 
-<li class="{{ Route::is('admin.system-update.index') ? 'active' : '' }}">
+<!-- <li class="{{ Route::is('admin.system-update.index') ? 'active' : '' }}">
     <a class="nav-link" href="{{ route('admin.system-update.index') }}"><i class="fas fa-arrow-circle-up"></i>
         <span>{{ __('System Update') }}</span>
     </a>
-</li>
-<li class="{{ Route::is('admin.addons.*') ? 'active' : '' }}">
+</li> -->
+<!-- <li class="{{ Route::is('admin.addons.*') ? 'active' : '' }}">
     <a class="nav-link" href="{{ route('admin.addons.view') }}"><i class="fas fa-plug"></i>
         <span>{{ __('Manage Addons') }}</span>
     </a>
-</li>
+</li> -->

@@ -42,9 +42,11 @@ class Admin extends Authenticatable {
     protected $casts = [
         'password' => 'hashed',
     ];
+
     public function scopeNotSuperAdmin($query) {
         return $query->where('is_super_admin', 0);
     }
+
     public function scopeSuperAdmin($query) {
         return $query->where('is_super_admin', 1);
     }
@@ -66,6 +68,7 @@ class Admin extends Authenticatable {
 
         return $permissions;
     }
+
     public static function getPermissionGroupsWithPermissions() {
         return DB::table('permissions')
             ->select('group_name', 'id', 'name')

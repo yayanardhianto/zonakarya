@@ -31,7 +31,7 @@
                             </div>
                             <div class="blog__details-content details-text">
                                 <div class="blog-post-meta">
-                                    <ul class="list-wrap">
+                                    <ul class="list-wrap p-0">
                                         <li>{{ formattedDate($blog?->created_at) }}</li>
                                         <li>
                                             <a

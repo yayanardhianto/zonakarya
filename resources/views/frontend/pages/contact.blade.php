@@ -9,7 +9,22 @@
 
 @section('contents')
     <!-- Breadcumb Area -->
-    <x-breadcrumb :image="$setting?->contact_page_breadcrumb_image" :title="__('Contact')" />
+    <x-breadcrumb :image="$setting?->contact_page_breadcrumb_image" :title="$contactSection?->breadcrumb_title ?? __('Contact')" />
+
+    @if($contactSection?->page_title)
+    <!-- Page Title Area -->
+    <div class="page-title-area space">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="page-title text-center">
+                        <h1 class="sec-title">{{ $contactSection->page_title }}</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Feature Area -->
     <div class="feature-area-1 space">
@@ -22,14 +37,14 @@
                         </div>
                         <div class="feature-card-details">
                             <h4 class="feature-card-title">
-                                <a href="javascript:;">{{ __('Headquarters') }}</a>
+                                <a href="javascript:;">{{ $contactSection?->headquarters_title ?? __('Headquarters') }}</a>
                             </h4>
                             <p class="feature-card-text contact-page-address">{{ $contactSection?->address }}</p>
 
                             <a href="{{ asset($contactSection?->map) }}" target="_blank" class="link-btn">
                                 <span class="link-effect">
-                                    <span class="effect-1">{{ __('Get direction') }}</span>
-                                    <span class="effect-1">{{ __('Get direction') }}</span>
+                                    <span class="effect-1">{{ $contactSection?->get_direction_text ?? __('Get direction') }}</span>
+                                    <span class="effect-1">{{ $contactSection?->get_direction_text ?? __('Get direction') }}</span>
                                 </span>
                                 <img src="{{ asset('frontend/images/arrow-left-top.svg') }}" alt="icon">
                             </a>
@@ -43,14 +58,16 @@
                         </div>
                         <div class="feature-card-details">
                             <h4 class="feature-card-title">
-                                <a href="javascript:;">{{ __('Email Address') }}</a>
+                                <a href="javascript:;">{{ $contactSection?->email_title ?? __('Email Address') }}</a>
                             </h4>
                             <p class="feature-card-text mb-0">{{ $contactSection?->email }}</p>
-                            <p class="feature-card-text">{{ $contactSection?->email_two }}</p>
+                            @if($contactSection?->show_second_email && $contactSection?->email_two)
+                                <p class="feature-card-text">{{ $contactSection?->email_two }}</p>
+                            @endif
                             <a href="mailto:{{ $contactSection?->email }}" class="link-btn">
                                 <span class="link-effect">
-                                    <span class="effect-1">{{ __('Send message') }}</span>
-                                    <span class="effect-1">{{ __('Send message') }}</span>
+                                    <span class="effect-1">{{ $contactSection?->send_message_text ?? __('Send message') }}</span>
+                                    <span class="effect-1">{{ $contactSection?->send_message_text ?? __('Send message') }}</span>
                                 </span>
                                 <img src="{{ asset('frontend/images/arrow-left-top.svg') }}" alt="icon">
                             </a>
@@ -64,15 +81,17 @@
                         </div>
                         <div class="feature-card-details">
                             <h4 class="feature-card-title">
-                                <a href="javascript:;">{{ __('Phone Number') }}</a>
+                                <a href="javascript:;">{{ $contactSection?->phone_title ?? __('Phone Number') }}</a>
                             </h4>
                             <p class="feature-card-text mb-0">{{ $contactSection?->phone }} </p>
-                            <p class="feature-card-text">{{ $contactSection?->phone_two }} </p>
+                            @if($contactSection?->show_second_phone && $contactSection?->phone_two)
+                                <p class="feature-card-text">{{ $contactSection?->phone_two }} </p>
+                            @endif
 
                             <a href="tel:{{ $contactSection?->phone }}" class="link-btn">
                                 <span class="link-effect">
-                                    <span class="effect-1">{{ __('Call anytime') }}</span>
-                                    <span class="effect-1">{{ __('Call anytime') }}</span>
+                                    <span class="effect-1">{{ $contactSection?->call_anytime_text ?? __('Call anytime') }}</span>
+                                    <span class="effect-1">{{ $contactSection?->call_anytime_text ?? __('Call anytime') }}</span>
                                 </span>
                                 <img src="{{ asset('frontend/images/arrow-left-top.svg') }}" alt="icon">
                             </a>
@@ -94,38 +113,40 @@
                 <div class="col-lg-6">
                     <div class="contact-form-wrap">
                         <div class="title-area mb-30">
-                            <h2 class="sec-title">{{ __('Have Any Project on Your Mind?') }}</h2>
-                            <p>{{ __("Great! We're excited to hear from you and let's start something") }}</p>
+                            <h2 class="sec-title">{{ $contactSection?->form_title ?? __('Have Any Project on Your Mind?') }}</h2>
+                            <p>{{ $contactSection?->form_subtitle ?? __("Great! We're excited to hear from you and let's start something") }}</p>
                         </div>
                         <form action="{{ route('send-contact-message') }}" id="contact-form" class="contact-form">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <input type="text" class="form-control style-border text-white" name="name"
-                                            placeholder="{{ __('Full name') }}*" value="{{ old('name') }}" required>
+                                            placeholder="{{ $contactSection?->full_name_label ?? __('Full name') }}*" value="{{ old('name') }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <input type="email" class="form-control style-border text-white" name="email"
-                                            placeholder="{{ __('Email address') }}*" value="{{ old('email') }}" required>
+                                            placeholder="{{ $contactSection?->email_label ?? __('Email address') }}*" value="{{ old('email') }}" required>
                                     </div>
                                 </div>
+                                @if($contactSection?->show_website_field)
                                 <div class="col-lg-12">
                                     <div class="form-group">
                                         <input type="text" class="form-control style-border text-white" name="website"
-                                            placeholder="{{ __('Website link') }}" value="{{ old('website') }}">
+                                            placeholder="{{ $contactSection?->website_label ?? __('Website link') }}" value="{{ old('website') }}">
                                     </div>
                                 </div>
+                                @endif
                                 <div class="col-lg-12">
                                     <div class="form-group">
                                         <input type="text" class="form-control style-border text-white" name="subject"
-                                            placeholder="{{ __('Subject') }}*" value="{{ old('subject') }}" required>
+                                            placeholder="{{ $contactSection?->subject_label ?? __('Subject') }}*" value="{{ old('subject') }}" required>
                                     </div>
                                 </div>
                                 <div class="col-lg-12">
                                     <div class="form-group">
-                                        <textarea name="message" placeholder="{{ __('How Can We Help You') }}*" class="form-control style-border text-white" required>{{ old('message') }}</textarea>
+                                        <textarea name="message" placeholder="{{ $contactSection?->message_label ?? __('How Can We Help You') }}*" class="form-control style-border text-white" required>{{ old('message') }}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -137,8 +158,8 @@
                             <div class="form-btn col-12">
                                 <button type="submit" class="btn mt-20">
                                     <span class="link-effect text-uppercase">
-                                        <span class="effect-1">{{ __('Send message') }}</span>
-                                        <span class="effect-1">{{ __('Send message') }}</span>
+                                        <span class="effect-1">{{ $contactSection?->submit_button_text ?? __('Send message') }}</span>
+                                        <span class="effect-1">{{ $contactSection?->submit_button_text ?? __('Send message') }}</span>
                                     </span>
                                 </button>
                             </div>

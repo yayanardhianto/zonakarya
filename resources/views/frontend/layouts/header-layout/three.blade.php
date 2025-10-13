@@ -19,9 +19,7 @@
                             
 
                             <button type="button" class="menu-toggle sidebar-btn" aria-label="hamburger">
-                                <span class="line"></span>
-                                <span class="line"></span>
-                                <span class="line"></span>
+                                <i class="fa fa-bars fs-3"></i>
                             </button>
                         </div>
                     </div>
@@ -36,8 +34,8 @@
                                 @if($hasApplications)
                                     <a href="{{ route('applicant.status') }}" class="btn">
                                         <span class="link-effect text-uppercase">
-                                            <span class="effect-1">{{ __('My Applications') }}</span>
-                                            <span class="effect-1">{{ __('My Applications') }}</span>
+                                            <span class="effect-1">{{ __('LamaranKerja Saya') }}</span>
+                                            <span class="effect-1">{{ __('LamaranKerja Saya') }}</span>
                                         </span>
                                     </a>
                                 @else

@@ -10,6 +10,7 @@ class JobVacancy extends Model
     use HasFactory;
 
     protected $fillable = [
+        'unique_code',
         'position',
         'location',
         'location_id',
@@ -107,5 +108,39 @@ class JobVacancy extends Model
     public function applications()
     {
         return $this->hasMany(Application::class);
+    }
+
+    // Generate unique code
+    public static function generateUniqueCode()
+    {
+        $letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $numbers = '0123456789';
+        
+        do {
+            // Generate 2 random letters
+            $code = '';
+            for ($i = 0; $i < 2; $i++) {
+                $code .= $letters[rand(0, strlen($letters) - 1)];
+            }
+            
+            // Generate 2 random numbers
+            for ($i = 0; $i < 2; $i++) {
+                $code .= $numbers[rand(0, strlen($numbers) - 1)];
+            }
+            
+            // Shuffle the characters to make it non-sequential
+            $codeArray = str_split($code);
+            shuffle($codeArray);
+            $code = implode('', $codeArray);
+            
+        } while (self::where('unique_code', $code)->exists());
+        
+        return $code;
+    }
+
+    // Route model binding using unique_code
+    public function getRouteKeyName()
+    {
+        return 'unique_code';
     }
 }

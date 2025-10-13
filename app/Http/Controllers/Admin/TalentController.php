@@ -16,10 +16,13 @@ class TalentController extends Controller
      */
     public function index(Request $request)
     {
-        // Get unique talents grouped by user_id
+        // Get unique talents grouped by user_id, excluding those who are onboard
         $query = Talent::with(['user', 'applicant', 'applications.jobVacancy'])
             ->selectRaw('talents.*, MAX(talents.created_at) as latest_created_at')
             ->whereNotNull('user_id')
+            ->whereDoesntHave('applications', function ($q) {
+                $q->where('status', 'onboard');
+            })
             ->groupBy('user_id');
 
         // Filter by search name

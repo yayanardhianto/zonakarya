@@ -83,6 +83,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         Route::post('test-package/{testPackage}/duplicate', [TestPackageController::class, 'duplicate'])->name('test-package.duplicate');
         Route::post('test-package/{testPackage}/randomize-questions', [TestPackageController::class, 'randomizeQuestions'])->name('test-package.randomize-questions');
         Route::post('test-package/{testPackage}/set-custom-order', [TestPackageController::class, 'setCustomOrder'])->name('test-package.set-custom-order');
+        Route::post('test-package/{testPackage}/update-fixed-question', [TestPackageController::class, 'updateFixedQuestion'])->name('test-package.update-fixed-question');
         Route::post('test-package/{testPackage}/update-question-time', [TestPackageController::class, 'updateQuestionTime'])->name('test-package.update-question-time');
         Route::post('test-package/{testPackage}/bulk-update-question-times', [TestPackageController::class, 'bulkUpdateQuestionTimes'])->name('test-package.bulk-update-question-times');
         Route::post('test-package/{testPackage}/toggle-time-per-question', [TestPackageController::class, 'toggleTimePerQuestion'])->name('test-package.toggle-time-per-question');
@@ -115,6 +116,9 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         
         // Talents Routes
         Route::resource('talents', \App\Http\Controllers\Admin\TalentController::class);
+        
+        // Onboard Routes
+        Route::get('onboard', [\App\Http\Controllers\Admin\OnboardController::class, 'index'])->name('onboard.index');
         Route::post('talents/{talent}/reapply', [\App\Http\Controllers\Admin\TalentController::class, 'reapply'])->name('talents.reapply');
         
         // WhatsApp Templates Routes

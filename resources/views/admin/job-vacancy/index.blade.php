@@ -60,7 +60,7 @@
                                                     <td>{{ $job->created_at->format('d M Y') }}</td>
                                                     <td>
                                                         <div class="btn-group" role="group">
-                                                            <a href="{{ route('admin.job-vacancy.show', $job->id) }}" 
+                                                            <a href="{{ route('admin.job-vacancy.show', $job->unique_code) }}" 
                                                                class="btn btn-sm btn-info" 
                                                                data-toggle="tooltip" title="{{ __('View') }}">
                                                                 <i class="fas fa-eye"></i>
@@ -70,12 +70,12 @@
                                                                data-toggle="tooltip" title="{{ __('View Applicants') }}">
                                                                 <i class="fas fa-users"></i>
                                                             </a>
-                                                            <a href="{{ route('admin.job-vacancy.edit', $job->id) }}" 
+                                                            <a href="{{ route('admin.job-vacancy.edit', $job->unique_code) }}" 
                                                                class="btn btn-sm btn-primary" 
                                                                data-toggle="tooltip" title="{{ __('Edit') }}">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
-                                                            <form action="{{ route('admin.job-vacancy.toggle-status', $job->id) }}" 
+                                                            <form action="{{ route('admin.job-vacancy.toggle-status', $job->unique_code) }}" 
                                                                   method="POST" class="d-inline">
                                                                 @csrf
                                                                 @method('PATCH')
@@ -86,7 +86,7 @@
                                                                     <i class="fas fa-{{ $job->status === 'active' ? 'pause' : 'play' }}"></i>
                                                                 </button>
                                                             </form>
-                                                            <form action="{{ route('admin.job-vacancy.destroy', $job->id) }}" 
+                                                            <form action="{{ route('admin.job-vacancy.destroy', $job->unique_code) }}" 
                                                                   method="POST" class="d-inline"
                                                                   onsubmit="return confirm('{{ __('Are you sure you want to delete this job vacancy?') }}')">
                                                                 @csrf

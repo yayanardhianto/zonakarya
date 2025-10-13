@@ -168,6 +168,7 @@ select.form-control:not([size]):not([multiple]) {
     font-weight: 600;
     color: #34395e;
     font-size: 12px;
+    margin-bottom: 5px;
     letter-spacing: .5px; }
   .form-group.floating-addon {
     position: relative; }

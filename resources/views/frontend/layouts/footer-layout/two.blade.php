@@ -4,7 +4,7 @@
             <div class="row align-items-center justify-content-between">
                 <div class="col-lg-6">
                     <h2 class="footer-top-title">
-                        {{ __('Let’s Collaborate') }}
+                        {{ __('Have Any Thing in your mind?') }}
                     </h2>
                 </div>
                 <div class="col-lg-5">

@@ -22,7 +22,7 @@
                         </div>
                         <div class="card-body text-center">
                             @if($applicant->photo_path)
-                                <img src="{{ asset('storage/' . $applicant->photo_path) }}" 
+                                <img src="{{ asset('uploads/store/' . $applicant->photo_path) }}" 
                                      alt="{{ $applicant->name }}" 
                                      class="rounded-circle mb-3" 
                                      width="120" height="120"
@@ -74,12 +74,29 @@
                         </div>
                         <div class="card-body">
                             @if($applicant->cv_path)
-                                <a href="{{ route('admin.applicants.download-cv', $applicant) }}" 
-                                   class="btn btn-success btn-block mb-2">
-                                    <i class="fas fa-download"></i> {{ __('Download CV') }}
-                                </a>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <a href="{{ route('admin.applicants.download-cv', $applicant) }}" 
+                                           class="btn btn-success btn-block mb-2">
+                                            <i class="fas fa-download"></i> {{ __('Download CV') }}
+                                        </a>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <button type="button" class="btn btn-primary btn-block mb-2" 
+                                                onclick="viewCv({{ $applicant->id }})">
+                                            <i class="fas fa-eye"></i> {{ __('View CV') }}
+                                        </button>
+                                    </div>
+                                    @if($applicant->photo_path)
+                                        <div class="col-md-12">
+                                            <button type="button" class="btn btn-info btn-block mb-2" 
+                                                    onclick="viewPhoto({{ $applicant->id }})">
+                                                <i class="fas fa-image"></i> {{ __('View Photo') }}
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
                             @endif
-                            
                         </div>
                     </div>
                 </div>
@@ -383,5 +400,73 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// CV View Modal Functions
+function viewCv(applicantId) {
+    // Show CV in modal
+    const modal = document.getElementById('cvModal');
+    const cvFrame = document.getElementById('cvFrame');
+    cvFrame.src = `/admin/applicants/${applicantId}/view-cv`;
+    modal.style.display = 'block';
+}
+
+function closeCvModal() {
+    document.getElementById('cvModal').style.display = 'none';
+    document.getElementById('cvFrame').src = '';
+}
+
+// Photo View Modal Functions
+function viewPhoto(applicantId) {
+    // Show Photo in modal
+    const modal = document.getElementById('photoModal');
+    const photoImg = document.getElementById('photoImg');
+    photoImg.src = `/admin/applicants/${applicantId}/view-photo`;
+    modal.style.display = 'block';
+}
+
+function closePhotoModal() {
+    document.getElementById('photoModal').style.display = 'none';
+    document.getElementById('photoImg').src = '';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const cvModal = document.getElementById('cvModal');
+    const photoModal = document.getElementById('photoModal');
+    
+    if (event.target == cvModal) {
+        closeCvModal();
+    }
+    
+    if (event.target == photoModal) {
+        closePhotoModal();
+    }
+}
 </script>
 @endpush
+
+<!-- CV View Modal -->
+<div id="cvModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; height: 80%; border-radius: 8px;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>{{ __('View CV') }}</h3>
+            <span class="close" onclick="closeCvModal()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div class="modal-body" style="height: calc(100% - 60px);">
+            <iframe id="cvFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Photo View Modal -->
+<div id="photoModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 2% auto; padding: 20px; border: 1px solid #888; width: 70%; height: 90%; border-radius: 8px; position: relative;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>{{ __('View Photo') }}</h3>
+            <span class="close" onclick="closePhotoModal()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div class="modal-body" style="height: calc(100% - 60px); display: flex; align-items: center; justify-content: center;">
+            <img id="photoImg" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;" alt="Applicant Photo">
+        </div>
+    </div>
+</div>

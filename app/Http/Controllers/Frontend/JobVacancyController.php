@@ -54,7 +54,15 @@ class JobVacancyController extends Controller
         // Increment views
         $jobVacancy->incrementViews();
 
-        return view('frontend.job-vacancy.show', compact('jobVacancy'));
+        // Get user data if logged in
+        $user = auth()->user();
+        $applicant = null;
+        
+        if ($user) {
+            $applicant = \App\Models\Applicant::where('user_id', $user->id)->first();
+        }
+
+        return view('frontend.job-vacancy.show', compact('jobVacancy', 'user', 'applicant'));
     }
 
     /**

@@ -97,32 +97,62 @@ class ProfileController extends Controller
 
     public function update_password(Request $request)
     {
-        $rules = [
-            'current_password' => 'required',
-            'password'         => 'required|min:4|confirmed',
-        ];
-        $customMessages = [
-            'current_password.required' => __('Current password is required'),
-            'password.required'         => __('Password is required'),
-            'password.min'              => __('Password minimum 4 character'),
-            'password.confirmed'        => __('Confirm password does not match'),
-        ];
+        $user = userAuth();
+        
+        // Check if user has social login credentials
+        $hasSocialLogin = $user->socialite()->exists() || !empty($user->provider);
+        
+        if ($hasSocialLogin) {
+            // For social login users, only require new password
+            $rules = [
+                'password' => 'required|min:4|confirmed',
+            ];
+            $customMessages = [
+                'password.required'  => __('Password is required'),
+                'password.min'       => __('Password minimum 4 character'),
+                'password.confirmed' => __('Confirm password does not match'),
+            ];
+        } else {
+            // For regular users, require current password
+            $rules = [
+                'current_password' => 'required',
+                'password'         => 'required|min:4|confirmed',
+            ];
+            $customMessages = [
+                'current_password.required' => __('Current password is required'),
+                'password.required'         => __('Password is required'),
+                'password.min'              => __('Password minimum 4 character'),
+                'password.confirmed'        => __('Confirm password does not match'),
+            ];
+        }
+        
         $this->validate($request, $rules, $customMessages);
 
-        $user = userAuth();
-        if (Hash::check($request->current_password, $user->password)) {
+        if ($hasSocialLogin) {
+            // For social login users, just update the password
             $user->password = Hash::make($request->password);
             $user->save();
 
-            $notification = __('Password change successfully');
+            $notification = __('Password set successfully');
             $notification = ['message' => $notification, 'alert-type' => 'success'];
 
             return redirect()->route('user.dashboard')->with($notification);
         } else {
-            $notification = __('Current password does not match');
-            $notification = ['message' => $notification, 'alert-type' => 'error'];
+            // For regular users, verify current password first
+            if (Hash::check($request->current_password, $user->password)) {
+                $user->password = Hash::make($request->password);
+                $user->save();
 
-            return redirect()->back()->with($notification);
+                $notification = __('Password change successfully');
+                $notification = ['message' => $notification, 'alert-type' => 'success'];
+
+                return redirect()->route('user.dashboard')->with($notification);
+            } else {
+                $notification = __('Current password does not match');
+                $notification = ['message' => $notification, 'alert-type' => 'error'];
+
+                return redirect()->back()->with($notification);
+            }
         }
     }
 

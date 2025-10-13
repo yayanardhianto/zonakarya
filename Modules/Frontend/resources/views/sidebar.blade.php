@@ -9,9 +9,7 @@
                 'admin.counter-section.index',
                 'admin.choose-us-section.index',
                 'admin.testimonial-section.index',
-                'admin.contact-section.index',
                 'admin.award.index',
-                'admin.marquee.index',
                 'admin.service-features-section.index',
             ],
             'active',
@@ -43,11 +41,11 @@
                         {{ __('Testimonial Section') }}
                     </a>
                 </li> -->
-                <li class="{{ isRoute('admin.contact-section.index', 'active') }}">
+                <!-- <li class="{{ isRoute('admin.contact-section.index', 'active') }}">
                     <a class="nav-link" href="{{ route('admin.contact-section.index') }}">
                         {{ __('Contact Page Section') }}
                     </a>
-                </li>
+                </li> -->
             @endif
             @if (Module::isEnabled('Award') && checkAdminHasPermission('award.view'))
                 @include('award::sidebar')

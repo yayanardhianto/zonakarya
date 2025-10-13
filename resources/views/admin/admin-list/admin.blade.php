@@ -52,7 +52,7 @@
                                                     </td>
                                                     @adminCan('admin.update')
                                                         <td>
-                                                            <input class="change-status" data-href="{{route('admin.status',$admin->id)}}"
+                                                            <input class="change-status" data-href="{{route('admin.admin.status',$admin->id)}}"
                                                                 id="status_toggle" type="checkbox"
                                                                 {{ $admin->status == 'active' ? 'checked' : '' }}
                                                                 data-toggle="toggle" data-onlabel="{{ __('Active') }}"

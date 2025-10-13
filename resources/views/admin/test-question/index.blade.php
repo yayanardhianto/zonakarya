@@ -66,7 +66,7 @@
                                 <table class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
-                                            <th>{{ __('Order') }}</th>
+                                            <th>{{ __('No') }}</th>
                                             <th>{{ __('Question') }}</th>
                                             <th>{{ __('Type') }}</th>
                                             <th>{{ __('Points') }}</th>
@@ -79,9 +79,9 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @forelse($questions as $question)
+                                        @forelse($questions as $index => $question)
                                             <tr>
-                                                <td>{{ $question->order }}</td>
+                                                <td>{{ $questions->firstItem() + $index }}</td>
                                                 <td>
                                                     <div class="d-flex align-items-center">
                                                         @if($question->question_image)

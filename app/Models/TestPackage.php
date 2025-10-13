@@ -24,7 +24,11 @@ class TestPackage extends Model
         'question_order',
         'enable_time_per_question',
         'time_per_question_seconds',
-        'randomize_questions'
+        'randomize_questions',
+        'fix_first_question',
+        'fix_last_question',
+        'fixed_first_question_id',
+        'fixed_last_question_id'
     ];
 
     protected $casts = [
@@ -40,6 +44,10 @@ class TestPackage extends Model
         'enable_time_per_question' => 'boolean',
         'time_per_question_seconds' => 'integer',
         'randomize_questions' => 'boolean',
+        'fix_first_question' => 'boolean',
+        'fix_last_question' => 'boolean',
+        'fixed_first_question_id' => 'integer',
+        'fixed_last_question_id' => 'integer',
     ];
 
     public function scopeActive($query)
@@ -55,7 +63,8 @@ class TestPackage extends Model
     public function questions()
     {
         return $this->belongsToMany(TestQuestion::class, 'test_package_question', 'test_package_id', 'test_question_id')
-                    ->withPivot('order', 'time_per_question_seconds');
+                    ->withPivot('order', 'time_per_question_seconds')
+                    ->select('test_questions.*');
     }
 
     // Keep the old relationship for backward compatibility
@@ -67,6 +76,16 @@ class TestPackage extends Model
     public function sessions()
     {
         return $this->hasMany(TestSession::class, 'package_id');
+    }
+
+    public function fixedFirstQuestion()
+    {
+        return $this->belongsTo(TestQuestion::class, 'fixed_first_question_id');
+    }
+
+    public function fixedLastQuestion()
+    {
+        return $this->belongsTo(TestQuestion::class, 'fixed_last_question_id');
     }
 
     public function getDurationFormattedAttribute()
@@ -101,20 +120,55 @@ class TestPackage extends Model
     public function getOrderedQuestions()
     {
         if ($this->randomize_questions) {
-            return $this->questions()->inRandomOrder()->get();
+            return $this->getRandomizedQuestionsWithFixed();
         }
 
-        if ($this->question_order && is_array($this->question_order)) {
-            $questionIds = $this->question_order;
-            $questions = $this->questions()->whereIn('test_questions.id', $questionIds)->get();
-            
-            // Sort by the order in question_order array
-            return $questions->sortBy(function ($question) use ($questionIds) {
-                return array_search($question->id, $questionIds);
-            })->values();
+        // Always use pivot.order for ordering, regardless of question_order array
+        return $this->questions()->orderBy('test_package_question.order')->get();
+    }
+
+    private function getRandomizedQuestionsWithFixed()
+    {
+        $allQuestions = $this->questions()->get();
+        $fixedFirst = null;
+        $fixedLast = null;
+        $randomQuestions = collect();
+
+        // Get fixed questions if enabled
+        if ($this->fix_first_question && $this->fixed_first_question_id) {
+            $fixedFirst = $allQuestions->where('id', $this->fixed_first_question_id)->first();
         }
 
-        return $this->questions()->get()->sortBy('pivot.order')->values();
+        if ($this->fix_last_question && $this->fixed_last_question_id) {
+            $fixedLast = $allQuestions->where('id', $this->fixed_last_question_id)->first();
+        }
+
+        // Get remaining questions for randomization
+        $remainingQuestions = $allQuestions->reject(function ($question) use ($fixedFirst, $fixedLast) {
+            return ($fixedFirst && $question->id === $fixedFirst->id) || 
+                   ($fixedLast && $question->id === $fixedLast->id);
+        });
+
+        // Randomize remaining questions
+        $randomQuestions = $remainingQuestions->shuffle();
+
+        // Build final order
+        $orderedQuestions = collect();
+
+        // Add fixed first question
+        if ($fixedFirst) {
+            $orderedQuestions->push($fixedFirst);
+        }
+
+        // Add randomized questions
+        $orderedQuestions = $orderedQuestions->merge($randomQuestions);
+
+        // Add fixed last question
+        if ($fixedLast) {
+            $orderedQuestions->push($fixedLast);
+        }
+
+        return $orderedQuestions;
     }
 
     public function setQuestionOrder(array $questionIds)

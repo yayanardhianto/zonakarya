@@ -10,39 +10,6 @@
                 __('Blog List') => route('admin.blogs.index'),
                 __('Edit Post') => '#',
             ]" />
-            <div class="section-body row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header gap-3 justify-content-between align-items-center">
-                            <h5 class="m-0 service_card">{{ __('Available Translations') }}</h5>
-                            @adminCan('blog.translate')
-                                @if ($code !== $languages->first()->code)
-                                    <x-admin.button id="translate-btn" :text="__('Translate')" />
-                                @endif
-                            @endadminCan
-                        </div>
-                        <div class="card-body">
-                            <div class="lang_list_top">
-                                <ul class="lang_list">
-                                    @foreach ($languages = allLanguages() as $language)
-                                        <li><a id="{{ request('code') == $language->code ? 'selected-language' : '' }}"
-                                                href="{{ route('admin.blogs.edit', ['blog' => $blog->id, 'code' => $language->code]) }}"><i
-                                                    class="fas {{ request('code') == $language->code ? 'fa-eye' : 'fa-edit' }}"></i>
-                                                {{ $language->name }}</a></li>
-                                    @endforeach
-                                </ul>
-                            </div>
-
-                            <div class="mt-2 alert alert-danger" role="alert">
-                                @php
-                                    $current_language = $languages->where('code', request()->get('code'))->first();
-                                @endphp
-                                <p>{{ __('Your editing mode') }}:<b> {{ $current_language?->name }}</b></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             <div class="section-body">
                 <div class="mt-4 row">
                     <div class="col-12">

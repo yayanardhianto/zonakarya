@@ -70,7 +70,7 @@ class TestPackageController extends Controller
 
     public function show(TestPackage $testPackage)
     {
-        $testPackage->load(['category', 'questions.options', 'sessions']);
+        $testPackage->load(['category', 'questions.options', 'sessions', 'fixedFirstQuestion', 'fixedLastQuestion']);
         return view('admin.test-package.show', compact('testPackage'));
     }
 
@@ -300,6 +300,100 @@ class TestPackageController extends Controller
                 : 'Time per question disabled. Using package total duration.',
             'enable_time_per_question' => $testPackage->enable_time_per_question,
             'formatted_duration' => $testPackage->getDurationFormattedWithQuestionTime()
+        ]);
+    }
+
+    public function updateFixedQuestion(Request $request, TestPackage $testPackage)
+    {
+        $request->validate([
+            'fix_first_question' => 'sometimes|boolean',
+            'fix_last_question' => 'sometimes|boolean',
+            'fixed_first_question_id' => 'nullable|exists:test_questions,id',
+            'fixed_last_question_id' => 'nullable|exists:test_questions,id'
+        ]);
+
+        // Validate that fixed questions belong to this package
+        if ($request->filled('fixed_first_question_id')) {
+            if (!$testPackage->questions()->where('test_questions.id', $request->fixed_first_question_id)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected first question does not belong to this package.'
+                ], 422);
+            }
+        }
+
+        if ($request->filled('fixed_last_question_id')) {
+            if (!$testPackage->questions()->where('test_questions.id', $request->fixed_last_question_id)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Selected last question does not belong to this package.'
+                ], 422);
+            }
+        }
+
+        // Prevent same question being fixed as both first and last
+        if ($request->filled('fixed_first_question_id') && $request->filled('fixed_last_question_id')) {
+            if ($request->fixed_first_question_id == $request->fixed_last_question_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'First and last question cannot be the same.'
+                ], 422);
+            }
+        }
+
+        // Ensure only one question can be selected for each type
+        if ($request->filled('fixed_first_question_id') && $request->fix_first_question) {
+            // Clear any other first question selections
+            $testPackage->update(['fixed_first_question_id' => null]);
+        }
+
+        if ($request->filled('fixed_last_question_id') && $request->fix_last_question) {
+            // Clear any other last question selections
+            $testPackage->update(['fixed_last_question_id' => null]);
+        }
+
+        $updateData = [];
+        
+        if ($request->has('fix_first_question')) {
+            $updateData['fix_first_question'] = $request->fix_first_question;
+            if (!$request->fix_first_question) {
+                $updateData['fixed_first_question_id'] = null;
+            }
+        }
+        
+        if ($request->has('fix_last_question')) {
+            $updateData['fix_last_question'] = $request->fix_last_question;
+            if (!$request->fix_last_question) {
+                $updateData['fixed_last_question_id'] = null;
+            }
+        }
+        
+        if ($request->has('fixed_first_question_id')) {
+            $updateData['fixed_first_question_id'] = $request->fixed_first_question_id;
+        }
+        
+        if ($request->has('fixed_last_question_id')) {
+            $updateData['fixed_last_question_id'] = $request->fixed_last_question_id;
+        }
+
+        $testPackage->update($updateData);
+
+        $message = 'Fixed question settings updated successfully.';
+        if ($testPackage->fix_first_question && $testPackage->fix_last_question) {
+            $message .= ' First and last questions are now fixed in position.';
+        } elseif ($testPackage->fix_first_question) {
+            $message .= ' First question is now fixed in position.';
+        } elseif ($testPackage->fix_last_question) {
+            $message .= ' Last question is now fixed in position.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'fix_first_question' => $testPackage->fix_first_question,
+            'fix_last_question' => $testPackage->fix_last_question,
+            'fixed_first_question_id' => $testPackage->fixed_first_question_id,
+            'fixed_last_question_id' => $testPackage->fixed_last_question_id
         ]);
     }
 
