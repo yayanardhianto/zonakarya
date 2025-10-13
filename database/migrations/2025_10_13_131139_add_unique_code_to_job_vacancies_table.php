@@ -12,6 +12,13 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // First, add the column if it doesn't exist
+        if (!Schema::hasColumn('job_vacancies', 'unique_code')) {
+            Schema::table('job_vacancies', function (Blueprint $table) {
+                $table->string('unique_code', 4)->nullable();
+            });
+        }
+        
         // Generate unique codes for existing records that don't have one
         $jobs = \App\Models\JobVacancy::whereNull('unique_code')->orWhere('unique_code', '')->get();
         foreach ($jobs as $job) {
