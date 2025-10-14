@@ -36,6 +36,12 @@
         <span>{{ __('Footer Settings') }}</span>
     </a>
 </li> -->
+
+<!-- <li class="{{ Route::is('admin.job-listing-setting') ? 'active' : '' }}">
+    <a class="nav-link" href="{{ route('admin.job-listing-setting') }}"><i class="fas fa-briefcase"></i>
+        <span>{{ __('Job Listing Settings') }}</span>
+    </a>
+</li> -->
 <!-- @if (Module::isEnabled('Sitemap') && checkAdminHasPermission('sitemap.management'))
     @include('sitemap::sidebar')
 @endif -->

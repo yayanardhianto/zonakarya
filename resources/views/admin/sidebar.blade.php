@@ -93,6 +93,11 @@
                         <span>{{ __('Footer Sections') }}</span>
                     </a>
                 </li>
+                <li class="{{ Route::is('admin.job-listing-setting') ? 'active' : '' }}">
+                    <a class="nav-link" href="{{ route('admin.job-listing-setting') }}"><i class="fas fa-briefcase"></i>
+                        <span>{{ __('Job Page Sections') }}</span>
+                    </a>
+                </li>
 
                 @if (checkAdminHasPermission('menu.view') ||
                     checkAdminHasPermission('page.view') ||

@@ -125,7 +125,8 @@
                     'admin.basicpayment',
                     'admin.addons.*',
                     'admin.sitemap.*',
-                    'admin.role.*'))
+                    'admin.role.*'
+                    ))
                 @include('admin.settings.sidebar')
             @else
                 @include('admin.sidebar')

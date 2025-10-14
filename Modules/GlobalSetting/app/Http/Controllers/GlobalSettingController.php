@@ -778,6 +778,37 @@ class GlobalSettingController extends Controller
         return redirect()->back()->with($notification);
     }
 
+    public function job_listing_setting()
+    {
+        checkAdminHasPermissionAndThrowException('setting.view');
+        
+        return view('globalsetting::settings.job_listing_setting');
+    }
+
+    public function update_job_listing_setting(Request $request)
+    {
+        checkAdminHasPermissionAndThrowException('setting.update');
+
+        $request->validate([
+            'job_listing_title' => 'required|string|max:255',
+            'job_listing_description' => 'required|string|max:1000',
+        ], [
+            'job_listing_title.required' => __('Job listing title is required'),
+            'job_listing_description.required' => __('Job listing description is required'),
+        ]);
+
+        foreach ($request->except('_token') as $key => $value) {
+            Setting::where('key', $key)->update(['value' => $value]);
+        }
+
+        Cache::forget('setting');
+
+        $notification = __('Update Successfully');
+        $notification = ['message' => $notification, 'alert-type' => 'success'];
+
+        return redirect()->back()->with($notification);
+    }
+
     public function systemUpdate()
     {
         $zipLoaded = extension_loaded('zip');
