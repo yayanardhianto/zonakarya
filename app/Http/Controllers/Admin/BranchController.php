@@ -7,6 +7,7 @@ use App\Models\Branch;
 use Modules\Service\app\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class BranchController extends Controller
@@ -182,5 +183,45 @@ class BranchController extends Controller
         $branch->update(['status' => $request->status]);
 
         return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
+    }
+
+    /**
+     * Get current wording settings from the first active branch.
+     */
+    public function getWording(): JsonResponse
+    {
+        checkAdminHasPermissionAndThrowException('branch.view');
+        
+        $branch = Branch::active()->first();
+        
+        return response()->json([
+            'success' => true,
+            'section_title' => $branch?->section_title ?? 'Our Store Locations',
+            'section_description' => $branch?->section_description ?? 'Select a store to view its location and details'
+        ]);
+    }
+
+    /**
+     * Update wording settings for all branches.
+     */
+    public function updateWording(Request $request): JsonResponse
+    {
+        checkAdminHasPermissionAndThrowException('branch.edit');
+
+        $request->validate([
+            'section_title' => 'nullable|string|max:255',
+            'section_description' => 'nullable|string',
+        ]);
+
+        // Update all active branches with the same wording
+        Branch::active()->update([
+            'section_title' => $request->section_title,
+            'section_description' => $request->section_description,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Section wording updated successfully!'
+        ]);
     }
 }

@@ -32,7 +32,7 @@ a:not(.btn-social-icon):not(.btn-social):not(.page-link) .ki-duotone
   background-color: #ec2128 !important; }
 
 .bg-secondary {
-  background-color: #cdd3d8 !important; }
+  background-color: #aeaeae !important; }
 
 .bg-success {
   background-color: #47c363 !important; }
@@ -124,7 +124,9 @@ select.form-control:not([size]):not([multiple]),
   height: 42px; }
 
 textarea.form-control {
-  height: 64px; }
+  height: auto;
+  min-height: calc(1.5em * 3);
+ }
 
 
 textarea#template {

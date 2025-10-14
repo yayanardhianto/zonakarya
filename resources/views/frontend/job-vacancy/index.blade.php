@@ -172,11 +172,16 @@
                                                         </div>
                                                     @endif
                                                     <div class="flex-grow-1 ms-3">
-                                                        <h5 class="job-title mb-0">
-                                                            <a href="{{ route('jobs.show', $job->unique_code) }}" class="text-decoration-none">
-                                                                {{ $job->position }}
-                                                            </a>
-                                                        </h5>
+                                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                                            <h5 class="job-title mb-0 me-2">
+                                                                <a href="{{ route('jobs.show', $job->unique_code) }}" class="text-decoration-none">
+                                                                    {{ $job->position }}
+                                                                </a>
+                                                            </h5>
+                                                            <span class="position-relative mb-3 badge badge-sm badge-light-{{ $job->work_type == 'Full-Time' ? 'primary' : ($job->work_type == 'Part-Time' ? 'success' : ($job->work_type == 'Contract' ? 'warning' : ($job->work_type == 'Freelance' ? 'info' : 'secondary'))) }}">
+                                                                {{ $job->work_type }}
+                                                            </span>
+                                                        </div>
                                                         <p class="job-location text-muted mb-0">
                                                             <i class="ki-outline ki-geolocation me-2"></i> {{ $job->location }}
                                                         </p>

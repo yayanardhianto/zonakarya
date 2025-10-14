@@ -104,6 +104,7 @@
                                     @enderror
                                 </div>
 
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
@@ -149,3 +150,20 @@
     </section>
 </div>
 @endsection
+@push('js')
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+        const textareas = document.querySelectorAll('textarea.form-control');
+        
+        textareas.forEach(function(textarea) {
+            // Only auto-resize on initial load to fit content
+            if (textarea.value.trim()) {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            }
+        });
+    });
+
+</script>
+
+@endpush

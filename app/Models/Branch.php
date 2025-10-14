@@ -17,6 +17,8 @@ class Branch extends Model
         'province',
         'map',
         'description',
+        'section_title',
+        'section_description',
         'status',
         'order'
     ];

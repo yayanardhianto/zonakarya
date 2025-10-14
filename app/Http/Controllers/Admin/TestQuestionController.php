@@ -24,10 +24,19 @@ class TestQuestionController extends Controller
         
         $query = TestQuestion::with(['packages', 'options']);
         
-        // If package_id is provided, show all questions (not just those in the package)
-        // The view will handle showing which questions are in the package
+        // If package_id is provided, order questions so that those in the package appear first
+        if ($packageId) {
+            $query->orderByRaw("CASE WHEN EXISTS (
+                SELECT 1 FROM test_package_question 
+                WHERE test_package_question.test_question_id = test_questions.id 
+                AND test_package_question.test_package_id = ?
+            ) THEN 0 ELSE 1 END", [$packageId])
+            ->orderBy('order');
+        } else {
+            $query->orderBy('order');
+        }
         
-        $questions = $query->orderBy('order')->paginate(10)->withQueryString();
+        $questions = $query->paginate(10)->withQueryString();
         // $questions = $query->orderBy('order')->paginate(10);
         $packages = TestPackage::active()->get();
         

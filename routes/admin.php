@@ -61,6 +61,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         // Branch Management Routes
         Route::resource('branch', BranchController::class);
         Route::put('branch-status/{id}', [BranchController::class, 'statusUpdate'])->name('branch.status');
+        Route::get('branch-wording', [BranchController::class, 'getWording'])->name('branch.get-wording');
+        Route::post('branch-wording', [BranchController::class, 'updateWording'])->name('branch.update-wording');
         
         // Location Management Routes
         Route::resource('location', \App\Http\Controllers\Admin\LocationController::class);

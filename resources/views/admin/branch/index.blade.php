@@ -19,6 +19,9 @@
                             <h4>{{ __('All Branches') }}</h4>
                             @if(checkAdminHasPermission('branch.create'))
                                 <div class="card-header-action">
+                                    <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#editWordingModal">
+                                        <i class="fas fa-edit"></i> {{ __('Edit Wording') }}
+                                    </button>
                                     <a href="{{ route('admin.branch.create') }}" class="btn btn-primary">
                                         <i class="fas fa-plus"></i> {{ __('Add New Branch') }}
                                     </a>
@@ -169,6 +172,128 @@ function changeStatus(id, status) {
     .catch(error => {
         console.error('Error:', error);
         toastr.error('Something went wrong!');
+    });
+}
+</script>
+
+<!-- Edit Wording Modal -->
+<div class="modal fade" id="editWordingModal" tabindex="-1" aria-labelledby="editWordingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editWordingModalLabel">
+                    <i class="fas fa-edit"></i> {{ __('Edit Section Wording') }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="wordingForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>{{ __('Note:') }}</strong> 
+                        {{ __('These settings control the wording displayed in the contact us area section on the homepage.') }}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal_section_title">{{ __('Section Title') }}</label>
+                        <input type="text" name="section_title" id="modal_section_title" 
+                               class="form-control" 
+                               placeholder="{{ __('Enter section title') }}">
+                        <small class="form-text text-muted">{{ __('This will be displayed as the main title of the contact us area section') }}</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal_section_description">{{ __('Section Description') }}</label>
+                        <textarea name="section_description" id="modal_section_description" rows="3" 
+                                  class="form-control" 
+                                  placeholder="{{ __('Enter section description') }}"></textarea>
+                        <small class="form-text text-muted">{{ __('This will be displayed as the description below the section title') }}</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> {{ __('Cancel') }}
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="saveWordingBtn">
+                        <i class="fas fa-save"></i> {{ __('Save Changes') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load current wording when modal opens
+    document.getElementById('editWordingModal').addEventListener('show.bs.modal', function() {
+        loadCurrentWording();
+    });
+
+    // Handle form submission
+    document.getElementById('wordingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveWording();
+    });
+});
+
+function loadCurrentWording() {
+    fetch('{{ route("admin.branch.get-wording") }}', {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('modal_section_title').value = data.section_title || '';
+            document.getElementById('modal_section_description').value = data.section_description || '';
+        }
+    })
+    .catch(error => {
+        console.error('Error loading wording:', error);
+        toastr.error('Failed to load current wording');
+    });
+}
+
+function saveWording() {
+    const saveBtn = document.getElementById('saveWordingBtn');
+    const originalText = saveBtn.innerHTML;
+    
+    // Show loading state
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Saving...") }}';
+    saveBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('section_title', document.getElementById('modal_section_title').value);
+    formData.append('section_description', document.getElementById('modal_section_description').value);
+    formData.append('_token', '{{ csrf_token() }}');
+
+    fetch('{{ route("admin.branch.update-wording") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            toastr.success(data.message || 'Wording updated successfully!');
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editWordingModal'));
+            modal.hide();
+        } else {
+            toastr.error(data.message || 'Failed to update wording');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving wording:', error);
+        toastr.error('Something went wrong while saving');
+    })
+    .finally(() => {
+        // Restore button state
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
     });
 }
 </script>

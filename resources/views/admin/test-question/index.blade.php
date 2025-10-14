@@ -76,7 +76,7 @@
                                 <div class="alert alert-info alert-dismissible fade show" role="alert">
                                     <i class="fas fa-info-circle"></i>
                                     <strong>{{ __('Filter Active:') }}</strong> 
-                                    {{ __('Showing all questions with package filter applied. Export will include only questions in the selected package.') }}
+                                    {{ __('Questions in the selected package are shown at the top. Export will include only questions in the selected package.') }}
                                     <a href="{{ route('admin.test-question.index') }}" class="btn btn-sm btn-primary ms-2">
                                         <i class="fas fa-times"></i> {{ __('Clear Filter') }}
                                     </a>
@@ -101,7 +101,7 @@
                             </div>
 
                             <div class="table-responsive">
-                                <table class="table table-bordered table-striped">
+                                <table class="table table-bordered">
                                     <thead>
                                         <tr>
                                             <th>{{ __('No') }}</th>
@@ -118,7 +118,45 @@
                                     </thead>
                                     <tbody>
                                         @forelse($questions as $index => $question)
-                                            <tr>
+                                            @php
+                                                $isInPackage = $packageId ? $question->packages->contains($packageId) : false;
+                                                $isFirstInPackage = false;
+                                                $isFirstNotInPackage = false;
+                                                
+                                                if ($packageId) {
+                                                    if ($index === 0) {
+                                                        if ($isInPackage) {
+                                                            $isFirstInPackage = true;
+                                                        } else {
+                                                            $isFirstNotInPackage = true;
+                                                        }
+                                                    } else {
+                                                        $prevQuestion = $questions[$index-1];
+                                                        $prevInPackage = $prevQuestion->packages->contains($packageId);
+                                                        
+                                                        if ($isInPackage && !$prevInPackage) {
+                                                            $isFirstInPackage = true;
+                                                        } elseif (!$isInPackage && $prevInPackage) {
+                                                            $isFirstNotInPackage = true;
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
+                                            @if($isFirstInPackage)
+                                                <tr class="table-success">
+                                                    <td colspan="{{ $packageId ? '8' : '7' }}" class="text-center fw-bold">
+                                                            <i class="fas fa-check-circle me-1"></i> {{ __('QUESTIONS IN THIS PACKAGE') }}
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                            @if($isFirstNotInPackage)
+                                                <tr class="table-warning">
+                                                    <td colspan="{{ $packageId ? '8' : '7' }}" class="text-center fw-bold">
+                                                        <i class="fas fa-info-circle me-1"></i> {{ __('QUESTIONS NOT IN THIS PACKAGE') }}
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                            <tr class="{{ $isInPackage ? 'table-success' : '' }}">
                                                 <td>{{ $questions->firstItem() + $index }}</td>
                                                 <td>
                                                     <div class="d-flex align-items-center">

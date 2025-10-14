@@ -19,8 +19,8 @@
             <div class="col-lg-6">
                 <div class="branch-list-wrap">
                     <div class="title-area mb-30">
-                        <h2 class="sec-title">{{ __('Our Store Locations') }}</h2>
-                        <p>{{ __('Select a store to view its location and details') }}</p>
+                        <h2 class="sec-title">{{ $branches->first()?->section_title ?? __('Our Store Locations') }}</h2>
+                        <p>{{ $branches->first()?->section_description ?? __('Select a store to view its location and details') }}</p>
                     </div>
                     
                     @if($branches->count() > 0)

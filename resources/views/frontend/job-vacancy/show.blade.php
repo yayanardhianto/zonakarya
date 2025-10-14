@@ -51,6 +51,15 @@
                                     </p>
                                 </div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="detail-item mb-3">
+                                    <h6 class="text-muted mb-1">{{ __('Jenis Pekerjaan') }}</h6>
+                                    <p class="mb-0">
+                                        <i class="fas fa-briefcase text-secondary me-2"></i>
+                                        {{ $jobVacancy->work_type }}
+                                    </p>
+                                </div>
+                            </div>
                             @if($jobVacancy->show_salary)
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
