@@ -68,6 +68,13 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         // Test Management Routes
         Route::resource('test-category', TestCategoryController::class);
         Route::resource('test-package', TestPackageController::class);
+        
+        // Test Question custom routes (must be before resource route)
+        Route::post('test-question/import', [TestQuestionController::class, 'import'])->name('test-question.import');
+        Route::get('test-question/export-excel', [TestQuestionController::class, 'exportExcel'])->name('test-question.export-excel');
+        Route::get('test-question/export-pdf', [TestQuestionController::class, 'exportPdf'])->name('test-question.export-pdf');
+        Route::get('test-question/download-excel-template', [\App\Http\Controllers\Admin\ExcelTemplateController::class, 'downloadTestQuestionTemplate'])->name('test-question.download-excel-template');
+        
         Route::resource('test-question', TestQuestionController::class);
         Route::resource('test-session', TestSessionController::class)->only(['index', 'show', 'destroy']);
         Route::post('test-session/{testSession}/grade-essay', [TestSessionController::class, 'gradeEssay'])->name('test-session.grade-essay');

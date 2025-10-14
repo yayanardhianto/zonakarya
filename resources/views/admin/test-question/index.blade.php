@@ -30,10 +30,30 @@
                                         </a>
                                     @endif
                                     @if(checkAdminHasPermission('test.question.create'))
-                                        <a href="{{ route('admin.test-question.create', ['package_id' => $packageId]) }}" class="btn btn-primary">
+                                        <a href="{{ route('admin.test-question.create', ['package_id' => $packageId]) }}" class="btn btn-primary me-2">
                                             <i class="fas fa-plus"></i> {{ __('Add New Question') }}
                                         </a>
                                     @endif
+                                    <div class="btn-group me-2">
+                                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-download"></i> {{ __('Export') }}
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('admin.test-question.export-excel', ['package_id' => $packageId]) }}">
+                                                    <i class="fas fa-file-excel text-success"></i> {{ __('Export to Excel') }}
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('admin.test-question.export-pdf', ['package_id' => $packageId]) }}">
+                                                    <i class="fas fa-file-pdf text-danger"></i> {{ __('Export to PDF') }}
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importModal">
+                                        <i class="fas fa-upload"></i> {{ __('Import Questions') }}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -42,6 +62,24 @@
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                                     {{ session('success') }}
                                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
+
+                            @if(session('error'))
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    {{ session('error') }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
+
+                            @if($packageId)
+                                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>{{ __('Filter Active:') }}</strong> 
+                                    {{ __('Showing all questions with package filter applied. Export will include only questions in the selected package.') }}
+                                    <a href="{{ route('admin.test-question.index') }}" class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="fas fa-times"></i> {{ __('Clear Filter') }}
+                                    </a>
                                 </div>
                             @endif
 
@@ -114,7 +152,16 @@
                                                         <span class="text-muted">{{ __('No packages') }}</span>
                                                     @endif
                                                 </td>
-                                                <td>{{ $question->options->count() }}</td>
+                                                <td>
+                                                    @if($question->isForcedChoice())
+                                                        @php
+                                                            $traits = $question->getForcedChoiceTraits();
+                                                        @endphp
+                                                        {{ count($traits) }} traits
+                                                    @else
+                                                        {{ $question->options->count() }}
+                                                    @endif
+                                                </td>
                                                 @if($packageId)
                                                     <td>
                                                         @php
@@ -199,5 +246,82 @@
             </div>
         </div>
     </section>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">{{ __('Import Test Questions') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.test-question.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>{{ __('Import Format:') }}</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>{{ __('Supported formats: CSV, Excel (.xlsx, .xls)') }}</li>
+                            <li>{{ __('Maximum file size: 2MB') }}</li>
+                            <li>{{ __('Supported question types: essay, multiple_choice') }}</li>
+                        </ul>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="import_file" class="form-label">{{ __('Select File') }} <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="import_file" name="import_file" accept=".csv,.xlsx,.xls" required>
+                        <small class="form-text text-muted">
+                            {{ __('Download template:') }} 
+                            <a href="{{ asset('templates/test-questions-import-template.csv') }}" download class="text-primary me-2">
+                                <i class="fas fa-download"></i> {{ __('CSV Template') }}
+                            </a>
+                            <a href="{{ asset('templates/test-questions-import-template.xlsx') }}" download class="text-success me-2">
+                                <i class="fas fa-download"></i> {{ __('Excel Template') }}
+                            </a>
+                            <!-- <a href="{{ route('admin.test-question.download-excel-template') }}" class="text-info">
+                                <i class="fas fa-download"></i> {{ __('Excel Template (Dynamic)') }}
+                            </a> -->
+                        </small>
+                    </div>
+
+                    @if($packageId)
+                        <div class="form-group mb-3">
+                            <label for="package_id" class="form-label">{{ __('Add to Package') }}</label>
+                            <select class="form-select" id="package_id" name="package_id">
+                                <option value="">{{ __('No package (import as standalone questions)') }}</option>
+                                @foreach($packages as $package)
+                                    <option value="{{ $package->id }}" {{ $packageId == $package->id ? 'selected' : '' }}>
+                                        {{ $package->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>{{ __('File Format:') }}</strong>
+                        <br>
+                        <code>question_text,question_type,points,option_1,option_2,option_3,option_4,correct_answer</code>
+                        <br><br>
+                        <strong>{{ __('Example:') }}</strong>
+                        <br>
+                        <code>"Apa itu komunikasi?","essay",5,"","","","",""</code><br>
+                        <code>"Pilih jawaban benar","multiple_choice",3,"A","B","C","D","1"</code>
+                        <br><br>
+                        <strong>{{ __('Note:') }}</strong> {{ __('Excel template includes sample data and detailed instructions.') }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> {{ __('Import Questions') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 @endsection

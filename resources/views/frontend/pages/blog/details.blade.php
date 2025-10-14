@@ -51,7 +51,7 @@
                                     <div class="row align-items-center">
                                         <div class="col-md-7">
                                             <div class="post-tags">
-                                                <ul class="list-wrap">
+                                                <ul class="list-wrap p-0">
                                                     {!! $tagString !!}
                                                 </ul>
                                             </div>
