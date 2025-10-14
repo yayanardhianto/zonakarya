@@ -12,7 +12,7 @@
             <div class="col-md-8">
                 <div class="card border-0 shadow-sm">
                     <div class="card-header text-center bg-primary text-white">
-                        <h3 class="mb-0 text-white">{{ __('Ready to Start Test?') }}</h3>
+                        <h3 class="mb-0 text-white">{{ __('Siap Memulai Tes?') }}</h3>
                     </div>
                     <div class="card-body text-center">
                         <div class="mb-4">
@@ -25,7 +25,7 @@
                                 <div class="card bg-light">
                                     <div class="card-body">
                                         <i class="fas fa-clock fa-2x text-primary mb-2"></i>
-                                        <h5>{{ __('Duration') }}</h5>
+                                        <h5>{{ __('Durasi') }}</h5>
                                         <p class="mb-0">{{ $session->package->getDurationFormattedWithQuestionTime() }}</p>
                                     </div>
                                 </div>
@@ -34,8 +34,8 @@
                                 <div class="card bg-light">
                                     <div class="card-body">
                                         <i class="fas fa-question-circle fa-2x text-success mb-2"></i>
-                                        <h5>{{ __('Questions') }}</h5>
-                                        <p class="mb-0">{{ $session->package->total_questions }} {{ __('questions') }}</p>
+                                        <h5>{{ __('Pertanyaan') }}</h5>
+                                        <p class="mb-0">{{ $session->package->total_questions }} {{ __('pertanyaan') }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -43,7 +43,7 @@
                                 <div class="card bg-light">
                                     <div class="card-body">
                                         <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
-                                        <h5>{{ __('Passing Score') }}</h5>
+                                        <h5>{{ __('Nilai Kelulusan') }}</h5>
                                         <p class="mb-0">{{ $session->package->passing_score }}%</p>
                                     </div>
                                 </div>
@@ -51,17 +51,17 @@
                         </div>
 
                         <div class="alert alert-info">
-                            <h6><i class="fas fa-info-circle"></i> {{ __('Important Instructions') }}</h6>
+                            <h6><i class="fas fa-info-circle"></i> {{ __('Instruksi Penting') }}</h6>
                             <ul class="text-start mb-0">
-                                <li>{{ __('You cannot pause or stop the test once started') }}</li>
-                                <li>{{ __('Make sure you have a stable internet connection') }}</li>
-                                <li>{{ __('Do not refresh the page during the test') }}</li>
-                                <li>{{ __('Answer all questions before completing') }}</li>
+                                <li>{{ __('Anda tidak dapat melakukan pause atau menghentikan tes setelah dimulai') }}</li>
+                                <li>{{ __('Pastikan koneksi internet Anda stabil') }}</li>
+                                <li>{{ __('Jangan refresh halaman selama tes berlangsung') }}</li>
+                                <li>{{ __('Jawab semua pertanyaan sebelum klik Selesai') }}</li>
                             </ul>
                         </div>
 
                         <button type="button" class="btn btn-success btn-lg" id="start-test-btn">
-                            <i class="fas fa-play"></i> {{ __('Start Test') }}
+                            <i class="fas fa-play me-2"></i> {{ __('Mulai Tes') }}
                         </button>
                     </div>
                 </div>
@@ -83,17 +83,17 @@
                                 <div class="col-md-6">
                                     <div class="d-flex justify-content-md-end justify-content-start align-items-center flex-wrap">
                                         <div>
-                                            <span class="badge bg-primary fs-7">{{ __('Question') }} <span id="current-question-number">1</span> {{ __('of') }} {{ $session->package->total_questions }}</span>
+                                            <span class="badge bg-primary fs-7">{{ __('Pertanyaan') }} <span id="current-question-number">1</span> {{ __('dari') }} {{ $session->package->total_questions }}</span>
                                         </div>
                                         <div class="mt-4 me-4">
                                             <div class="text-start">
                                                 <div id="timer" class="fs-4 fw-bold text-danger"></div>
-                                                <small class="text-muted">{{ __('Time Remaining') }}</small>
+                                                <small class="text-muted">{{ __('Waktu Tersisa') }}</small>
                                             </div>
                                         </div>
                                         <div class="mt-4">
                                             <button id="fullscreen-btn" class="btn btn-outline-primary">
-                                                <i class="fas fa-expand"></i> {{ __('Fullscreen') }}
+                                                <i class="fas fa-expand me-2"></i> {{ __('Layar Penuh') }}
                                             </button>
                                         </div>
                                     </div>
@@ -133,7 +133,23 @@
 
                             <!-- Question Text -->
                             <div class="mb-4 mt-4">
-                                <h5 class="fw-bold">{{ __('Question') }} {{ $questionNumber }}</h5>
+                                <div class="d-flex align-items-center mb-4">
+                                    <h5 class="fw-bold me-4 mb-0">{{ __('Pertanyaan') }} {{ $questionNumber }}</h5>
+                                    <div>
+                                        <span class="badge bg-info position-relative me-2" style="left: 0; top: 0;">{{ __('Poin') }}: {{ $currentQuestion->points }}</span>
+                                        @if($currentQuestion->isMultipleChoice())
+                                            <span class="badge bg-primary position-relative" style="left: 0; top: 0;">{{ __('Pilihan Ganda') }}</span>
+                                        @elseif($currentQuestion->isScale())
+                                            <span class="badge bg-success position-relative" style="left: 0; top: 0;">{{ __('Skala (1-10)') }}</span>
+                                        @elseif($currentQuestion->isVideoRecord())
+                                            <span class="badge bg-info position-relative" style="left: 0; top: 0;">{{ __('Rekam Video') }}</span>
+                                        @elseif($currentQuestion->isForcedChoice())
+                                            <span class="badge bg-warning position-relative" style="left: 0; top: 0;">{{ __('Forced Choice') }}</span>
+                                        @else
+                                            <span class="badge bg-secondary position-relative" style="left: 0; top: 0;">{{ __('Essay') }}</span>
+                                        @endif
+                                    </div>
+                                </div>  
                                 <div class="question-text fs-5">
                                     @if($currentQuestion->isForcedChoice())
                                         {!! nl2br(e($currentQuestion->getForcedChoiceInstruction())) !!}
@@ -141,26 +157,12 @@
                                         {!! nl2br(e($currentQuestion->question_text)) !!}
                                     @endif
                                 </div>
-                                <div class="mt-2">
-                                    <span class="badge bg-info">{{ __('Points') }}: {{ $currentQuestion->points }}</span>
-                                    @if($currentQuestion->isMultipleChoice())
-                                        <span class="badge bg-primary">{{ __('Multiple Choice') }}</span>
-                                    @elseif($currentQuestion->isScale())
-                                        <span class="badge bg-success">{{ __('Scale (1-10)') }}</span>
-                                    @elseif($currentQuestion->isVideoRecord())
-                                        <span class="badge bg-info">{{ __('Video Record') }}</span>
-                                    @elseif($currentQuestion->isForcedChoice())
-                                        <span class="badge bg-warning">{{ __('Forced Choice') }}</span>
-                                    @else
-                                        <span class="badge bg-secondary">{{ __('Essay') }}</span>
-                                    @endif
-                                </div>
                             </div>
 
                             <!-- Answer Section -->
                             <div class="mb-4">
                                 @if($currentQuestion->isMultipleChoice())
-                                    <h6 class="fw-bold mb-3">{{ __('Select your answer:') }}</h6>
+                                    <h6 class="fw-bold mb-3">{{ __('Pilih jawaban Anda:') }}</h6>
                                     <div class="options-container">
                                         @foreach($currentQuestion->options as $option)
                                             <div class="form-check mb-3">
@@ -175,13 +177,13 @@
                                         @endforeach
                                     </div>
                                 @elseif($currentQuestion->isScale())
-                                    <h6 class="fw-bold mb-3">{{ __('Rate from 1 to 10:') }}</h6>
+                                    <h6 class="fw-bold mb-3">{{ __('Beri nilai dari 1 sampai 10:') }}</h6>
                                     <div class="scale-container">
                                         <div class="row">
                                             <div class="col-md-8">
                                                 <div class="scale-labels d-flex justify-content-between mb-2">
-                                                    <small class="text-muted">1 ({{ __('Lowest') }})</small>
-                                                    <small class="text-muted">10 ({{ __('Highest') }})</small>
+                                                    <small class="text-muted">1 ({{ __('Terendah') }})</small>
+                                                    <small class="text-muted">10 ({{ __('Tertinggi') }})</small>
                                                 </div>
                                                 <input type="range" 
                                                        class="form-range scale-slider" 
@@ -202,7 +204,7 @@
                                                     <div class="scale-display">
                                                         <span class="scale-value fs-1 fw-bold text-primary" id="scale-display">5</span>
                                                         <div class="scale-description">
-                                                            <small class="text-muted" id="scale-description">{{ __('Moderate') }}</small>
+                                                            <small class="text-muted" id="scale-description">{{ __('Sedang') }}</small>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -213,7 +215,7 @@
                                     <div class="video-record-container">
                                         <div class="text-center mb-4 mt-5">
                                             <!-- <i class="fas fa-video fa-3x text-primary mb-3"></i> -->
-                                            <h5 class="text-primary">{{ __('Record Your Video') }}</h5>
+                                            <h5 class="text-primary">{{ __('Rekam Video Anda') }}</h5>
                                             <!-- <p class="text-muted">{{ __('Please record a short video sharing your thoughts, experience, or testimonial.') }}</p> -->
                                         </div>
                                         
@@ -251,7 +253,7 @@
                                             
                                             <div class="recording-status text-center mt-3">
                                                 <div id="recordingStatus" class="text-muted">
-                                                    {{ __('Click the red button to start recording') }}
+                                                    {{ __('Klik tombol merah untuk mulai merekam') }}
                                                 </div>
                                                 <div id="recordingTimer" class="text-danger fw-bold" style="display: none;">
                                                     <i class="fas fa-circle text-danger me-2"></i>
@@ -265,14 +267,14 @@
                                             <div id="videoFallback" style="display: none;" class="mt-4">
                                                 <div class="alert alert-info">
                                                     <i class="fas fa-info-circle me-2"></i>
-                                                    <strong>{{ __('Camera Not Available') }}:</strong> 
-                                                    {{ __('Please provide your testimonial in text format below.') }}
+                                                    <strong>{{ __('Kamera Tidak Tersedia') }}:</strong> 
+                                                    {{ __('Silakan berikan testimoni Anda dalam format teks di bawah ini.') }}
                                                 </div>
                                                 <textarea class="form-control" 
                                                           name="video_text_fallback" 
                                                           id="videoTextFallback"
                                                           rows="5" 
-                                                          placeholder="{{ __('Please provide your testimonial here...') }}"
+                                                          placeholder="{{ __('Silakan berikan testimoni Anda di sini...') }}"
                                                           style="resize: vertical;"></textarea>
                                             </div>
                                         </div>
@@ -350,11 +352,11 @@
                                         </div>
                                     </div>
                                 @else
-                                    <h6 class="fw-bold mb-3">{{ __('Your answer:') }}</h6>
+                                    <h6 class="fw-bold mb-3">{{ __('Jawaban Anda:') }}</h6>
                                     <textarea class="form-control" 
                                               name="answer_text" 
                                               rows="8" 
-                                              placeholder="{{ __('Please provide your detailed answer here...') }}"
+                                              placeholder="{{ __('Silakan berikan jawaban detail Anda di sini...') }}"
                                               style="resize: vertical;"></textarea>
                                 @endif
                             </div>
@@ -363,12 +365,12 @@
                             <div class="d-flex justify-content-between">
                                 <div>
                                     <button type="button" id="save-answer" class="btn btn-outline-primary">
-                                        <i class="fas fa-save"></i> {{ __('Save Answer') }}
+                                        <i class="fas fa-save me-2"></i> {{ __('Simpan Jawaban') }}
                                     </button>
                                 </div>
                                 <div>
                                     <button type="button" id="next-question" class="btn btn-primary">
-                                        {{ __('Next Question') }} <i class="fas fa-arrow-right"></i>
+                                        {{ __('Pertanyaan Selanjutnya') }} <i class="fas fa-arrow-right"></i>
                                     </button>
                                 </div>
                             </div>
@@ -386,12 +388,12 @@
                         <div class="d-flex justify-content-between align-items-center w-100">
                             <div>
                                 <button type="button" id="prev-question" class="btn btn-outline-secondary" disabled>
-                                    <i class="fas fa-arrow-left"></i> {{ __('Previous') }}
+                                    <i class="fas fa-arrow-left"></i> {{ __('Sebelumnya') }}
                                 </button>
                             </div>
                             <div>
                                 <button type="button" id="complete-test" class="btn btn-success">
-                                    <i class="fas fa-check"></i> {{ __('Complete Test') }}
+                                    <i class="fas fa-check"></i> {{ __('Selesaikan Tes') }}
                                 </button>
                             </div>
                         </div>
@@ -405,7 +407,7 @@
     <!-- Auto-save indicator -->
     <div id="auto-save-indicator" class="position-fixed top-0 end-0 p-3" style="z-index: 9999; display: none;">
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-save"></i> {{ __('Answer saved automatically') }}
+            <i class="fas fa-save"></i> {{ __('Jawaban tersimpan otomatis') }}
         </div>
     </div>
 @endsection

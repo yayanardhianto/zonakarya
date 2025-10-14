@@ -111,6 +111,7 @@
         }
         
         .correct-marker {
+            font-family: 'DejaVu Sans';
             color: #28a745;
             font-weight: bold;
             margin-right: 5px;
@@ -136,6 +137,11 @@
             color: #999;
             border-top: 1px solid #eee;
             padding-top: 10px;
+        }
+
+        @font-face {
+            font-family: 'DejaVu Sans';
+            src: url('{{ asset('backend/fonts/DejaVuSans.ttf') }}') format('truetype');
         }
     </style>
 </head>
@@ -203,7 +209,7 @@
                             <div class="option-item {{ $option->is_correct ? 'option-correct' : '' }}">
                                 <span class="option-text">
                                     @if($option->is_correct)
-                                        <span class="correct-marker">✓</span>
+                                        <span class="correct-marker">&#10003;</span>
                                     @endif
                                     {{ $option->option_text }}
                                 </span>

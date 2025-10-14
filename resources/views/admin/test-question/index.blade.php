@@ -36,17 +36,17 @@
                                     @endif
                                     <div class="btn-group me-2">
                                         <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <i class="fas fa-download"></i> {{ __('Export') }}
+                                            <i class="fas fa-download me-1"></i> {{ __('Export') }}
                                         </button>
                                         <ul class="dropdown-menu">
                                             <li>
                                                 <a class="dropdown-item" href="{{ route('admin.test-question.export-excel', ['package_id' => $packageId]) }}">
-                                                    <i class="fas fa-file-excel text-success"></i> {{ __('Export to Excel') }}
+                                                    <i class="fas fa-file-excel text-success  me-1"></i> {{ __('Export to Excel') }}
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="dropdown-item" href="{{ route('admin.test-question.export-pdf', ['package_id' => $packageId]) }}">
-                                                    <i class="fas fa-file-pdf text-danger"></i> {{ __('Export to PDF') }}
+                                                    <i class="fas fa-file-pdf text-danger me-1"></i> {{ __('Export to PDF') }}
                                                 </a>
                                             </li>
                                         </ul>
@@ -313,10 +313,10 @@
                         <small class="form-text text-muted">
                             {{ __('Download template:') }} 
                             <a href="{{ asset('templates/test-questions-import-template.csv') }}" download class="text-primary me-2">
-                                <i class="fas fa-download"></i> {{ __('CSV Template') }}
+                                <i class="fas fa-download me-1"></i> {{ __('CSV Template') }}
                             </a>
                             <a href="{{ asset('templates/test-questions-import-template.xlsx') }}" download class="text-success me-2">
-                                <i class="fas fa-download"></i> {{ __('Excel Template') }}
+                                <i class="fas fa-download me-1"></i> {{ __('Excel Template') }}
                             </a>
                             <!-- <a href="{{ route('admin.test-question.download-excel-template') }}" class="text-info">
                                 <i class="fas fa-download"></i> {{ __('Excel Template (Dynamic)') }}

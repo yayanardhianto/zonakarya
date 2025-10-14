@@ -11,14 +11,40 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TestPackageController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $packages = TestPackage::with(['category', 'questions'])
-            ->withCount('sessions')
-            ->paginate(10);
+        // Get filter parameters
+        $categoryId = $request->get('category_id');
+        $status = $request->get('status');
+        $applicantFlow = $request->get('applicant_flow');
+
+        // Build query with filters
+        $query = TestPackage::with(['category', 'questions'])
+            ->withCount('sessions');
+
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($status !== null && $status !== '') {
+            $query->where('is_active', $status);
+        }
+
+        if ($applicantFlow !== null && $applicantFlow !== '') {
+            $query->where('is_applicant_flow', $applicantFlow);
+        }
+
+        $packages = $query->paginate(10)->appends($request->query());
+        
         return view('admin.test-package.index', compact('packages'));
     }
 
@@ -500,6 +526,217 @@ class TestPackageController extends Controller
                 'success' => false,
                 'message' => 'Error generating public package link: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function exportExcel(Request $request)
+    {
+        try {
+            // Get filter parameters
+            $categoryId = $request->get('category_id');
+            $status = $request->get('status');
+            $applicantFlow = $request->get('applicant_flow');
+
+            // Build query with filters
+            $query = TestPackage::with(['category', 'questions'])
+                ->withCount('sessions');
+
+            if ($categoryId) {
+                $query->where('category_id', $categoryId);
+            }
+
+            if ($status !== null && $status !== '') {
+                $query->where('is_active', $status);
+            }
+
+            if ($applicantFlow !== null && $applicantFlow !== '') {
+                $query->where('is_applicant_flow', $applicantFlow);
+            }
+
+            $packages = $query->get();
+
+            // Create new Spreadsheet object
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Set title
+            $sheet->setTitle('Test Packages Export');
+
+            // Set headers
+            $headers = [
+                'ID',
+                'Package Name',
+                'Category',
+                'Duration (Minutes)',
+                'Total Questions',
+                'Passing Score (%)',
+                'Sessions Count',
+                'Applicant Flow',
+                'Screening Test',
+                'Flow Order',
+                'Status',
+                'Show Score to User',
+                'Randomize Questions',
+                'Created At',
+                'Updated At'
+            ];
+
+            $col = 1;
+            foreach ($headers as $header) {
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1', $header);
+                $col++;
+            }
+
+            // Style headers
+            $headerRange = 'A1:' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)) . '1';
+            $sheet->getStyle($headerRange)->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '4472C4']
+                ],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ]);
+
+            // Add data
+            $row = 2;
+            foreach ($packages as $package) {
+                $sheet->setCellValue('A' . $row, $package->id);
+                $sheet->setCellValue('B' . $row, $package->name);
+                $sheet->setCellValue('C' . $row, $package->category->name);
+                $sheet->setCellValue('D' . $row, $package->duration_minutes);
+                $sheet->setCellValue('E' . $row, $package->total_questions);
+                $sheet->setCellValue('F' . $row, $package->passing_score);
+                $sheet->setCellValue('G' . $row, $package->sessions_count);
+                $sheet->setCellValue('H' . $row, $package->is_applicant_flow ? 'Yes' : 'No');
+                $sheet->setCellValue('I' . $row, $package->is_screening_test ? 'Yes' : 'No');
+                $sheet->setCellValue('J' . $row, $package->applicant_flow_order ?? 'N/A');
+                $sheet->setCellValue('K' . $row, $package->is_active ? 'Active' : 'Inactive');
+                $sheet->setCellValue('L' . $row, $package->show_score_to_user ? 'Yes' : 'No');
+                $sheet->setCellValue('M' . $row, $package->randomize_questions ? 'Yes' : 'No');
+                $sheet->setCellValue('N' . $row, $package->created_at->format('Y-m-d H:i:s'));
+                $sheet->setCellValue('O' . $row, $package->updated_at->format('Y-m-d H:i:s'));
+                $row++;
+            }
+
+            // Auto-size columns
+            foreach (range('A', 'O') as $column) {
+                $sheet->getColumnDimension($column)->setAutoSize(true);
+            }
+
+            // Add borders to data
+            $dataRange = 'A1:O' . ($row - 1);
+            $sheet->getStyle($dataRange)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ]);
+
+            // Create filename with filters
+            $filename = 'test-packages-export';
+            if ($categoryId) {
+                $category = TestCategory::find($categoryId);
+                $filename .= '-' . strtolower(str_replace(' ', '-', $category->name));
+            }
+            if ($status !== null && $status !== '') {
+                $filename .= '-' . ($status ? 'active' : 'inactive');
+            }
+            if ($applicantFlow !== null && $applicantFlow !== '') {
+                $filename .= '-' . ($applicantFlow ? 'applicant-flow' : 'general');
+            }
+            $filename .= '-' . date('Y-m-d-H-i-s') . '.xlsx';
+
+            // Create writer and save
+            $writer = new Xlsx($spreadsheet);
+            
+            // Set headers for download
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            $writer->save('php://output');
+            exit;
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting Excel: ' . $e->getMessage());
+        }
+    }
+
+    public function exportPdf(Request $request)
+    {
+        try {
+            // Get filter parameters
+            $categoryId = $request->get('category_id');
+            $status = $request->get('status');
+            $applicantFlow = $request->get('applicant_flow');
+
+            // Build query with filters
+            $query = TestPackage::with(['category', 'questions'])
+                ->withCount('sessions');
+
+            if ($categoryId) {
+                $query->where('category_id', $categoryId);
+            }
+
+            if ($status !== null && $status !== '') {
+                $query->where('is_active', $status);
+            }
+
+            if ($applicantFlow !== null && $applicantFlow !== '') {
+                $query->where('is_applicant_flow', $applicantFlow);
+            }
+
+            $packages = $query->get();
+
+            // Get filter info for display
+            $filterInfo = [];
+            if ($categoryId) {
+                $category = TestCategory::find($categoryId);
+                $filterInfo[] = 'Category: ' . $category->name;
+            }
+            if ($status !== null && $status !== '') {
+                $filterInfo[] = 'Status: ' . ($status ? 'Active' : 'Inactive');
+            }
+            if ($applicantFlow !== null && $applicantFlow !== '') {
+                $filterInfo[] = 'Type: ' . ($applicantFlow ? 'Applicant Flow' : 'General Test');
+            }
+
+            $data = [
+                'packages' => $packages,
+                'filterInfo' => $filterInfo,
+                'exportDate' => now()->format('d M Y H:i:s')
+            ];
+
+            $pdf = Pdf::loadView('admin.test-package.export-pdf', $data);
+            $pdf->setPaper('A4', 'landscape');
+
+            // Create filename with filters
+            $filename = 'test-packages-export';
+            if ($categoryId) {
+                $category = TestCategory::find($categoryId);
+                $filename .= '-' . strtolower(str_replace(' ', '-', $category->name));
+            }
+            if ($status !== null && $status !== '') {
+                $filename .= '-' . ($status ? 'active' : 'inactive');
+            }
+            if ($applicantFlow !== null && $applicantFlow !== '') {
+                $filename .= '-' . ($applicantFlow ? 'applicant-flow' : 'general');
+            }
+            $filename .= '-' . date('Y-m-d-H-i-s') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting PDF: ' . $e->getMessage());
         }
     }
 }

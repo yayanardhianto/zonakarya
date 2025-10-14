@@ -10,4 +10,4 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::delete('contact-message-delete/{id}', [AdminContactMessageController::class, 'destroy'])->name('contact-message-delete');
 });
 
-Route::post('send-contact-message', [ContactMessageController::class, 'store'])->name('send-contact-message')->middleware('throttle:4,60');
+Route::post('send-contact-message', [ContactMessageController::class, 'store'])->name('send-contact-message');

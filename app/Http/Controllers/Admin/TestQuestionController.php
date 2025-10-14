@@ -266,6 +266,8 @@ class TestQuestionController extends Controller
                         if ($package) {
                             $order = $package->questions()->count() + 1;
                             $package->questions()->attach($question->id, ['order' => $order]);
+                            // Update total questions count
+                            $package->updateTotalQuestions();
                         }
                     }
 

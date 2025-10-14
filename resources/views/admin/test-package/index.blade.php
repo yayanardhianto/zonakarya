@@ -18,11 +18,23 @@
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center w-100">
                                 <h3 class="card-title">{{ __('Test Packages') }}</h3>
-                                @if(checkAdminHasPermission('test.package.create'))
-                                    <a href="{{ route('admin.test-package.create') }}" class="btn btn-primary">
-                                        <i class="fas fa-plus"></i> {{ __('Add New Package') }}
-                                    </a>
-                                @endif
+                                <div class="d-flex gap-2">
+                                    <!-- Export Dropdown -->
+                                    <div class="dropdown">
+                                        <button class="btn btn-success dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-download me-1"></i> {{ __('Export') }}
+                                        </button>
+                                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                            <li><a class="dropdown-item" href="#" onclick="exportData('excel')"><i class="fas fa-file-excel text-success  me-1"></i> {{ __('Export to Excel') }}</a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="exportData('pdf')"><i class="fas fa-file-pdf text-danger me-1"></i> {{ __('Export to PDF') }}</a></li>
+                                        </ul>
+                                    </div>
+                                    @if(checkAdminHasPermission('test.package.create'))
+                                        <a href="{{ route('admin.test-package.create') }}" class="btn btn-primary">
+                                            <i class="fas fa-plus"></i> {{ __('Add New Package') }}
+                                        </a>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -30,6 +42,86 @@
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                                     {{ session('success') }}
                                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
+
+                            @if(session('error'))
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    {{ session('error') }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
+
+                            <!-- Filter Form -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0"><i class="fas fa-filter"></i> {{ __('Filters') }}</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <form method="GET" action="{{ route('admin.test-package.index') }}" id="filterForm">
+                                                <div class="row">
+                                                    <div class="col-md-3">
+                                                        <label for="category_id" class="form-label">{{ __('Category') }}</label>
+                                                        <select name="category_id" id="category_id" class="form-select">
+                                                            <option value="">{{ __('All Categories') }}</option>
+                                                            @foreach(\App\Models\TestCategory::active()->get() as $category)
+                                                                <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                                                                    {{ $category->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label for="status" class="form-label">{{ __('Status') }}</label>
+                                                        <select name="status" id="status" class="form-select">
+                                                            <option value="">{{ __('All Status') }}</option>
+                                                            <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>{{ __('Active') }}</option>
+                                                            <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>{{ __('Inactive') }}</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label for="applicant_flow" class="form-label">{{ __('Type') }}</label>
+                                                        <select name="applicant_flow" id="applicant_flow" class="form-select">
+                                                            <option value="">{{ __('All Types') }}</option>
+                                                            <option value="1" {{ request('applicant_flow') === '1' ? 'selected' : '' }}>{{ __('Applicant Flow') }}</option>
+                                                            <option value="0" {{ request('applicant_flow') === '0' ? 'selected' : '' }}>{{ __('General Test') }}</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label">&nbsp;</label>
+                                                        <div class="d-flex gap-2">
+                                                            <button type="submit" class="btn btn-primary">
+                                                                <i class="fas fa-search"></i> {{ __('Filter') }}
+                                                            </button>
+                                                            <a href="{{ route('admin.test-package.index') }}" class="btn btn-outline-secondary">
+                                                                <i class="fas fa-times"></i> {{ __('Clear') }}
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if(request()->hasAny(['category_id', 'status', 'applicant_flow']))
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>{{ __('Filtered Results') }}:</strong>
+                                    @if(request('category_id'))
+                                        {{ __('Category') }}: {{ \App\Models\TestCategory::find(request('category_id'))->name ?? 'N/A' }}
+                                    @endif
+                                    @if(request('status') !== null && request('status') !== '')
+                                        | {{ __('Status') }}: {{ request('status') ? __('Active') : __('Inactive') }}
+                                    @endif
+                                    @if(request('applicant_flow') !== null && request('applicant_flow') !== '')
+                                        | {{ __('Type') }}: {{ request('applicant_flow') ? __('Applicant Flow') : __('General Test') }}
+                                    @endif
+                                    <br>
+                                    <small>{{ __('Export will include only the filtered results shown below.') }}</small>
                                 </div>
                             @endif
 
@@ -376,6 +468,35 @@ window.onclick = function(event) {
     if (event.target == modal) {
         closeTestLinkModal();
     }
+}
+
+// Export functionality
+function exportData(type) {
+    // Get current filter parameters
+    const categoryId = document.getElementById('category_id').value;
+    const status = document.getElementById('status').value;
+    const applicantFlow = document.getElementById('applicant_flow').value;
+    
+    // Build export URL with current filters
+    let exportUrl = '';
+    if (type === 'excel') {
+        exportUrl = '{{ route("admin.test-package.export-excel") }}';
+    } else if (type === 'pdf') {
+        exportUrl = '{{ route("admin.test-package.export-pdf") }}';
+    }
+    
+    // Add filter parameters to URL
+    const params = new URLSearchParams();
+    if (categoryId) params.append('category_id', categoryId);
+    if (status !== '') params.append('status', status);
+    if (applicantFlow !== '') params.append('applicant_flow', applicantFlow);
+    
+    if (params.toString()) {
+        exportUrl += '?' + params.toString();
+    }
+    
+    // Open export URL in new window
+    window.open(exportUrl, '_blank');
 }
 </script>
 @endpush

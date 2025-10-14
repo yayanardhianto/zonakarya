@@ -116,7 +116,8 @@
                             <h2 class="sec-title">{{ $contactSection?->form_title ?? __('Have Any Project on Your Mind?') }}</h2>
                             <p>{{ $contactSection?->form_subtitle ?? __("Great! We're excited to hear from you and let's start something") }}</p>
                         </div>
-                        <form action="{{ route('send-contact-message') }}" id="contact-form" class="contact-form">
+                        <form action="{{ route('send-contact-message') }}" method="POST" id="contact-form" class="contact-form">
+                            @csrf
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -173,6 +174,78 @@
     <!--  Marquee Area -->
     @include('frontend.partials.marquee')
 @endsection
+
+@push('js')
+<script>
+$(document).ready(function() {
+    // Contact form submission handler
+    $('#contact-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const formData = form.serialize();
+        const submitBtn = form.find('button[type="submit"]');
+        const originalText = submitBtn.find('.effect-1').first().html();
+        
+        // Disable button and show loading
+        submitBtn.prop('disabled', true);
+        submitBtn.find('.effect-1').html('Sending... <i class="fas fa-spinner fa-spin"></i>');
+        
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Clear form
+                    form.find('input, textarea').val('');
+                    
+                    // Show success message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(response.message);
+                    } else {
+                        alert(response.message);
+                    }
+                } else {
+                    // Show error message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(response.message);
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while sending your message.';
+                
+                if (xhr.status === 422) {
+                    // Validation errors
+                    const errors = xhr.responseJSON?.message;
+                    if (errors) {
+                        errorMessage = Object.values(errors).flat().join('\n');
+                    }
+                } else if (xhr.responseJSON?.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(errorMessage);
+                } else {
+                    alert('Error: ' + errorMessage);
+                }
+            },
+            complete: function() {
+                // Re-enable button and restore text
+                submitBtn.prop('disabled', false);
+                submitBtn.find('.effect-1').html(originalText);
+            }
+        });
+    });
+});
+</script>
+@endpush
+
 @section('footer')
     @include('frontend.layouts.footer-layout.two')
 @endsection

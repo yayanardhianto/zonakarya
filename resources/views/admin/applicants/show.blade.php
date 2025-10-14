@@ -78,20 +78,20 @@
                                     <div class="col-md-12">
                                         <a href="{{ route('admin.applicants.download-cv', $applicant) }}" 
                                            class="btn btn-success btn-block mb-2">
-                                            <i class="fas fa-download"></i> {{ __('Download CV') }}
+                                            <i class="fas fa-download me-1"></i> {{ __('Download CV') }}
                                         </a>
                                     </div>
                                     <div class="col-md-12">
                                         <button type="button" class="btn btn-primary btn-block mb-2" 
                                                 onclick="viewCv({{ $applicant->id }})">
-                                            <i class="fas fa-eye"></i> {{ __('View CV') }}
+                                            <i class="fas fa-eye me-1"></i> {{ __('View CV') }}
                                         </button>
                                     </div>
                                     @if($applicant->photo_path)
                                         <div class="col-md-12">
                                             <button type="button" class="btn btn-info btn-block mb-2" 
                                                     onclick="viewPhoto({{ $applicant->id }})">
-                                                <i class="fas fa-image"></i> {{ __('View Photo') }}
+                                                <i class="fas fa-image me-1"></i> {{ __('View Photo') }}
                                             </button>
                                         </div>
                                     @endif
@@ -191,7 +191,7 @@
                                                       placeholder="{{ __('Add notes (optional)') }}">{{ $applicant->notes }}</textarea>
                                         </div>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save"></i> {{ __('Update Status') }}
+                                            <i class="fas fa-save me-1"></i> {{ __('Update Status') }}
                                         </button>
                                     </form>
                                 </div>

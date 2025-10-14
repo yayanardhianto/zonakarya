@@ -15,7 +15,7 @@
                 <div class="card-body">
                     @if($package->description)
                         <div class="mb-3">
-                            <h5>{{ __('Description') }}</h5>
+                            <h5>{{ __('Deskripsi') }}</h5>
                             <p class="text-muted">{{ $package->description }}</p>
                         </div>
                     @endif
@@ -24,14 +24,14 @@
                         <div class="col-md-6">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-clock text-primary me-2"></i>
-                                <strong>{{ __('Duration') }}:</strong>
+                                <strong>{{ __('Durasi') }}:</strong>
                                 <span class="ms-2">{{ $package->duration_minutes }} {{ __('minutes') }}</span>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-question-circle text-primary me-2"></i>
-                                <strong>{{ __('Questions') }}:</strong>
+                                <strong>{{ __('Pertanyaan') }}:</strong>
                                 <span class="ms-2">{{ $package->total_questions }} {{ __('questions') }}</span>
                             </div>
                         </div>
@@ -51,7 +51,7 @@
                         <div class="mb-4">
                             <div class="d-flex align-items-center mb-2">
                                 <i class="fas fa-trophy text-warning me-2"></i>
-                                <strong>{{ __('Passing Score') }}:</strong>
+                                <strong>{{ __('Nilai Kelulusan') }}:</strong>
                                 <span class="ms-2">{{ $package->passing_score }}%</span>
                             </div>
                         </div>
@@ -59,50 +59,50 @@
 
                     <div class="alert alert-info mb-4 fs-7">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>{{ __('Important') }}:</strong>
-                        {{ __('You need to login to take this test. If you don\'t have an account, please register first.') }}
+                        <strong>{{ __('Penting') }}:</strong>
+                        {{ __('Anda perlu login untuk mengikuti tes ini. Jika Anda tidak memiliki akun, silakan daftar terlebih dahulu.') }}
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-center">
                         @auth
                             <a href="{{ route('test.start', $package) }}" class="btn btn-success btn-lg">
                                 <i class="fas fa-play me-2"></i>
-                                {{ __('Start Test') }}
+                                {{ __('Mulai Tes') }}
                             </a>
                         @else
                             <button type="button" class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#loginModal" onclick="setIntendedUrl()">
                                 <i class="fas fa-sign-in-alt me-2"></i>
-                                {{ __('Login to Take Test') }}
+                                {{ __('Login untuk Mengikuti Tes') }}
                             </button>
                         @endauth
                     </div>
 
                     @if($package->questions->count() > 0)
                         <div class="mt-5">
-                            <h5>{{ __('Test Instructions') }}</h5>
+                            <h5>{{ __('Instruksi Tes') }}</h5>
                             <ul class="list-unstyled">
                                 <li class="mb-2">
                                     <i class="fas fa-check text-success me-2"></i>
-                                    {{ __('Read each question carefully before answering') }}
+                                    {{ __('Baca setiap pertanyaan dengan cermat sebelum menjawab') }}
                                 </li>
                                 <li class="mb-2">
                                     <i class="fas fa-check text-success me-2"></i>
-                                    {{ __('You have') }} {{ $package->duration_minutes }} {{ __('minutes to complete the test') }}
+                                    {{ __('Anda memiliki') }} {{ $package->duration_minutes }} {{ __('menit untuk menyelesaikan tes') }}
                                 </li>
                                 @if($package->enable_time_per_question)
                                     <li class="mb-2">
                                         <i class="fas fa-check text-success me-2"></i>
-                                        {{ __('Each question has a time limit') }}
+                                        {{ __('Setiap pertanyaan memiliki batas waktu') }}
                                     </li>
                                 @endif
                                 <li class="mb-2">
                                     <i class="fas fa-check text-success me-2"></i>
-                                    {{ __('Answer all questions to complete the test') }}
+                                    {{ __('Jawab semua pertanyaan untuk menyelesaikan tes') }}
                                 </li>
                                 @if($package->show_score_to_user)
                                     <li class="mb-2">
                                         <i class="fas fa-check text-success me-2"></i>
-                                        {{ __('Your score will be shown after completion') }}
+                                        {{ __('Nilai Anda akan ditampilkan setelah menyelesaikan tes') }}
                                     </li>
                                 @endif
                             </ul>
@@ -114,7 +114,7 @@
             <div class="text-center mt-4">
                 <small class="text-muted">
                     <i class="fas fa-shield-alt me-1"></i>
-                    {{ __('This test is provided by') }} {{ config('app.name') }}
+                    {{ __('Tes ini dibuat oleh') }} {{ config('app.name') }}
                 </small>
             </div>
         </div>

@@ -18,6 +18,18 @@
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center w-100">
                                 <h3 class="card-title">{{ __('Test Sessions') }}</h3>
+                                <div class="d-flex gap-2">
+                                    <!-- Export Dropdown -->
+                                    <div class="dropdown">
+                                        <button class="btn btn-success dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-download me-1"></i> {{ __('Export') }}
+                                        </button>
+                                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                            <li><a class="dropdown-item" href="#" onclick="exportData('excel')"><i class="fas fa-file-excel text-success me-1"></i> {{ __('Export to Excel') }}</a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="exportData('pdf')"><i class="fas fa-file-pdf text-danger me-1"></i> {{ __('Export to PDF') }}</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -28,12 +40,25 @@
                                 </div>
                             @endif
 
+                            @if(session('error'))
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    {{ session('error') }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
+
                             <!-- Filter Form -->
                             <div class="row mb-3">
                                 <div class="col-md-12">
-                                    <form method="GET" class="row g-3">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0"><i class="fas fa-filter"></i> {{ __('Filters') }}</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <form method="GET" class="row g-3">
                                         <div class="col-md-3">
-                                            <select name="status" class="form-select">
+                                            <label for="status" class="form-label">{{ __('Status') }}</label>
+                                            <select name="status" id="status" class="form-select">
                                                 <option value="">{{ __('All Status') }}</option>
                                                 <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>
                                                     {{ __('Pending') }}
@@ -50,7 +75,8 @@
                                             </select>
                                         </div>
                                         <div class="col-md-3">
-                                            <select name="package_id" class="form-select">
+                                            <label for="package_id" class="form-label">{{ __('Package') }}</label>
+                                            <select name="package_id" id="package_id" class="form-select">
                                                 <option value="">{{ __('All Packages') }}</option>
                                                 @foreach($packages as $package)
                                                     <option value="{{ $package->id }}" {{ request('package_id') == $package->id ? 'selected' : '' }}>
@@ -60,19 +86,61 @@
                                             </select>
                                         </div>
                                         <div class="col-md-2">
-                                            <input type="date" name="date_from" class="form-control" 
-                                                value="{{ request('date_from') }}" placeholder="{{ __('From Date') }}">
+                                            <label for="date_from" class="form-label">{{ __('From Date') }}</label>
+                                            <input type="date" name="date_from" id="date_from" class="form-control" 
+                                                value="{{ request('date_from') }}">
                                         </div>
                                         <div class="col-md-2">
-                                            <input type="date" name="date_to" class="form-control" 
-                                                value="{{ request('date_to') }}" placeholder="{{ __('To Date') }}">
+                                            <label for="date_to" class="form-label">{{ __('To Date') }}</label>
+                                            <input type="date" name="date_to" id="date_to" class="form-control" 
+                                                value="{{ request('date_to') }}">
                                         </div>
-                                        <div class="col-md-2">
-                                            <button type="submit" class="btn btn-outline-primary w-100">{{ __('Filter') }}</button>
+                                        <div class="col-md-1">
+                                            <label class="form-label">&nbsp;</label>
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="fas fa-search me-1"></i>{{ __('Filter') }}
+                                            </button>
                                         </div>
-                                    </form>
+                                        <div class="col-md-1">
+                                            <label class="form-label">&nbsp;</label>
+                                            <a href="{{ route('admin.test-session.index') }}" class="btn btn-outline-secondary w-100">
+                                                <i class="fas fa-times me-1"></i>{{ __('Clear') }}
+                                            </a>
+                                        </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            @if(request()->hasAny(['status', 'package_id', 'date_from', 'date_to']))
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>{{ __('Filtered Results') }}:</strong>
+                                    @if(request('status'))
+                                        {{ __('Status') }}: {{ ucfirst(request('status')) }}
+                                    @endif
+                                    @if(request('package_id'))
+                                        | {{ __('Package') }}: {{ \App\Models\TestPackage::find(request('package_id'))->name ?? 'N/A' }}
+                                    @endif
+                                    @if(request('date_from'))
+                                        | {{ __('From Date') }}: {{ request('date_from') }}
+                                    @endif
+                                    @if(request('date_to'))
+                                        | {{ __('To Date') }}: {{ request('date_to') }}
+                                    @endif
+                                    <br>
+                                    <small>{{ __('Showing') }} {{ $sessions->total() }} {{ __('results') }}. {{ __('Export will include only the filtered results shown below.') }}</small>
+                                </div>
+                            @else
+                                <div class="alert alert-light">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>{{ __('All Results') }}:</strong>
+                                    <small>{{ __('Showing') }} {{ $sessions->total() }} {{ __('total sessions') }}.</small>
+                                </div>
+                            @endif
+
+
 
                             <div class="table-responsive">
                                 <table class="table table-bordered table-striped">
@@ -204,7 +272,7 @@
                             </div>
 
                             <div class="d-flex justify-content-center">
-                                {{ $sessions->links() }}
+                                {{ $sessions->appends(request()->query())->links() }}
                             </div>
                         </div>
                     </div>
@@ -214,3 +282,52 @@
     </section>
 </div>
 @endsection
+
+@push('js')
+<script>
+// Export functionality
+function exportData(type) {
+    // Get current filter parameters
+    const status = document.querySelector('select[name="status"]').value;
+    const packageId = document.querySelector('select[name="package_id"]').value;
+    const dateFrom = document.querySelector('input[name="date_from"]').value;
+    const dateTo = document.querySelector('input[name="date_to"]').value;
+    
+    // Build export URL with current filters
+    let exportUrl = '';
+    if (type === 'excel') {
+        exportUrl = '{{ route("admin.test-session.export-excel") }}';
+    } else if (type === 'pdf') {
+        exportUrl = '{{ route("admin.test-session.export-pdf") }}';
+    }
+    
+    // Add filter parameters to URL
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (packageId) params.append('package_id', packageId);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+    
+    if (params.toString()) {
+        exportUrl += '?' + params.toString();
+    }
+    
+    // Open export URL in new window
+    window.open(exportUrl, '_blank');
+}
+
+// Auto-submit form when filters change (optional)
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.querySelector('form[method="GET"]');
+    const filterInputs = filterForm.querySelectorAll('select, input[type="date"]');
+    
+    
+    // Optional: Auto-submit when filter changes (uncomment if desired)
+    // filterInputs.forEach(input => {
+    //     input.addEventListener('change', function() {
+    //         filterForm.submit();
+    //     });
+    // });
+});
+</script>
+@endpush
