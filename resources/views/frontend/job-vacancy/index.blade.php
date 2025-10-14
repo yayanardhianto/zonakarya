@@ -15,10 +15,10 @@
             <div class="row">
                 <div class="d-flex justify-content-between w-100 mb-45 gap-3">
                     <div class="col-md-6">
-                        <h2 class="display-4 fw-bold">{{ $setting->job_listing_title ?? __('Rise Together') }}</h2>
+                        <h2 class="h2 fw-bold mb-3">{{ $setting->job_listing_title ?? __('Rise Together') }}</h2>
                     </div>
                     <div class="col-md-6">
-                        <p class="lead text-muted">{{ $setting->job_listing_description ?? __('Mulai perjalanan Anda dengan perusahaan kami, mari bergabung bersama kami.') }}</p>
+                        <p class="lead text-muted mb-0">{{ $setting->job_listing_description ?? __('Mulai perjalanan Anda dengan perusahaan kami, mari bergabung bersama kami.') }}</p>
                     </div>
                 </div>
             </div>
