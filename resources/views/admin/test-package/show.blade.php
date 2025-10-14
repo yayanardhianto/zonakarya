@@ -119,11 +119,10 @@
                                 <h5>{{ __('Questions in this Package') }}</h5>
                                     <div>
                                         @if($testPackage->randomize_questions)
-                                            <span class="badge bg-info">{{ __('Randomized Order') }}</span>
+                                            <span class="badge bg-info me-2">{{ __('Randomized Order') }}</span>
                                             <button class="btn btn-sm btn-outline-warning me-2" onclick="disableRandomOrder()">
                                                 <i class="fas fa-sort"></i> {{ __('Disable Random') }}
                                             </button>
-                                            <small class="text-muted">{{ __('Use checkboxes below to fix first and last questions') }}</small>
                                         @else
                                             <button class="btn btn-sm btn-outline-primary me-2" onclick="enableDragDrop()">
                                                 <i class="fas fa-sort"></i> {{ __('Reorder Questions') }}
@@ -300,30 +299,30 @@
                                                     @if($testPackage->randomize_questions)
                                                         <td class="text-center">
                                                             <div class="form-check d-inline-block">
-                                                                <input class="form-check-input fixed-question-checkbox" 
+                                                                <input class="form-check-input fixed-question-checkbox first" 
                                                                        type="checkbox" 
                                                                        id="first-{{ $question->id }}"
                                                                        data-question-id="{{ $question->id }}"
                                                                        data-type="first"
                                                                        {{ $testPackage->fixed_first_question_id == $question->id ? 'checked' : '' }}
                                                                        onchange="updateFixedQuestion('first', {{ $question->id }}, this.checked)">
-                                                                <label class="form-check-label" for="first-{{ $question->id }}">
+                                                                <!-- <label class="form-check-label" for="first-{{ $question->id }}">
                                                                     <small>{{ __('First') }}</small>
-                                                                </label>
+                                                                </label> -->
                                                             </div>
                                                         </td>
                                                         <td class="text-center">
                                                             <div class="form-check d-inline-block">
-                                                                <input class="form-check-input fixed-question-checkbox" 
+                                                                <input class="form-check-input fixed-question-checkbox last" 
                                                                        type="checkbox" 
                                                                        id="last-{{ $question->id }}"
                                                                        data-question-id="{{ $question->id }}"
                                                                        data-type="last"
                                                                        {{ $testPackage->fixed_last_question_id == $question->id ? 'checked' : '' }}
                                                                        onchange="updateFixedQuestion('last', {{ $question->id }}, this.checked)">
-                                                                <label class="form-check-label" for="last-{{ $question->id }}">
+                                                                <!-- <label class="form-check-label" for="last-{{ $question->id }}">
                                                                     <small>{{ __('Last') }}</small>
-                                                                </label>
+                                                                </label> -->
                                                             </div>
                                                         </td>
                                                     @endif

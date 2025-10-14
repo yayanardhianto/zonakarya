@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Modules\GlobalSetting\app\Models\Setting;
 use Modules\OurTeam\app\Models\OurTeam;
+use Modules\Frontend\app\Models\Section;
+use Modules\Frontend\app\Models\Home;
 
 class OurTeamController extends Controller
 {
@@ -15,8 +17,28 @@ class OurTeamController extends Controller
     {
         checkAdminHasPermissionAndThrowException('team.management');
         $teams = OurTeam::all();
+        
+        // Get team section title
+        $theme_name = DEFAULT_HOMEPAGE;
+        $home = Home::where('slug', $theme_name)->first();
+        $teamSectionTitle = 'Our Team Behind The Studio';
+        
+        if ($home) {
+            $teamSection = Section::where('home_id', $home->id)
+                ->where('name', 'team_section')
+                ->first();
+                
+            if ($teamSection && $teamSection->global_content) {
+                $globalContent = $teamSection->global_content;
+                if (is_object($globalContent) && isset($globalContent->title)) {
+                    $teamSectionTitle = $globalContent->title;
+                } elseif (is_array($globalContent) && isset($globalContent['title'])) {
+                    $teamSectionTitle = $globalContent['title'];
+                }
+            }
+        }
 
-        return view('ourteam::index', compact('teams'));
+        return view('ourteam::index', compact('teams', 'teamSectionTitle'));
     }
 
     public function create()
@@ -167,6 +189,54 @@ class OurTeamController extends Controller
         Setting::where('key', 'contact_team_member')->update(['value' => $request->contact_team_member]);
 
         Cache::forget('setting');
+
+        $notification = __('Update Successfully');
+        $notification = ['message' => $notification, 'alert-type' => 'success'];
+
+        return redirect()->back()->with($notification);
+    }
+
+    public function updateSectionTitle(Request $request)
+    {
+        checkAdminHasPermissionAndThrowException('team.management');
+
+        $request->validate([
+            'team_section_title' => 'required|string|max:255',
+        ], [
+            'team_section_title.required' => __('Team section title is required'),
+        ]);
+
+        $theme_name = DEFAULT_HOMEPAGE;
+        $home = Home::where('slug', $theme_name)->first();
+        
+        if ($home) {
+            $teamSection = Section::where('home_id', $home->id)
+                ->where('name', 'team_section')
+                ->first();
+                
+            if ($teamSection) {
+                $globalContent = $teamSection->global_content ?? [];
+                
+                // Convert to array if it's an object
+                if (is_object($globalContent)) {
+                    $globalContent = (array) $globalContent;
+                }
+                
+                $globalContent['title'] = $request->team_section_title;
+                
+                $teamSection->update([
+                    'global_content' => $globalContent
+                ]);
+            }
+        }
+
+        // Check if request is AJAX
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => __('Team section title updated successfully!')
+            ]);
+        }
 
         $notification = __('Update Successfully');
         $notification = ['message' => $notification, 'alert-type' => 'success'];

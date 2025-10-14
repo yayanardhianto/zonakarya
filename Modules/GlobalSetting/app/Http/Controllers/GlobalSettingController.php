@@ -745,6 +745,39 @@ class GlobalSettingController extends Controller
         return redirect()->back()->with($notification);
     }
 
+    public function footer_setting()
+    {
+        checkAdminHasPermissionAndThrowException('setting.view');
+        
+        return view('globalsetting::settings.footer_setting');
+    }
+
+    public function update_footer_setting(Request $request)
+    {
+        checkAdminHasPermissionAndThrowException('setting.update');
+
+        $request->validate([
+            'footer_title' => 'required|string|max:255',
+            'footer_description' => 'required|string|max:1000',
+            'footer_button_text' => 'required|string|max:100',
+        ], [
+            'footer_title.required' => __('Footer title is required'),
+            'footer_description.required' => __('Footer description is required'),
+            'footer_button_text.required' => __('Footer button text is required'),
+        ]);
+
+        foreach ($request->except('_token') as $key => $value) {
+            Setting::where('key', $key)->update(['value' => $value]);
+        }
+
+        Cache::forget('setting');
+
+        $notification = __('Update Successfully');
+        $notification = ['message' => $notification, 'alert-type' => 'success'];
+
+        return redirect()->back()->with($notification);
+    }
+
     public function systemUpdate()
     {
         $zipLoaded = extension_loaded('zip');

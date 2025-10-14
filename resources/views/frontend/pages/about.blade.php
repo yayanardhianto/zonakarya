@@ -106,7 +106,20 @@
             <div class="row justify-content-center">
                 <div class="col-lg-6">
                     <div class="title-area text-center">
-                        <h2 class="sec-title">{{ __('Our Team Behind The Studio') }}</h2>
+                        @php
+                            $teamSection = $sections->where('name', 'team_section')->first();
+                            $teamSectionTitle = __('Our Team Behind The Studio');
+                            
+                            if ($teamSection && $teamSection->global_content) {
+                                $globalContent = $teamSection->global_content;
+                                if (is_object($globalContent) && isset($globalContent->title)) {
+                                    $teamSectionTitle = $globalContent->title;
+                                } elseif (is_array($globalContent) && isset($globalContent['title'])) {
+                                    $teamSectionTitle = $globalContent['title'];
+                                }
+                            }
+                        @endphp
+                        <h2 class="sec-title">{{ $teamSectionTitle }}</h2>
                     </div>
                 </div>
             </div>
@@ -141,41 +154,43 @@
         </div>
         <div class="container">
             <div class="row align-items-center justify-content-end">
-                <div class="col-lg-6">
+            <div class="col-lg-6">
                     <div class="contact-form-wrap">
                         <div class="title-area mb-30">
-                            <h2 class="sec-title">{{ __('Have Any Project on Your Mind?') }}</h2>
-                            <p>{{ __("Great! We're excited to hear from you and let's start something") }}</p>
+                            <h2 class="sec-title">{{ $contactSection?->form_title ?? __('Have Any Project on Your Mind?') }}</h2>
+                            <p>{{ $contactSection?->form_subtitle ?? __("Great! We're excited to hear from you and let's start something") }}</p>
                         </div>
                         <form action="{{ route('send-contact-message') }}" id="contact-form" class="contact-form">
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <input type="text" class="form-control style-border" name="name"
-                                            placeholder="{{ __('Full name') }}*" value="{{ old('name') }}" required>
+                                        <input type="text" class="form-control style-border text-white" name="name"
+                                            placeholder="{{ $contactSection?->full_name_label ?? __('Full name') }}*" value="{{ old('name') }}" required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <input type="email" class="form-control style-border" name="email"
-                                            placeholder="{{ __('Email address') }}*" value="{{ old('email') }}" required>
+                                        <input type="email" class="form-control style-border text-white" name="email"
+                                            placeholder="{{ $contactSection?->email_label ?? __('Email address') }}*" value="{{ old('email') }}" required>
+                                    </div>
+                                </div>
+                                @if($contactSection?->show_website_field)
+                                <div class="col-lg-12">
+                                    <div class="form-group">
+                                        <input type="text" class="form-control style-border text-white" name="website"
+                                            placeholder="{{ $contactSection?->website_label ?? __('Website link') }}" value="{{ old('website') }}">
+                                    </div>
+                                </div>
+                                @endif
+                                <div class="col-lg-12">
+                                    <div class="form-group">
+                                        <input type="text" class="form-control style-border text-white" name="subject"
+                                            placeholder="{{ $contactSection?->subject_label ?? __('Subject') }}*" value="{{ old('subject') }}" required>
                                     </div>
                                 </div>
                                 <div class="col-lg-12">
                                     <div class="form-group">
-                                        <input type="text" class="form-control style-border" name="website"
-                                            placeholder="{{ __('Website link') }}" value="{{ old('website') }}">
-                                    </div>
-                                </div>
-                                <div class="col-lg-12">
-                                    <div class="form-group">
-                                        <input type="text" class="form-control style-border" name="subject"
-                                            placeholder="{{ __('Subject') }}*" value="{{ old('subject') }}" required>
-                                    </div>
-                                </div>
-                                <div class="col-lg-12">
-                                    <div class="form-group">
-                                        <textarea name="message" placeholder="{{ __('How Can We Help You') }}*" class="form-control style-border" required>{{ old('message') }}</textarea>
+                                        <textarea name="message" placeholder="{{ $contactSection?->message_label ?? __('How Can We Help You') }}*" class="form-control style-border text-white" required>{{ old('message') }}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -187,8 +202,8 @@
                             <div class="form-btn col-12">
                                 <button type="submit" class="btn mt-20">
                                     <span class="link-effect text-uppercase">
-                                        <span class="effect-1">{{ __('Send message') }}</span>
-                                        <span class="effect-1">{{ __('Send message') }}</span>
+                                        <span class="effect-1">{{ $contactSection?->submit_button_text ?? __('Send message') }}</span>
+                                        <span class="effect-1">{{ $contactSection?->submit_button_text ?? __('Send message') }}</span>
                                     </span>
                                 </button>
                             </div>

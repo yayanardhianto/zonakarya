@@ -4,17 +4,17 @@
             <div class="row align-items-center justify-content-between">
                 <div class="col-lg-6">
                     <h2 class="footer-top-title">
-                        {{ __('Have Any Thing in your mind?') }}
+                        {{ $setting->footer_title ?? __('Have Any Thing in your mind?') }}
                     </h2>
                 </div>
                 <div class="col-lg-5">
                     <div class="footer-top-wrap">
                         <p class="mb-30">
-                            {{ __('We are retail company engaged in sports equipment and gear, more commonly known by their store names, Sneakerzone and Jerseyzone') }}</p>
+                            {{ $setting->footer_description ?? __('We are retail company engaged in sports equipment and gear, more commonly known by their store names, Sneakerzone and Jerseyzone') }}</p>
                         <a href="{{ route('contact') }}" class="btn">
                             <span class="link-effect text-uppercase">
-                                <span class="effect-1">{{ __('Contact Us') }}</span>
-                                <span class="effect-1">{{ __('Contact Us') }}</span>
+                                <span class="effect-1">{{ $setting->footer_button_text ?? __('Contact Us') }}</span>
+                                <span class="effect-1">{{ $setting->footer_button_text ?? __('Contact Us') }}</span>
                             </span>
                         </a>
                     </div>

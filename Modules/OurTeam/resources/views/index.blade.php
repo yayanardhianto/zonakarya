@@ -15,7 +15,24 @@
                     @adminCan('team.management')
                         <div class="col-12">
                             <div class="card">
+                                <div class="card-header">
+                                    <h6 class="m-0 font-weight-bold text-primary">{{ __('Team Section Settings') }}</h6>
+                                </div>
                                 <div class="card-body">
+                                    <form id="team-section-title-form" action="{{ route('admin.ourteam.update-section-title') }}" method="POST">
+                                        @csrf
+                                        <div class="form-group">
+                                            <x-admin.form-input type="text" id="team_section_title" name="team_section_title"
+                                                label="{{ __('Team Section Title') }}" placeholder="{{ __('Enter Team Section Title') }}"
+                                                value="{{ $teamSectionTitle ?? 'Our Team Behind The Studio' }}" required="true" />
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> {{ __('Update Title') }}
+                                        </button>
+                                    </form>
+                                    
+                                    <hr>
+                                    
                                     <form class="on-change-submit" action="{{ route('admin.contact.ourteam') }}"
                                         method="POST">
                                         @csrf
@@ -102,4 +119,63 @@
     @adminCan('team.management')
         <x-admin.delete-modal />
     @endadminCan
+
+    <script>
+        $(document).ready(function() {
+            $('#team-section-title-form').on('submit', function(e) {
+                e.preventDefault();
+                
+                var form = $(this);
+                var formData = form.serialize();
+                var submitBtn = form.find('button[type="submit"]');
+                var originalText = submitBtn.html();
+                
+                // Disable button and show loading
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> {{ __("Updating...") }}');
+                
+                $.ajax({
+                    url: form.attr('action'),
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        // Show success message
+                        showNotification('{{ __("Team section title updated successfully!") }}', 'success');
+                        
+                        // Re-enable button
+                        submitBtn.prop('disabled', false).html(originalText);
+                    },
+                    error: function(xhr) {
+                        // Show error message
+                        var errorMessage = '{{ __("Error updating team section title") }}';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showNotification(errorMessage, 'error');
+                        
+                        // Re-enable button
+                        submitBtn.prop('disabled', false).html(originalText);
+                    }
+                });
+            });
+        });
+        
+        function showNotification(message, type) {
+            // Create notification element
+            var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            var notification = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                message +
+                '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
+                '<span aria-hidden="true">&times;</span>' +
+                '</button>' +
+                '</div>';
+            
+            // Insert at top of page
+            $('.main-content').prepend(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(function() {
+                $('.alert').fadeOut();
+            }, 5000);
+        }
+    </script>
 @endsection

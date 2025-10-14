@@ -206,6 +206,13 @@ select.form-control:not([size]):not([multiple]) {
 .form-radio .form-control-input:checked ~ .form-control-label::before,
 .form-control-input:checked ~ .form-control-label::before,.form-check-input:checked {
   background-color: #ec2128 !important; }
+  
+.first.form-check-input:checked {
+  background-color: #28a745 !important;
+}
+.lasts.form-check-input:checked {
+  background-color: #ec2128 !important;
+}
 
 .custom-file-label {
   line-height: 2.2; }
@@ -890,7 +897,13 @@ select.form-control:not([size]):not([multiple]) {
   .table.table-bordered td,
   .table.table-bordered th {
     border-color: #f6f6f6; }
-
+.brand .table td{
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+.brand .table td img{
+  width: 100px !important;
+}
 .table-links {
   color: #34395e;
   font-size: 12px;
@@ -1037,6 +1050,9 @@ table tr:hover .table-links {
   margin: 0 8px 10px 0; }
 .detail-table th {
     height: 40px !important;
+}
+.detail-table td {
+  height: 40px !important;
 }
 .badge {
   vertical-align: middle;
@@ -1287,11 +1303,11 @@ h6 .badge {
   background-color: #ec2128;
   border-color: #ec2128; }
   .btn-primary:focus, .btn-primary.disabled:focus {
-    background-color: #394eea !important; }
+    background-color: #bc1a20 !important; }
     .btn-primary:focus:active, .btn-primary.disabled:focus:active {
-      background-color: #394eea !important; }
+      background-color: #bc1a20 !important; }
   .btn-primary:active, .btn-primary:hover, .btn-primary.disabled:active, .btn-primary.disabled:hover {
-    background-color: #394eea !important; }
+    background-color: #bc1a20 !important; }
 
 .btn-outline-primary, .btn-outline-primary.disabled {
   border-color: #ec2128;

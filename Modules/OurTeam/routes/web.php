@@ -7,4 +7,5 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
     Route::resource('ourteam', OurTeamController::class)->names('ourteam')->except('show');
     Route::put('contact/ourteam', [OurTeamController::class, 'contactOurTeam'])->name('contact.ourteam');
     Route::put('ourteam/status-update/{id}', [OurTeamController::class, 'statusUpdate'])->name('ourteam.status-update');
+    Route::post('ourteam/update-section-title', [OurTeamController::class, 'updateSectionTitle'])->name('ourteam.update-section-title');
 });

@@ -72,20 +72,20 @@
                                            placeholder="{{ __('Search by name, email, or phone') }}">
                                 </div>
                             </div>
-                            <div class="col-md-2">
-                                <div class="form-group mb-0 mt-4">
-                                    <label>&nbsp;</label>
-                                    <button type="submit" class="btn btn-primary btn-block">
-                                        <i class="fas fa-search"></i> {{ __('Filter') }}
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-group mb-0 mt-4">
-                                    <label>&nbsp;</label>
-                                    <a href="{{ route('admin.onboard.index') }}" class="btn btn-secondary btn-block">
-                                        <i class="fas fa-times"></i> {{ __('Clear') }}
-                                    </a>
+                            <div class="col-md-4">
+                                <div class="d-flex gap-2">
+                                    <div class="form-group mb-0 mt-4">
+                                        <label>&nbsp;</label>
+                                        <button type="submit" class="btn btn-primary btn-block">
+                                            <i class="fas fa-search"></i> {{ __('Filter') }}
+                                        </button>
+                                    </div>
+                                    <div class="form-group mb-0 mt-4">
+                                        <label>&nbsp;</label>
+                                        <a href="{{ route('admin.onboard.index') }}" class="btn btn-dark btn-block">
+                                            <i class="fas fa-times"></i> {{ __('Clear') }}
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

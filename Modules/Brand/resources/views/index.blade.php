@@ -21,7 +21,7 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive max-h-400">
+                                <div class="table-responsive max-h-400 brand">
                                     <table class="table table-striped">
                                         <thead>
                                             <tr>

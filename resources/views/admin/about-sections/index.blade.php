@@ -44,7 +44,13 @@
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <strong>{{ ucwords(str_replace('_', ' ', $section->name)) }}</strong>
+                                                        @switch($section->name)
+                                                            @case('award_section')
+                                                                <strong>Timeline Section</strong>
+                                                                @break
+                                                            @default
+                                                                <strong>{{ ucwords(str_replace('_', ' ', $section->name)) }}</strong>
+                                                        @endswitch
                                                     </td>
                                                     <td>
                                                         @switch($section->name)
@@ -55,7 +61,7 @@
                                                                 <span class="badge badge-primary">Why choose us section with image and content</span>
                                                                 @break
                                                             @case('award_section')
-                                                                <span class="badge badge-warning">Awards and achievements timeline</span>
+                                                                <span class="badge badge-warning">Timeline and achievements showcase</span>
                                                                 @break
                                                             @case('team_section')
                                                                 <span class="badge badge-success">Team members showcase</span>
@@ -83,12 +89,57 @@
                                                     </td>
                                                     <td>
                                                         <div class="btn-group" role="group">
-                                                            <button type="button" 
-                                                                    class="btn btn-sm btn-outline-primary"
-                                                                    onclick="editSection({{ $section->id }})"
-                                                                    title="Edit Section">
-                                                                <i class="fas fa-edit"></i>
-                                                            </button>
+                                                            @switch($section->name)
+                                                                @case('counter_section')
+                                                                    <a href="{{ route('admin.counter-section.index', ['code' => 'en']) }}" 
+                                                                       class="btn btn-sm btn-outline-primary"
+                                                                       title="Edit Counter Section">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </a>
+                                                                    @break
+                                                                @case('choose_us_section')
+                                                                    <a href="{{ route('admin.choose-us-section.index', ['code' => 'en']) }}" 
+                                                                       class="btn btn-sm btn-outline-primary"
+                                                                       title="Edit Choose Us Section">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </a>
+                                                                    @break
+                                                                @case('award_section')
+                                                                    <a href="{{ route('admin.award.index') }}" 
+                                                                       class="btn btn-sm btn-outline-primary"
+                                                                       title="Edit Award Section">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </a>
+                                                                    @break
+                                                                @case('team_section')
+                                                                    <a href="{{ route('admin.ourteam.index') }}" 
+                                                                       class="btn btn-sm btn-outline-primary"
+                                                                       title="Edit Team Section">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </a>
+                                                                    @break
+                                                                @case('contact_section')
+                                                                    <a href="{{ route('admin.contact-section.index') }}" 
+                                                                       class="btn btn-sm btn-outline-primary"
+                                                                       title="Edit Contact Section">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </a>
+                                                                    @break
+                                                                @case('brand_section')
+                                                                    <a href="{{ route('admin.brand.index') }}" 
+                                                                       class="btn btn-sm btn-outline-primary"
+                                                                       title="Edit Brand Section">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </a>
+                                                                    @break
+                                                                @default
+                                                                    <button type="button" 
+                                                                            class="btn btn-sm btn-outline-primary"
+                                                                            onclick="editSection({{ $section->id }})"
+                                                                            title="Edit Section">
+                                                                        <i class="fas fa-edit"></i>
+                                                                    </button>
+                                                            @endswitch
                                                         </div>
                                                     </td>
                                                 </tr>

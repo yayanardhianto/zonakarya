@@ -21,6 +21,9 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['auth:admi
         Route::put('update-maintenance-mode-status', 'update_maintenance_mode_status')->name('update-maintenance-mode-status');
         Route::put('update-maintenance-mode', 'update_maintenance_mode')->name('update-maintenance-mode');
 
+        Route::get('footer-setting', 'footer_setting')->name('footer-setting');
+        Route::put('update-footer-setting', 'update_footer_setting')->name('update-footer-setting');
+
         Route::get('seo-setting', 'seo_setting')->name('seo-setting');
         Route::put('update-seo-setting/{id}', 'update_seo_setting')->name('update-seo-setting');
         

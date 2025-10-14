@@ -88,6 +88,12 @@
                         <span>{{ __('About Page Sections') }}</span>
                     </a>
                 </li>
+                <li class="{{ Route::is('admin.footer-setting') ? 'active' : '' }}">
+                    <a class="nav-link" href="{{ route('admin.footer-setting') }}"><i class="fas fa-th-large"></i>
+                        <span>{{ __('Footer Sections') }}</span>
+                    </a>
+                </li>
+
                 @if (checkAdminHasPermission('menu.view') ||
                     checkAdminHasPermission('page.view') ||
                     checkAdminHasPermission('faq.view') ||

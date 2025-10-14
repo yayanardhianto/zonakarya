@@ -30,6 +30,12 @@
         <span>{{ __('WhatsApp Settings') }}</span>
     </a>
 </li>
+
+<!-- <li class="{{ Route::is('admin.footer-setting') ? 'active' : '' }}">
+    <a class="nav-link" href="{{ route('admin.footer-setting') }}"><i class="fas fa-window-minimize"></i>
+        <span>{{ __('Footer Settings') }}</span>
+    </a>
+</li> -->
 <!-- @if (Module::isEnabled('Sitemap') && checkAdminHasPermission('sitemap.management'))
     @include('sitemap::sidebar')
 @endif -->

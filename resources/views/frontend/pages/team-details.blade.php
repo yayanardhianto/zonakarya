@@ -17,7 +17,7 @@
 
 @section('contents')
     <!-- breadcrumb-area -->
-    <x-breadcrumb-two :title="$team?->name" :links="[['url' => route('home'), 'text' => __('Home')],['url' => route('team'), 'text' => __('Team')]]" />
+    <x-breadcrumb-two :title="$team?->name" :links="[['url' => route('home'), 'text' => __('Beranda')],['url' => route('team'), 'text' => __('Tim')]]" />
 
     <!-- Main Area -->
     <div class="team-details-page-area space">
@@ -81,7 +81,7 @@
                     <div class="col-lg-8">
                         <div class="contact-form-wrap">
                             <div class="title-area mb-30">
-                                <h3 class="sec-title">{{ __('Contact with Me') }}</h3>
+                                <h3 class="sec-title">{{ __('Hubungi Saya') }}</h3>
                             </div>
                             <form id="team-form" action="{{route('contact.team.member',$team?->slug)}}" class="contact-form ajax-contact">
                                 <div class="row">
@@ -89,30 +89,30 @@
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <input type="hidden" class="form-control style-border" name="name"
-                                                    value="{{userAuth()?->name}}" placeholder="{{ __('Full name') }}*" required>
+                                                    value="{{userAuth()?->name}}" placeholder="{{ __('Nama Lengkap') }}*" required>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <input type="hidden" class="form-control style-border" name="email"
-                                                value="{{userAuth()?->email}}" placeholder="{{ __('Email address') }}*" required>
+                                                value="{{userAuth()?->email}}" placeholder="{{ __('Alamat Email') }}*" required>
                                             </div>
                                         </div>
                                     @else
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <input type="text" class="form-control style-border" name="name" placeholder="{{ __('Full name') }}*" required>
+                                                <input type="text" class="form-control style-border" name="name" placeholder="{{ __('Nama Lengkap') }}*" required>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <input type="email" class="form-control style-border" name="email" placeholder="{{ __('Email address') }}*" required>
+                                                <input type="email" class="form-control style-border" name="email" placeholder="{{ __('Alamat Email') }}*" required>
                                             </div>
                                         </div>
                                     @endauth
                                     <div class="col-lg-12">
                                         <div class="form-group">
-                                            <textarea name="message" placeholder="{{ __('Write your comment') }}*" id="contactForm"
+                                            <textarea name="message" placeholder="{{ __('Tulis pesan Anda') }}*" id="contactForm"
                                                 class="form-control style-border style2" required></textarea>
                                         </div>
                                     </div>
@@ -125,8 +125,8 @@
                                 <div class="form-btn col-12">
                                     <button type="submit" class="btn mt-20">
                                         <span class="link-effect text-uppercase">
-                                            <span class="effect-1">{{ __('Send message') }}</span>
-                                            <span class="effect-1">{{ __('Send message') }}</span>
+                                            <span class="effect-1">{{ __('Kirim Pesan') }}</span>
+                                            <span class="effect-1">{{ __('Kirim Pesan') }}</span>
                                         </span>
                                     </button>
                                 </div>
