@@ -77,7 +77,7 @@
                                     <i class="fas fa-info-circle"></i>
                                     <strong>{{ __('Filter Active:') }}</strong> 
                                     {{ __('Showing all questions with package filter applied. Export will include only questions in the selected package.') }}
-                                    <a href="{{ route('admin.test-question.index') }}" class="btn btn-sm btn-outline-primary ms-2">
+                                    <a href="{{ route('admin.test-question.index') }}" class="btn btn-sm btn-primary ms-2">
                                         <i class="fas fa-times"></i> {{ __('Clear Filter') }}
                                     </a>
                                 </div>
