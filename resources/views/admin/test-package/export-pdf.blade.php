@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Test Packages Export</title>
+    <title>Test Packages</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -137,7 +137,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>Test Packages Export</h1>
+        <h1>Test Packages</h1>
         <p>Generated on: {{ $exportDate }}</p>
         @if(!empty($filterInfo))
             <p>Filtered Results</p>
