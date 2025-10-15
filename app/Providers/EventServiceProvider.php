@@ -40,4 +40,11 @@ class EventServiceProvider extends ServiceProvider
     {
         return false;
     }
+
+    protected $listen = [
+        \Illuminate\Mail\Events\MessageSent::class => [
+            \App\Listeners\LogSentMail::class,
+        ],
+    ];
+
 }
