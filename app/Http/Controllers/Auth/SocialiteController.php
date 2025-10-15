@@ -137,6 +137,14 @@ class SocialiteController extends Controller {
                 if ($findDriver) {
                     // Socialite record exists, check user status
                     if ($user->status == UserStatus::ACTIVE->value && $user->is_banned == UserStatus::UNBANNED->value) {
+                        // Update email verification if needed
+                        if ($user->email_verified_at == null) {
+                            $user->update([
+                                'email_verified_at' => now(),
+                                'verification_token' => null
+                            ]);
+                        }
+                        
                         // User is active and not banned, login
                         Auth::guard('web')->login($user, true);
                         $notification = __('Logged in successfully.');
@@ -163,9 +171,18 @@ class SocialiteController extends Controller {
                     $socialite = $this->createNewUser(callbackUser: $callbackUser, provider_name: $provider_name, user: $user);
                     
                     if ($socialite) {
-                        // Update user status to active if needed
+                        // Update user status to active if needed and verify email
+                        $updateData = [];
                         if ($user->status != UserStatus::ACTIVE->value) {
-                            $user->update(['status' => UserStatus::ACTIVE->value]);
+                            $updateData['status'] = UserStatus::ACTIVE->value;
+                        }
+                        if ($user->email_verified_at == null) {
+                            $updateData['email_verified_at'] = now();
+                            $updateData['verification_token'] = null;
+                        }
+                        
+                        if (!empty($updateData)) {
+                            $user->update($updateData);
                         }
                         
                         Auth::guard('web')->login($user, true);
