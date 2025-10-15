@@ -83,7 +83,7 @@
 .branch-item {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid transparent;
-    border-radius: 10px;
+    border-radius: 0px;
     padding: 20px;
     margin-bottom: 15px;
     cursor: pointer;
@@ -165,6 +165,9 @@
 
 .branch-list::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.5);
+}
+.i4ewOd-pzNkMb-haAclf {
+    display: none;
 }
 </style>
 @endpush
