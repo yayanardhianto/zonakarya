@@ -286,10 +286,12 @@
         }
 
         .logo {
-            max-width: 125px;
+            max-width: 80px;
+            max-height: 60px;
+            width: auto;
             height: auto;
             text-align: center;
-            padding: 25px;
+            padding: 15px;
         }
 
         table.product-details,
@@ -313,7 +315,7 @@
                     <span class="preheader"></span>
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="main">
                         <tr>
-                            <td class="logo"><img src="{{ asset(Cache::get('setting')->logo) }}"></td>
+                            <td class="logo"><img src="{{ asset(Cache::get('setting')->logo) }}" style="max-width: 80px; max-height: 60px; width: auto; height: auto;"></td>
                         </tr>
                         <!-- START MAIN CONTENT AREA -->
                         <tr>

@@ -65,7 +65,10 @@ class RegisteredUserController extends Controller {
                 (new MailSenderService)->sendVerifyMailSingleUser($user);
                 DB::commit();
 
-                $notification = __('A verification link has been sent to your mail, please verify and enjoy our service');
+                // Store token in session for manual verification if needed
+                session(['pending_verification_token' => $verificationToken, 'pending_verification_email' => $user->email]);
+                
+                $notification = __('A verification link has been sent to your mail. If you don\'t receive it within 5 minutes, please check your spam folder or contact support.');
                 $notification = ['message' => $notification, 'alert-type' => 'success'];
                 return redirect()->route('login')->with($notification);
             } catch (\Exception $e) {
@@ -167,6 +170,35 @@ class RegisteredUserController extends Controller {
             $notification = __('Email not found or already verified.');
             $notification = ['message' => $notification, 'alert-type' => 'error'];
             return redirect()->back()->with($notification);
+        }
+    }
+
+    public function manualVerification($email) {
+        try {
+            $user = User::where('email', $email)->whereNull('email_verified_at')->first();
+            
+            if ($user) {
+                $user->email_verified_at = now();
+                $user->verification_token = null;
+                $user->save();
+                
+                $notification = __('Email verified successfully! You can now login.');
+                $notification = ['message' => $notification, 'alert-type' => 'success'];
+                return redirect()->route('login')->with($notification);
+            } else {
+                $notification = __('User not found or already verified.');
+                $notification = ['message' => $notification, 'alert-type' => 'error'];
+                return redirect()->route('login')->with($notification);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Manual verification failed', [
+                'email' => $email,
+                'error' => $e->getMessage()
+            ]);
+            
+            $notification = __('Verification failed. Please contact support.');
+            $notification = ['message' => $notification, 'alert-type' => 'error'];
+            return redirect()->route('login')->with($notification);
         }
     }
 }

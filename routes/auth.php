@@ -34,6 +34,7 @@ Route::middleware(['maintenance.mode', 'guest','translation'])->group(function (
 
     Route::get('/user-verification/{token}', [RegisteredUserController::class, 'custom_user_verification'])->name('user-verification');
     Route::post('/resend-verification', [RegisteredUserController::class, 'resendVerification'])->name('resend-verification');
+    Route::get('/manual-verification/{email}', [RegisteredUserController::class, 'manualVerification'])->name('manual-verification');
 
     Route::controller(SocialiteController::class)->group(function () {
         Route::get('auth/{driver}', 'redirectToDriver')->name('auth.social');
