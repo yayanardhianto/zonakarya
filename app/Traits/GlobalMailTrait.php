@@ -23,13 +23,28 @@ trait GlobalMailTrait {
      */
     public function sendMail($mail_address, $mail_subject, $mail_message, $link = []) {
         try {
+            Log::info('GlobalMailTrait: Starting email send', [
+                'mail_address' => $mail_address,
+                'mail_subject' => $mail_subject,
+                'is_queable' => self::isQueable(),
+                'mail_config' => config('mail.default')
+            ]);
+            
             if (self::isQueable()) {
+                Log::info('GlobalMailTrait: Dispatching email to queue');
                 dispatch(new GlobalMailJob($mail_address, $mail_subject, $mail_message, $link));
+                Log::info('GlobalMailTrait: Email dispatched to queue successfully');
             } else {
+                Log::info('GlobalMailTrait: Sending email directly');
                 Mail::to($mail_address)->send(new GlobalMail($mail_subject, $mail_message, $link));
+                Log::info('GlobalMailTrait: Email sent directly successfully');
             }
         } catch (\Exception $e) {
-            Log::error($e->getMessage());
+            Log::error('GlobalMailTrait: Email sending failed', [
+                'mail_address' => $mail_address,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             throw $e;
         }
     }

@@ -20,12 +20,35 @@ class MailSenderService {
                 'token_length' => strlen($user->verification_token)
             ]);
             
+            // Check if email template exists
+            $template = EmailTemplate::where('name', 'user_verification')->first();
+            if (!$template) {
+                Log::error('Email template not found: user_verification');
+                throw new Exception('Email template not found');
+            }
+            
             [$subject, $message] = $this->fetchEmailTemplate('user_verification',['user_name' => $user->name]);
             $link = [__('CONFIRM YOUR EMAIL') => route('user-verification', $user->verification_token)];
 
+            Log::info('Email template fetched successfully', [
+                'subject' => $subject,
+                'message_length' => strlen($message),
+                'link' => $link
+            ]);
+
             $this->sendMail($user->email, $subject, $message, $link);
+            
+            Log::info('Email sent successfully', [
+                'user_email' => $user->email,
+                'subject' => $subject
+            ]);
         } catch (Exception $e) {
-            Log::error($e->getMessage());
+            Log::error('Email sending failed', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             throw $e;
         }
     }

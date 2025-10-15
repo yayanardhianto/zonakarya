@@ -37,9 +37,23 @@ class GlobalMailJob implements ShouldQueue {
      */
     public function handle(): void {
         try {
+            \Log::info('GlobalMailJob: Processing email job', [
+                'mail_address' => $this->mail_address,
+                'mail_subject' => $this->mail_subject
+            ]);
+            
             Mail::to($this->mail_address)->send(new GlobalMail($this->mail_subject, $this->mail_message, $this->link));
+            
+            \Log::info('GlobalMailJob: Email sent successfully', [
+                'mail_address' => $this->mail_address,
+                'mail_subject' => $this->mail_subject
+            ]);
         } catch (\Exception $e) {
-            info($e->getMessage());
+            \Log::error('GlobalMailJob: Email sending failed', [
+                'mail_address' => $this->mail_address,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             throw $e;
         }
     }

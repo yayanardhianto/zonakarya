@@ -61,13 +61,30 @@ class RegisteredUserController extends Controller {
                 'token_length' => strlen($verificationToken)
             ]);
 
-            (new MailSenderService)->sendVerifyMailSingleUser($user);
-            DB::commit();
+            try {
+                (new MailSenderService)->sendVerifyMailSingleUser($user);
+                DB::commit();
 
-            $notification = __('A verification link has been sent to your mail, please verify and enjoy our service');
-            $notification = ['message' => $notification, 'alert-type' => 'success'];
-
-            return redirect()->route('login')->with($notification);
+                $notification = __('A verification link has been sent to your mail, please verify and enjoy our service');
+                $notification = ['message' => $notification, 'alert-type' => 'success'];
+                return redirect()->route('login')->with($notification);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                
+                // Log the email sending failure
+                \Log::error('Email sending failed during registration', [
+                    'user_id' => $user->id,
+                    'user_email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Delete the user since email failed
+                $user->delete();
+                
+                $notification = __('Registration failed due to email service issue. Please try again or contact support.');
+                $notification = ['message' => $notification, 'alert-type' => 'error'];
+                return redirect()->back()->with($notification);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->handleMailException($e);
