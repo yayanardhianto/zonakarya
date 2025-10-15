@@ -447,13 +447,21 @@ class TestController extends Controller
 
     private function completeTest(TestSession $session)
     {
-        // Check if test contains essay or scale questions
+        // Check if test contains questions that require manual grading
         $hasEssayQuestions = $session->package->questions()
             ->where('question_type', 'essay')
             ->exists();
             
         $hasScaleQuestions = $session->package->questions()
             ->where('question_type', 'scale')
+            ->exists();
+            
+        $hasForcedChoiceQuestions = $session->package->questions()
+            ->where('question_type', 'forced_choice')
+            ->exists();
+            
+        $hasVideoQuestions = $session->package->questions()
+            ->where('question_type', 'video_record')
             ->exists();
 
         // Calculate score only for multiple choice questions
@@ -467,19 +475,19 @@ class TestController extends Controller
             ->where('question_type', 'multiple_choice')
             ->sum('points');
 
-        // If test contains essay or scale questions, don't calculate overall score
-        if ($hasEssayQuestions || $hasScaleQuestions) {
+        // If test contains questions that require manual grading, don't calculate overall score
+        if ($hasEssayQuestions || $hasScaleQuestions || $hasForcedChoiceQuestions || $hasVideoQuestions) {
             $score = null;
             $isPassed = null;
-            $notes = 'Test contains essay or scale questions - no overall score calculated';
+            $notes = 'Test contains questions that require manual grading - no overall score calculated';
         } else {
             // Only calculate score if all questions are multiple choice
             if ($multipleChoiceMax > 0) {
                 $score = round(($multipleChoiceScore / $multipleChoiceMax) * 100);
                 $isPassed = $score >= $session->package->passing_score;
-        } else {
-            $score = 0;
-            $isPassed = false;
+            } else {
+                $score = 0;
+                $isPassed = false;
             }
             $notes = null;
         }

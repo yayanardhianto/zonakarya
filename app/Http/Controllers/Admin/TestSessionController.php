@@ -96,17 +96,45 @@ class TestSessionController extends Controller
 
     private function calculateSessionScore(TestSession $testSession)
     {
-        $totalPoints = $testSession->answers()->sum('points_earned');
-        $maxPoints = $testSession->package->questions()->sum('points');
-        
-        if ($maxPoints > 0) {
-            $score = round(($totalPoints / $maxPoints) * 100);
-            $isPassed = $score >= $testSession->package->passing_score;
+        // Check if test contains questions that require manual grading
+        $hasEssayQuestions = $testSession->package->questions()
+            ->where('question_type', 'essay')
+            ->exists();
             
+        $hasScaleQuestions = $testSession->package->questions()
+            ->where('question_type', 'scale')
+            ->exists();
+            
+        $hasForcedChoiceQuestions = $testSession->package->questions()
+            ->where('question_type', 'forced_choice')
+            ->exists();
+            
+        $hasVideoQuestions = $testSession->package->questions()
+            ->where('question_type', 'video_record')
+            ->exists();
+        
+        // If test contains questions that require manual grading, don't calculate overall score
+        if ($hasEssayQuestions || $hasScaleQuestions || $hasForcedChoiceQuestions || $hasVideoQuestions) {
             $testSession->update([
-                'score' => $score,
-                'is_passed' => $isPassed
+                'score' => null,
+                'is_passed' => null,
+                'notes' => 'Test contains questions that require manual grading - no overall score calculated'
             ]);
+        } else {
+            // Only calculate score for multiple choice questions
+            $totalPoints = $testSession->answers()->sum('points_earned');
+            $maxPoints = $testSession->package->questions()->sum('points');
+            
+            if ($maxPoints > 0) {
+                $score = round(($totalPoints / $maxPoints) * 100);
+                $isPassed = $score >= $testSession->package->passing_score;
+                
+                $testSession->update([
+                    'score' => $score,
+                    'is_passed' => $isPassed,
+                    'notes' => null
+                ]);
+            }
         }
     }
 
