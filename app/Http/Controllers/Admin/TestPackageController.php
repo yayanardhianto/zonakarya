@@ -433,6 +433,7 @@ class TestPackageController extends Controller
             $session = TestSession::create([
                 'package_id' => $testPackage->id,
                 'applicant_id' => null, // Public access
+                'user_id' => null, // Will be filled when user takes the test
                 'job_position' => null, // No specific job position for admin-generated tests
                 'status' => 'pending',
                 'access_token' => null, // Will be generated

@@ -116,8 +116,14 @@ class TestController extends Controller
                 $userApplicant = \App\Models\Applicant::where('user_id', Auth::id())->first();
                 if ($userApplicant) {
                     // Link this test session to the user's applicant record
-                    $session->update(['applicant_id' => $userApplicant->id]);
+                    $session->update([
+                        'applicant_id' => $userApplicant->id,
+                        'user_id' => Auth::id() // Also link with user account
+                    ]);
                     $applicant = $userApplicant;
+                } else {
+                    // No applicant record, but user is logged in - link with user account
+                    $session->update(['user_id' => Auth::id()]);
                 }
             }
             // Allow access without user authentication
@@ -373,8 +379,14 @@ class TestController extends Controller
                 $userApplicant = \App\Models\Applicant::where('user_id', Auth::id())->first();
                 if ($userApplicant) {
                     // Link this test session to the user's applicant record
-                    $session->update(['applicant_id' => $userApplicant->id]);
+                    $session->update([
+                        'applicant_id' => $userApplicant->id,
+                        'user_id' => Auth::id() // Also link with user account
+                    ]);
                     $applicant = $userApplicant;
+                } else {
+                    // No applicant record, but user is logged in - link with user account
+                    $session->update(['user_id' => Auth::id()]);
                 }
             }
             // Allow access without user authentication
