@@ -3,7 +3,7 @@
         data-left="0" data-top="-100px" data-bottom="140px">
         <div id="map-container" style="position: relative; width: 100%; height: 100%;">
             <iframe id="branch-map" 
-                    src="{{ $branches->first()?->map ?? $contactSection?->map ?? 'https://maps.google.com/maps?q=Jakarta,Indonesia&output=embed' }}" 
+                    src="https://www.google.com/maps/d/embed?mid=1stBv3YSDUtYZQ6J6DuaCTcuqwMqgRw0&ehbc=2E312F" 
                     allowfullscreen="" 
                     loading="lazy"
                     style="width: 100%; height: 100%; border: 0; border-radius: 10px;"></iframe>
@@ -26,7 +26,7 @@
                     @if($branches->count() > 0)
                         <div class="branch-list row">
                             @foreach($branches as $branch)
-                                <div class="branch-item col-md-6 {{ $loop->first ? 'active' : '' }}" 
+                                <div class="branch-item col-md-6" 
                                      data-branch-id="{{ $branch->id }}"
                                      data-branch-name="{{ $branch->name }}"
                                      data-branch-address="{{ $branch->address }}"
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Google Maps short URLs cannot be embedded due to X-Frame-Options
                 // Show a message or use fallback map
                 console.warn('Google Maps short URL cannot be embedded:', branchMapUrl);
-                finalMapUrl = 'https://maps.google.com/maps?q=Jakarta,Indonesia&output=embed';
+                finalMapUrl = 'https://www.google.com/maps/d/embed?mid=1stBv3YSDUtYZQ6J6DuaCTcuqwMqgRw0&ehbc=2E312F';
             } else if (branchMapUrl.includes('maps.google.com')) {
                 // It's a Google Maps link, convert to embed
                 if (branchMapUrl.includes('/maps?')) {
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Map updated for branch:', branchName, 'URL:', finalMapUrl);
         } else {
             // Fallback to default map
-            branchMap.src = 'https://maps.google.com/maps?q=Jakarta,Indonesia&output=embed';
+            branchMap.src = 'https://www.google.com/maps/d/embed?mid=1stBv3YSDUtYZQ6J6DuaCTcuqwMqgRw0&ehbc=2E312F';
             console.log('Using fallback map for branch:', branchName);
         }
         
@@ -236,19 +236,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 branchItem.classList.remove('active');
             });
             
-            // Set first branch as active
-            const firstBranch = branchItems[0];
-            firstBranch.classList.add('active');
-            
-            // Update map with first branch data
-            updateMap(firstBranch);
-            
-            console.log('Default branch set:', firstBranch.getAttribute('data-branch-name'));
+            // Don't set any branch as active by default
+            // Let the default map show first
+            console.log('Branches available, but no default branch selected. Using default map.');
         } else {
             console.log('No branches found, using fallback map');
             // If no branches, ensure we have a fallback map
             if (branchMap && !branchMap.src.includes('maps.google.com')) {
-                branchMap.src = 'https://maps.google.com/maps?q=Jakarta,Indonesia&output=embed';
+                branchMap.src = 'https://www.google.com/maps/d/embed?mid=1stBv3YSDUtYZQ6J6DuaCTcuqwMqgRw0&ehbc=2E312F';
             }
         }
     }
