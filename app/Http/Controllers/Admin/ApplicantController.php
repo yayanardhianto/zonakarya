@@ -115,6 +115,7 @@ class ApplicantController extends Controller
             $testSession = \App\Models\TestSession::create([
                 'package_id' => $testPackage->id,
                 'applicant_id' => $applicant->id,
+                'user_id' => $applicant->user_id, // Add user_id to link with user account
                 'access_token' => \Str::random(32),
                 'status' => 'pending',
                 'expires_at' => now()->addDay(),

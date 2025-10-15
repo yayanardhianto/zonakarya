@@ -288,6 +288,7 @@ class SocialiteController extends Controller {
             $testSession = \App\Models\TestSession::create([
                 'package_id' => $testPackage->id,
                 'applicant_id' => $applicant->id,
+                'user_id' => $user->id, // Add user_id to link with user account
                 'status' => 'pending',
                 'access_token' => Str::random(32),
                 'expires_at' => now()->addDay(),
