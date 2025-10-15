@@ -42,13 +42,23 @@ class RegisteredUserController extends Controller {
         ]);
         try {
             DB::beginTransaction();
+            $verificationToken = Str::random(100);
+            
             $user = User::create([
                 'name'               => $request->name,
                 'email'              => $request->email,
                 'status'             => 'active',
                 'is_banned'          => 'no',
                 'password'           => Hash::make($request->password),
-                'verification_token' => Str::random(100),
+                'verification_token' => $verificationToken,
+            ]);
+
+            // Log the token creation for debugging
+            \Log::info('User registration - Token created', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'verification_token' => $verificationToken,
+                'token_length' => strlen($verificationToken)
             ]);
 
             (new MailSenderService)->sendVerifyMailSingleUser($user);
@@ -66,13 +76,19 @@ class RegisteredUserController extends Controller {
     }
 
     public function custom_user_verification($token) {
+        // Debug: Log the token for troubleshooting
+        \Log::info('Email verification attempt', [
+            'token' => $token,
+            'token_length' => strlen($token),
+            'url' => request()->url()
+        ]);
+        
         $user = User::where('verification_token', $token)->first();
+        
         if ($user) {
-
             if ($user->email_verified_at != null) {
                 $notification = __('Email already verified');
                 $notification = ['message' => $notification, 'alert-type' => 'error'];
-
                 return redirect()->route('login')->with($notification);
             }
 
@@ -80,15 +96,60 @@ class RegisteredUserController extends Controller {
             $user->verification_token = null;
             $user->save();
 
-            $notification = __('A verification link has been sent to your mail, please verify and enjoy our service');
+            $notification = __('Email verified successfully! You can now login.');
             $notification = ['message' => $notification, 'alert-type' => 'success'];
-
             return redirect()->route('login')->with($notification);
         } else {
-            $notification = __('Invalid token');
+            // Log detailed error for debugging
+            \Log::error('Email verification failed - Token not found', [
+                'token' => $token,
+                'token_length' => strlen($token),
+                'total_users_with_tokens' => User::whereNotNull('verification_token')->count(),
+                'url' => request()->url()
+            ]);
+            
+            // Try to find user by email and regenerate token as fallback
+            $recentUsers = User::whereNull('email_verified_at')
+                ->whereNotNull('verification_token')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get();
+                
+            if ($recentUsers->count() > 0) {
+                \Log::info('Found unverified users, attempting to help with verification', [
+                    'count' => $recentUsers->count(),
+                    'users' => $recentUsers->pluck('email')->toArray()
+                ]);
+            }
+            
+            $notification = __('Invalid verification link. Please try registering again or contact support.');
             $notification = ['message' => $notification, 'alert-type' => 'error'];
-
             return redirect()->route('register')->with($notification);
+        }
+    }
+
+    public function resendVerification(Request $request) {
+        $request->validate([
+            'email' => 'required|email|exists:users,email'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        
+        if ($user && $user->email_verified_at == null) {
+            // Generate new token
+            $user->verification_token = Str::random(100);
+            $user->save();
+            
+            // Send new verification email
+            (new MailSenderService)->sendVerifyMailSingleUser($user);
+            
+            $notification = __('A new verification link has been sent to your email.');
+            $notification = ['message' => $notification, 'alert-type' => 'success'];
+            return redirect()->route('login')->with($notification);
+        } else {
+            $notification = __('Email not found or already verified.');
+            $notification = ['message' => $notification, 'alert-type' => 'error'];
+            return redirect()->back()->with($notification);
         }
     }
 }

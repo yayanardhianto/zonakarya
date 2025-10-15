@@ -12,6 +12,14 @@ class MailSenderService {
 
     public function sendVerifyMailSingleUser($user) {
         try {
+            // Log the token being used for email
+            Log::info('Sending verification email', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'verification_token' => $user->verification_token,
+                'token_length' => strlen($user->verification_token)
+            ]);
+            
             [$subject, $message] = $this->fetchEmailTemplate('user_verification',['user_name' => $user->name]);
             $link = [__('CONFIRM YOUR EMAIL') => route('user-verification', $user->verification_token)];
 

@@ -33,6 +33,7 @@ Route::middleware(['maintenance.mode', 'guest','translation'])->group(function (
     Route::post('/reset-password-store/{token}', [NewPasswordController::class, 'custom_reset_password_store'])->name('reset-password-store');
 
     Route::get('/user-verification/{token}', [RegisteredUserController::class, 'custom_user_verification'])->name('user-verification');
+    Route::post('/resend-verification', [RegisteredUserController::class, 'resendVerification'])->name('resend-verification');
 
     Route::controller(SocialiteController::class)->group(function () {
         Route::get('auth/{driver}', 'redirectToDriver')->name('auth.social');
