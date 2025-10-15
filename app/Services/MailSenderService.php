@@ -6,6 +6,7 @@ use Exception;
 use App\Models\User;
 use App\Traits\GlobalMailTrait;
 use Illuminate\Support\Facades\Log;
+use Modules\GlobalSetting\app\Models\EmailTemplate;
 
 class MailSenderService {
     use GlobalMailTrait;
