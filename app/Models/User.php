@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Modules\Location\app\Models\Country;
 
 
-class User extends Authenticatable {
+class User extends Authenticatable implements MustVerifyEmail {
     use HasApiTokens, HasFactory, Notifiable;
 
     /**

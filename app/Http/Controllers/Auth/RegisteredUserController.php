@@ -57,7 +57,7 @@ class RegisteredUserController extends Controller {
             $notification = __('A verification link has been sent to your mail, please verify and enjoy our service');
             $notification = ['message' => $notification, 'alert-type' => 'success'];
 
-            return redirect()->back()->with($notification);
+            return redirect()->route('login')->with($notification);
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->handleMailException($e);
