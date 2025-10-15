@@ -6,7 +6,7 @@
                     src="https://www.google.com/maps/d/embed?mid=1stBv3YSDUtYZQ6J6DuaCTcuqwMqgRw0&ehbc=2E312F" 
                     allowfullscreen="" 
                     loading="lazy"
-                    style="width: 100%; height: 100%; border: 0; border-radius: 10px;"></iframe>
+                    style="width: 100%; height: 100%; border: 0; border-radius: 0px;"></iframe>
             <div id="map-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; border-radius: 10px;">
                 <h4 style="margin-bottom: 15px;">Map Preview Not Available</h4>
                 <p style="margin-bottom: 20px;">This location cannot be previewed in the map.</p>
