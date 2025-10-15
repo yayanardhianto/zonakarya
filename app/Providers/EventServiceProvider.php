@@ -23,6 +23,9 @@ class EventServiceProvider extends ServiceProvider
         SocialiteWasCalled::class => [
             LinkedInProvider::class,
         ],
+        \Illuminate\Mail\Events\MessageSent::class => [
+            \App\Listeners\LogSentMail::class,
+        ],
     ];
 
     /**
@@ -40,11 +43,5 @@ class EventServiceProvider extends ServiceProvider
     {
         return false;
     }
-
-    protected $listen = [
-        \Illuminate\Mail\Events\MessageSent::class => [
-            \App\Listeners\LogSentMail::class,
-        ],
-    ];
 
 }
