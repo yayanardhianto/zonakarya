@@ -187,10 +187,8 @@ class TestController extends Controller
                     })
                     ->values();
             } else {
-                // First time accessing this session - randomize and store the order
-                $allQuestions = $session->package->questions()
-                    ->inRandomOrder()
-                    ->get();
+                // First time accessing this session - use package's getOrderedQuestions method
+                $allQuestions = $session->package->getOrderedQuestions();
                 
                 // Store the randomized order in session for consistency during this session
                 $session->update([

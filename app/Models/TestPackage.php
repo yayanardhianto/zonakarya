@@ -123,7 +123,7 @@ class TestPackage extends Model
             return $this->getRandomizedQuestionsWithFixed();
         }
 
-        // Always use pivot.order for ordering, regardless of question_order array
+        // For non-randomize mode, always use pivot.order regardless of fixed questions
         return $this->questions()->orderBy('test_package_question.order')->get();
     }
 
@@ -168,8 +168,10 @@ class TestPackage extends Model
             $orderedQuestions->push($fixedLast);
         }
 
+
         return $orderedQuestions;
     }
+
 
     public function setQuestionOrder(array $questionIds)
     {
