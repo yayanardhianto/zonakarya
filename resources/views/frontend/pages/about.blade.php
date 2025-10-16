@@ -9,7 +9,7 @@
 
 @section('contents')
     <!-- Breadcumb Area -->
-    <x-breadcrumb :image="$setting?->about_page_breadcrumb_image" :title="__('About')" />
+    <x-breadcrumb :image="$setting?->about_page_breadcrumb_image" :title="$setting?->about_page_title ?? __('About')" />
 
     @if($sections->where('name', 'counter_section')->first()?->is_active)
     <!-- Counter Area -->

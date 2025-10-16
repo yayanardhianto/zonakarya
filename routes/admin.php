@@ -147,6 +147,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         Route::get('about-sections', [\App\Http\Controllers\Admin\AboutSectionController::class, 'index'])->name('about-sections.index');
         Route::post('about-sections/update-order', [\App\Http\Controllers\Admin\AboutSectionController::class, 'updateOrder'])->name('about-sections.update-order');
         Route::post('about-sections/{section}/toggle-status', [\App\Http\Controllers\Admin\AboutSectionController::class, 'toggleStatus'])->name('about-sections.toggle-status');
+        Route::post('about-sections/update-title', [\App\Http\Controllers\Admin\AboutSectionController::class, 'updateTitle'])->name('about-sections.update-title');
         
     });
 });

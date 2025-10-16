@@ -59,4 +59,32 @@ class AboutSectionController extends Controller
             'is_active' => $section->is_active
         ]);
     }
+
+    public function updateTitle(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255'
+        ]);
+
+        try {
+            // Update the about page title in settings using key-value structure
+            \Modules\GlobalSetting\app\Models\Setting::updateOrCreate(
+                ['key' => 'about_page_title'],
+                ['value' => $request->title]
+            );
+
+            // Clear cache to ensure fresh data
+            \Illuminate\Support\Facades\Cache::forget('setting');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'About page title updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update about page title: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
