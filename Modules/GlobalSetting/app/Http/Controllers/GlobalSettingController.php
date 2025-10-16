@@ -65,7 +65,10 @@ class GlobalSettingController extends Controller
         ]);
 
         foreach ($request->except('_token') as $key => $value) {
-            Setting::where('key', $key)->update(['value' => $value]);
+            Setting::updateOrCreate(
+                ['key' => $key],
+                ['value' => $value]
+            );
         }
 
         Cache::forget('setting');
@@ -767,7 +770,10 @@ class GlobalSettingController extends Controller
         ]);
 
         foreach ($request->except('_token') as $key => $value) {
-            Setting::where('key', $key)->update(['value' => $value]);
+            Setting::updateOrCreate(
+                ['key' => $key],
+                ['value' => $value]
+            );
         }
 
         Cache::forget('setting');
@@ -798,7 +804,10 @@ class GlobalSettingController extends Controller
         ]);
 
         foreach ($request->except('_token') as $key => $value) {
-            Setting::where('key', $key)->update(['value' => $value]);
+            Setting::updateOrCreate(
+                ['key' => $key],
+                ['value' => $value]
+            );
         }
 
         Cache::forget('setting');
