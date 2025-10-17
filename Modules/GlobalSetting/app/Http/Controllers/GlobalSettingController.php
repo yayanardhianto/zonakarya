@@ -71,8 +71,8 @@ class GlobalSettingController extends Controller
             );
         }
 
-        Cache::forget('setting');
-        Cache::forget('corn_working');
+        // Clear all relevant caches comprehensively
+        \App\Helpers\CacheHelper::clearAllCaches();
 
         $notification = __('Update Successfully');
         $notification = ['message' => $notification, 'alert-type' => 'success'];
@@ -776,7 +776,8 @@ class GlobalSettingController extends Controller
             );
         }
 
-        Cache::forget('setting');
+        // Clear all relevant caches comprehensively
+        \App\Helpers\CacheHelper::clearAllCaches();
 
         $notification = __('Update Successfully');
         $notification = ['message' => $notification, 'alert-type' => 'success'];
@@ -829,7 +830,8 @@ class GlobalSettingController extends Controller
             );
         }
 
-        Cache::forget('setting');
+        // Clear all relevant caches comprehensively
+        \App\Helpers\CacheHelper::clearAllCaches();
 
         $notification = __('Update Successfully');
         $notification = ['message' => $notification, 'alert-type' => 'success'];

@@ -73,8 +73,8 @@ class AboutSectionController extends Controller
                 ['value' => $request->title]
             );
 
-            // Clear cache to ensure fresh data
-            \Illuminate\Support\Facades\Cache::forget('setting');
+            // Clear all relevant caches comprehensively
+            \App\Helpers\CacheHelper::clearAllCaches();
 
             return response()->json([
                 'success' => true,
