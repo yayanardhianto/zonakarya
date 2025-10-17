@@ -156,7 +156,7 @@
                             <h5 class="mb-0">{{ $setting->label_company_info ?? __('Informasi Perusahaan') }}</h5>
                         </div>
                         <div class="card-body text-center">
-                                <img src="{{ asset('uploads/custom-images/wsus-img-2025-10-09-05-44-11-3128.png') }}" 
+                                <img src="{{ asset($setting?->logo) }}" 
                                      alt="{{ $jobVacancy->company_name }}" 
                                      class="company-logo mb-3 w-50" 
                                      height="60"/>
