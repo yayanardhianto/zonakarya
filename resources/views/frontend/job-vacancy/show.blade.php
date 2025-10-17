@@ -44,7 +44,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Lokasi') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ $setting->label_location ?? __('Lokasi') }}</h6>
                                     <p class="mb-0">
                                         <i class="fas fa-map-marker-alt text-primary me-2"></i>
                                         {{ $jobVacancy->location }}
@@ -53,7 +53,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Jenis Pekerjaan') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ $setting->label_work_type ?? __('Jenis Pekerjaan') }}</h6>
                                     <p class="mb-0">
                                         <i class="fas fa-briefcase text-secondary me-2"></i>
                                         {{ $jobVacancy->work_type }}
@@ -63,7 +63,7 @@
                             @if($jobVacancy->show_salary)
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Range Gaji') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ $setting->label_salary_range ?? __('Range Gaji') }}</h6>
                                     <p class="mb-0">
                                         <i class="fas fa-dollar-sign text-success me-2"></i>
                                         {{ $jobVacancy->formatted_salary }}
@@ -74,7 +74,7 @@
                             @if($jobVacancy->show_age)
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Range Usia') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ $setting->label_age_range ?? __('Range Usia') }}</h6>
                                     <p class="mb-0">
                                         <i class="fas fa-calendar text-info me-2"></i>
                                         {{ $jobVacancy->formatted_age }}
@@ -84,7 +84,7 @@
                             @endif
                             <div class="col-md-6">
                                 <div class="detail-item mb-3">
-                                    <h6 class="text-muted mb-1">{{ __('Jenis Kelamin') }}</h6>
+                                    <h6 class="text-muted mb-1">{{ $setting->label_gender ?? __('Jenis Kelamin') }}</h6>
                                     <p class="mb-0">
                                         <i class="fas fa-user text-warning me-2"></i>
                                         {{ $jobVacancy->gender }}
@@ -94,7 +94,7 @@
                             @if($jobVacancy->application_deadline)
                                 <div class="col-md-6">
                                     <div class="detail-item mb-3">
-                                        <h6 class="text-muted mb-1">{{ __('Deadline Pendaftaran') }}</h6>
+                                        <h6 class="text-muted mb-1">{{ $setting->label_deadline ?? __('Deadline Pendaftaran') }}</h6>
                                         <p class="mb-0">
                                             <i class="fas fa-clock text-danger me-2"></i>
                                             {{ $jobVacancy->application_deadline->format('d M Y') }}
@@ -107,7 +107,7 @@
 
                     <!-- Job Description -->
                     <div class="job-description mb-4">
-                        <h4 class="mb-3">{{ __('Deskripsi Pekerjaan') }}</h4>
+                        <h4 class="mb-3">{{ $setting->label_job_description ?? __('Deskripsi Pekerjaan') }}</h4>
                         <div class="content">
                             {!! nl2br(e($jobVacancy->description)) !!}
                         </div>
@@ -116,7 +116,7 @@
                     <!-- Responsibilities -->
                     @if($jobVacancy->responsibilities)
                         <div class="job-responsibilities mb-4">
-                            <h4 class="mb-3">{{ __('Tanggung Jawab') }}</h4>
+                            <h4 class="mb-3">{{ $setting->label_responsibilities ?? __('Tanggung Jawab') }}</h4>
                             <div class="content">
                                 {!! nl2br(e($jobVacancy->responsibilities)) !!}
                             </div>
@@ -126,7 +126,7 @@
                     <!-- Specific Requirements -->
                     @if($jobVacancy->specific_requirements && count($jobVacancy->specific_requirements) > 0)
                         <div class="job-requirements mb-4">
-                            <h4 class="mb-3">{{ __('Persyaratan Khusus') }}</h4>
+                            <h4 class="mb-3">{{ $setting->label_requirements ?? __('Persyaratan Khusus') }}</h4>
                             <ul class="list-unstyled">
                                 @foreach($jobVacancy->specific_requirements as $requirement)
                                     <li class="mb-2">
@@ -141,7 +141,7 @@
                     <!-- Benefits -->
                     @if($jobVacancy->benefits)
                         <div class="job-benefits mb-4">
-                            <h4 class="mb-3">{{ __('Keuntungan') }}</h4>
+                            <h4 class="mb-3">{{ $setting->label_benefits ?? __('Keuntungan') }}</h4>
                             <div class="content">
                                 {!! nl2br(e($jobVacancy->benefits)) !!}
                             </div>
@@ -153,7 +153,7 @@
                     <!-- Company Info Card -->
                     <div class="company-info-card card mb-4">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ __('Informasi Perusahaan') }}</h5>
+                            <h5 class="mb-0">{{ $setting->label_company_info ?? __('Informasi Perusahaan') }}</h5>
                         </div>
                         <div class="card-body text-center">
                                 <img src="{{ asset('uploads/custom-images/wsus-img-2025-10-09-05-44-11-3128.png') }}" 
@@ -181,7 +181,7 @@
                     <!-- Application Card -->
                     <div class="application-card card mb-4">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ __('Lamar Posisi Ini') }}</h5>
+                            <h5 class="mb-0">{{ $setting->label_apply_position ?? __('Lamar Posisi Ini') }}</h5>
                         </div>
                         <div class="card-body">
                             <p class="text-muted mb-3">{{ __('Tertarik dengan posisi ini? Hubungi perusahaan langsung menggunakan informasi yang tersedia.') }}</p>
@@ -189,20 +189,20 @@
                             <div class="d-grid gap-2">
                                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal">
                                     <i class="fas fa-paper-plane me-2"></i>
-                                    {{ __('Kirim Lamaran') }}
+                                    {{ $setting->label_send_application ?? __('Kirim Lamaran') }}
                                 </button>
                                 
                                 <a href="mailto:{{ $jobVacancy->contact_email }}?subject=Application for {{ $jobVacancy->position }}" 
                                    class="btn btn-outline-primary">
                                     <i class="fas fa-envelope me-2"></i>
-                                    {{ __('Kirim Email') }}
+                                    {{ $setting->label_send_email ?? __('Kirim Email') }}
                                 </a>
                                 
                                 @if($jobVacancy->contact_phone)
                                     <a href="tel:{{ $jobVacancy->contact_phone }}" 
                                        class="btn btn-outline-secondary">
                                         <i class="fas fa-phone me-2"></i>
-                                        {{ __('Telepon Perusahaan') }}
+                                        {{ $setting->label_call_company ?? __('Telepon Perusahaan') }}
                                     </a>
                                 @endif
                             </div>
@@ -212,19 +212,19 @@
                     <!-- Job Stats -->
                     <div class="job-stats card">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ __('Statistik Lowongan') }}</h5>
+                            <h5 class="mb-0">{{ $setting->label_job_stats ?? __('Statistik Lowongan') }}</h5>
                         </div>
                         <div class="card-body">
                             <div class="stat-item d-flex justify-content-between mb-2">
-                                <span class="text-muted">{{ __('Dilihat') }}:</span>
+                                <span class="text-muted">{{ $setting->label_views ?? __('Dilihat') }}:</span>
                                 <span class="font-weight-bold">{{ $jobVacancy->views }}</span>
                             </div>
                             <div class="stat-item d-flex justify-content-between mb-2">
-                                <span class="text-muted">{{ __('Diposting') }}:</span>
+                                <span class="text-muted">{{ $setting->label_posted ?? __('Diposting') }}:</span>
                                 <span class="font-weight-bold">{{ $jobVacancy->created_at->format('d M Y') }}</span>
                             </div>
                             <div class="stat-item d-flex justify-content-between">
-                                <span class="text-muted">{{ __('Terakhir Diupdate') }}:</span>
+                                <span class="text-muted">{{ $setting->label_last_updated ?? __('Terakhir Diupdate') }}:</span>
                                 <span class="font-weight-bold">{{ $jobVacancy->updated_at->format('d M Y') }}</span>
                             </div>
                         </div>
