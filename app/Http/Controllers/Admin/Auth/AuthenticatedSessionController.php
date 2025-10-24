@@ -53,7 +53,7 @@ class AuthenticatedSessionController extends Controller
             if ($admin->status == 'active') {
                 try {
                     // Check if password is in correct format first
-                    if (!str_starts_with($admin->password, '$2y$') && !str_starts_with($admin->password, '$argon2')) {
+                    if (!str_starts_with($admin->password, '$2y$') && !str_starts_with($admin->password, '$2a$') && !str_starts_with($admin->password, '$argon2')) {
                         \Log::error('Admin password not in bcrypt/argon format', [
                             'admin_id' => $admin->id,
                             'email' => $admin->email,
@@ -66,7 +66,19 @@ class AuthenticatedSessionController extends Controller
                         return redirect()->back()->with($notification);
                     }
                     
-                    if (Hash::check($request->password, $admin->password)) {
+                    // Handle old bcrypt format ($2a$) by converting to new format ($2y$)
+                    $passwordToCheck = $admin->password;
+                    if (str_starts_with($admin->password, '$2a$')) {
+                        $passwordToCheck = str_replace('$2a$', '$2y$', $admin->password);
+                        \Log::info('Converting old bcrypt format to new format', [
+                            'admin_id' => $admin->id,
+                            'email' => $admin->email,
+                            'old_format' => substr($admin->password, 0, 10),
+                            'new_format' => substr($passwordToCheck, 0, 10)
+                        ]);
+                    }
+                    
+                    if (Hash::check($request->password, $passwordToCheck)) {
                         if (Auth::guard('admin')->attempt($credential, $request->remember)) {
                             $notification = __('Logged in successfully.');
                             $notification = ['message' => $notification, 'alert-type' => 'success'];

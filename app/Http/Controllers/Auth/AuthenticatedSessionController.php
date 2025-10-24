@@ -58,22 +58,58 @@ class AuthenticatedSessionController extends Controller {
                         return redirect()->back()->with($notification);
                     }
 
-                    if (Hash::check($request->password, $user->password)) {
-                        if (Auth::guard('web')->attempt($credential, $request->remember)) {
-
-                            $notification = __('Logged in successfully.');
-                            $notification = ['message' => $notification, 'alert-type' => 'success'];
-
-                            $intendedUrl = session()->get('url.intended');
-                            if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
-                                return redirect()->route('dashboard');
-                            }
-                            return redirect()->intended(route('dashboard'))->with($notification);
+                    try {
+                        // Handle old bcrypt format ($2a$) by converting to new format ($2y$)
+                        $passwordToCheck = $user->password;
+                        if (str_starts_with($user->password, '$2a$')) {
+                            $passwordToCheck = str_replace('$2a$', '$2y$', $user->password);
+                            \Log::info('Converting old bcrypt format to new format for user', [
+                                'user_id' => $user->id,
+                                'email' => $user->email,
+                                'old_format' => substr($user->password, 0, 10),
+                                'new_format' => substr($passwordToCheck, 0, 10)
+                            ]);
                         }
-                    } else {
-                        $notification = __('Invalid Password');
-                        $notification = ['message' => $notification, 'alert-type' => 'error'];
+                        
+                        if (Hash::check($request->password, $passwordToCheck)) {
+                            if (Auth::guard('web')->attempt($credential, $request->remember)) {
 
+                                $notification = __('Logged in successfully.');
+                                $notification = ['message' => $notification, 'alert-type' => 'success'];
+
+                                $intendedUrl = session()->get('url.intended');
+                                if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
+                                    return redirect()->route('dashboard');
+                                }
+                                return redirect()->intended(route('dashboard'))->with($notification);
+                            }
+                        } else {
+                            $notification = __('Invalid Password');
+                            $notification = ['message' => $notification, 'alert-type' => 'error'];
+
+                            return redirect()->back()->with($notification);
+                        }
+                    } catch (\RuntimeException $e) {
+                        \Log::error('Bcrypt algorithm error during user login', [
+                            'user_id' => $user->id,
+                            'email' => $user->email,
+                            'error' => $e->getMessage(),
+                            'password_length' => strlen($user->password),
+                            'password_start' => substr($user->password, 0, 10)
+                        ]);
+                        
+                        $notification = __('Password verification error. Please contact administrator.');
+                        $notification = ['message' => $notification, 'alert-type' => 'error'];
+                        return redirect()->back()->with($notification);
+                    } catch (\Exception $e) {
+                        \Log::error('Unexpected error during user login', [
+                            'user_id' => $user->id,
+                            'email' => $user->email,
+                            'error' => $e->getMessage()
+                        ]);
+                        
+                        $notification = __('Login error. Please try again.');
+                        $notification = ['message' => $notification, 'alert-type' => 'error'];
                         return redirect()->back()->with($notification);
                     }
                 } else {
