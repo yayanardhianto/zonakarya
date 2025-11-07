@@ -503,6 +503,100 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentApplicantId = null;
     let stream = null;
 
+    // Notification function
+    function showNotification(message, type = 'warning') {
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.form-notification');
+        existingNotifications.forEach(notif => notif.remove());
+
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} form-notification alert-dismissible fade show`;
+        notification.setAttribute('role', 'alert');
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+        
+        const icon = type === 'warning' ? 'fa-exclamation-triangle' : (type === 'success' ? 'fa-check-circle' : 'fa-times-circle');
+        notification.innerHTML = `
+            <i class="fas ${icon} me-2"></i>
+            <span>${message}</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 150);
+        }, 5000);
+    }
+
+    // Show field error
+    function showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+
+        // Remove existing error
+        const existingError = field.parentElement.querySelector('.field-error');
+        if (existingError) existingError.remove();
+
+        // Add error class
+        field.classList.add('is-invalid');
+
+        // Add error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'field-error text-danger small mt-1';
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i>${message}`;
+        field.parentElement.appendChild(errorDiv);
+    }
+
+    // Remove field error
+    function removeFieldError(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+
+        field.classList.remove('is-invalid');
+        const existingError = field.parentElement.querySelector('.field-error');
+        if (existingError) existingError.remove();
+    }
+
+    // Validate file size and format
+    function validateFile(input, maxSizeMB, allowedTypes, typeName) {
+        if (!input.files || input.files.length === 0) {
+            return { valid: false, message: `${typeName} harus diisi` };
+        }
+
+        const file = input.files[0];
+        const fileSizeMB = file.size / (1024 * 1024);
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+
+        // Check file size
+        if (fileSizeMB > maxSizeMB) {
+            return { 
+                valid: false, 
+                message: `${typeName} terlalu besar (${fileSizeMB.toFixed(2)} MB). Maksimal ${maxSizeMB} MB` 
+            };
+        }
+
+        // Check file type
+        const isValidType = allowedTypes.some(type => {
+            if (type.includes('/')) {
+                return file.type === type;
+            } else {
+                return fileExtension === type.toLowerCase();
+            }
+        });
+
+        if (!isValidType) {
+            return { 
+                valid: false, 
+                message: `Format ${typeName} tidak valid. Format yang diterima: ${allowedTypes.join(', ').toUpperCase()}` 
+            };
+        }
+
+        return { valid: true, message: '' };
+    }
+
     // Camera functionality
     const useCameraBtn = document.getElementById('useCameraBtn');
     const cameraSection = document.getElementById('cameraSection');
@@ -511,6 +605,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const captureBtn = document.getElementById('captureBtn');
     const retakeBtn = document.getElementById('retakeBtn');
     const photoInput = document.getElementById('photo');
+    const cvInput = document.getElementById('cv');
+    const nameInput = document.getElementById('name');
+    const whatsappInput = document.getElementById('whatsapp');
 
     useCameraBtn.addEventListener('click', function() {
         if (cameraSection.style.display === 'none') {
@@ -548,10 +645,23 @@ document.addEventListener('DOMContentLoaded', function() {
         context.drawImage(camera, 0, 0, 320, 240);
         
         canvas.toBlob(function(blob) {
+            const fileSizeMB = blob.size / (1024 * 1024);
+            
+            // Check file size (max 1MB)
+            if (fileSizeMB > 1) {
+                showFieldError('photo', `Foto terlalu besar (${fileSizeMB.toFixed(2)} MB). Maksimal 1 MB`);
+                showNotification('Foto terlalu besar. Silakan gunakan foto dengan ukuran lebih kecil.', 'warning');
+                return;
+            }
+            
             const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
             photoInput.files = dataTransfer.files;
+            
+            // Photo from camera is always valid JPEG
+            removeFieldError('photo');
+            showNotification('Foto berhasil diambil dari kamera', 'success');
         }, 'image/jpeg', 0.8);
         
         captureBtn.style.display = 'none';
@@ -562,16 +672,144 @@ document.addEventListener('DOMContentLoaded', function() {
         captureBtn.style.display = 'inline-block';
         retakeBtn.style.display = 'none';
         photoInput.value = '';
+        removeFieldError('photo');
     });
+
+    // Real-time validation for CV file
+    cvInput.addEventListener('change', function() {
+        const validation = validateFile(this, 2, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
+        if (validation.valid) {
+            removeFieldError('cv');
+        } else {
+            showFieldError('cv', validation.message);
+            showNotification(validation.message, 'warning');
+        }
+    });
+
+    // Real-time validation for Photo file
+    photoInput.addEventListener('change', function() {
+        const validation = validateFile(this, 1, ['image/jpeg', 'image/png', 'image/jpg', 'jpg', 'jpeg', 'png'], 'Foto');
+        if (validation.valid) {
+            removeFieldError('photo');
+        } else {
+            showFieldError('photo', validation.message);
+            showNotification(validation.message, 'warning');
+        }
+    });
+
+    // Real-time validation for Name field
+    nameInput.addEventListener('blur', function() {
+        if (!this.value.trim()) {
+            showFieldError('name', 'Nama lengkap harus diisi');
+        } else {
+            removeFieldError('name');
+        }
+    });
+
+    // Real-time validation for WhatsApp field
+    whatsappInput.addEventListener('blur', function() {
+        const cleanedValue = this.value.replace(/\s+/g, '');
+        const whatsappRegex = /^(\+62|62|0)[0-9]{9,12}$/;
+        
+        if (!this.value.trim()) {
+            showFieldError('whatsapp', 'Nomor WhatsApp harus diisi');
+        } else {
+            // Check if it's just a prefix without number
+            if (/^(\+62|62|0)$/.test(cleanedValue) || cleanedValue.length < 10) {
+                showFieldError('whatsapp', 'Nomor WhatsApp tidak lengkap. Contoh: 08123456789, 628123456789, atau +628123456789');
+            } else if (!whatsappRegex.test(cleanedValue)) {
+                showFieldError('whatsapp', 'Format nomor WhatsApp tidak valid. Gunakan format: 08123456789, 628123456789, atau +628123456789');
+            } else {
+                removeFieldError('whatsapp');
+            }
+        }
+    });
+
+    // Form validation before submission
+    function validateForm() {
+        let isValid = true;
+        const errors = [];
+
+        // Validate name
+        if (!nameInput.value.trim()) {
+            showFieldError('name', 'Nama lengkap harus diisi');
+            errors.push('Nama lengkap harus diisi');
+            isValid = false;
+        } else {
+            removeFieldError('name');
+        }
+
+        // Validate WhatsApp
+        const cleanedWhatsapp = whatsappInput.value.replace(/\s+/g, '');
+        const whatsappRegex = /^(\+62|62|0)[0-9]{9,12}$/;
+        if (!whatsappInput.value.trim()) {
+            showFieldError('whatsapp', 'Nomor WhatsApp harus diisi');
+            errors.push('Nomor WhatsApp harus diisi');
+            isValid = false;
+        } else if (/^(\+62|62|0)$/.test(cleanedWhatsapp) || cleanedWhatsapp.length < 10) {
+            showFieldError('whatsapp', 'Nomor WhatsApp tidak lengkap');
+            errors.push('Nomor WhatsApp tidak lengkap. Contoh: 08123456789, 628123456789, atau +628123456789');
+            isValid = false;
+        } else if (!whatsappRegex.test(cleanedWhatsapp)) {
+            showFieldError('whatsapp', 'Format nomor WhatsApp tidak valid');
+            errors.push('Format nomor WhatsApp tidak valid. Gunakan format: 08123456789, 628123456789, atau +628123456789');
+            isValid = false;
+        } else {
+            removeFieldError('whatsapp');
+        }
+
+        // Validate CV
+        const cvValidation = validateFile(cvInput, 2, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
+        if (!cvValidation.valid) {
+            showFieldError('cv', cvValidation.message);
+            errors.push(cvValidation.message);
+            isValid = false;
+        } else {
+            removeFieldError('cv');
+        }
+
+        // Validate Photo
+        const photoValidation = validateFile(photoInput, 1, ['image/jpeg', 'image/png', 'image/jpg', 'jpg', 'jpeg', 'png'], 'Foto');
+        if (!photoValidation.valid) {
+            showFieldError('photo', photoValidation.message);
+            errors.push(photoValidation.message);
+            isValid = false;
+        } else {
+            removeFieldError('photo');
+        }
+
+        return { isValid, errors };
+    }
 
     // Form submission
     document.getElementById('submitApplication').addEventListener('click', function() {
+        const submitBtn = this;
+        
+        // Validate form before submission
+        const validation = validateForm();
+        
+        if (!validation.isValid) {
+            // Show notification with all errors
+            const errorMessage = validation.errors.length > 0 
+                ? validation.errors[0] 
+                : 'Mohon lengkapi semua field yang wajib diisi';
+            showNotification(errorMessage, 'warning');
+            
+            // Scroll to first error field
+            const firstErrorField = document.querySelector('.is-invalid');
+            if (firstErrorField) {
+                firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstErrorField.focus();
+            }
+            return;
+        }
+
         const form = document.getElementById('applyForm');
         const formData = new FormData(form);
         
         // Show loading
-        this.disabled = true;
-        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Mengirim...") }}';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Mengirim...") }}';
         
         fetch('/jobs/{{ $jobVacancy->unique_code }}/apply', {
             method: 'POST',
@@ -584,27 +822,44 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 currentApplicantId = data.applicant_id;
+                showNotification('{{ __("Lamaran berhasil dikirim!") }}', 'success');
                 $('#applyModal').modal('hide');
                 
                 // Check if user is already logged in
                 @auth
                     // User is logged in, redirect to thank you page directly
-                    window.location.href = '{{ route("jobs.thank-you", ":applicant_id") }}'.replace(':applicant_id', currentApplicantId);
+                    setTimeout(() => {
+                        window.location.href = '{{ route("jobs.thank-you", ":applicant_id") }}'.replace(':applicant_id', currentApplicantId);
+                    }, 1000);
                 @else
                     // User is not logged in, show social login modal
-                    $('#socialLoginModal').modal('show');
+                    setTimeout(() => {
+                        $('#socialLoginModal').modal('show');
+                    }, 1000);
                 @endauth
             } else {
-                alert('{{ __("Error mengirim lamaran") }}');
+                const errorMsg = data.message || data.errors || '{{ __("Error mengirim lamaran") }}';
+                showNotification(errorMsg, 'danger');
+                
+                // Show field errors if any
+                if (data.errors) {
+                    Object.keys(data.errors).forEach(field => {
+                        const fieldId = field.replace('_', '');
+                        const fieldElement = document.getElementById(fieldId);
+                        if (fieldElement) {
+                            showFieldError(fieldId, data.errors[field][0]);
+                        }
+                    });
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('{{ __("Error mengirim lamaran") }}');
+            showNotification('{{ __("Terjadi kesalahan saat mengirim lamaran. Silakan coba lagi.") }}', 'danger');
         })
         .finally(() => {
-            this.disabled = false;
-            this.innerHTML = '{{ __("Kirim Lamaran") }}';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '{{ __("Kirim Lamaran") }}';
         });
     });
 
@@ -619,9 +874,36 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = '{{ route("auth.linkedin") }}?applicant_id=' + currentApplicantId;
     });
 
-    // Cleanup camera on modal close
+    // Cleanup camera and reset form on modal close
     $('#applyModal').on('hidden.bs.modal', function() {
         stopCamera();
+        
+        // Reset form
+        document.getElementById('applyForm').reset();
+        
+        // Remove all field errors
+        document.querySelectorAll('.is-invalid').forEach(field => {
+            field.classList.remove('is-invalid');
+        });
+        document.querySelectorAll('.field-error').forEach(error => {
+            error.remove();
+        });
+        
+        // Remove notifications
+        document.querySelectorAll('.form-notification').forEach(notif => {
+            notif.remove();
+        });
+    });
+
+    // Reset form when modal opens
+    $('#applyModal').on('show.bs.modal', function() {
+        // Remove any existing errors
+        document.querySelectorAll('.is-invalid').forEach(field => {
+            field.classList.remove('is-invalid');
+        });
+        document.querySelectorAll('.field-error').forEach(error => {
+            error.remove();
+        });
     });
 
     // Highlight pre-filled fields
@@ -663,8 +945,74 @@ document.addEventListener('DOMContentLoaded', function() {
     border-left: 4px solid #17a2b8;
 }
 
-.alert-success {
-    border-left: 4px solid #28a745;
-}
+    .alert-success {
+        border-left: 4px solid #28a745;
+    }
+
+    /* Form notification styles */
+    .form-notification {
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    /* Field error styles */
+    .is-invalid {
+        border-color: #dc3545 !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6 .4.4.4-.4m0 4.8h-.8'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        padding-right: calc(1.5em + 0.75rem);
+    }
+
+    .field-error {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.875rem;
+        color: #dc3545;
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Success state for valid fields */
+    .is-valid {
+        border-color: #28a745 !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        padding-right: calc(1.5em + 0.75rem);
+    }
+
+    /* File input feedback */
+    .form-control:focus.is-invalid {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+
+    .form-control:focus.is-valid {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
 </style>
 @endpush
