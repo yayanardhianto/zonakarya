@@ -568,7 +568,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const file = input.files[0];
         const fileSizeMB = file.size / (1024 * 1024);
-        const fileExtension = file.name.split('.').pop().toLowerCase();
+        
+        // Get file extension more robustly (handle files with special characters)
+        const fileName = file.name || '';
+        const lastDotIndex = fileName.lastIndexOf('.');
+        const fileExtension = lastDotIndex > 0 ? fileName.substring(lastDotIndex + 1).toLowerCase() : '';
+
+        // Check if file is empty or too small (might be corrupt)
+        if (file.size === 0) {
+            return { 
+                valid: false, 
+                message: `${typeName} kosong atau corrupt. Silakan pilih file lain.` 
+            };
+        }
 
         // Check file size
         if (fileSizeMB > maxSizeMB) {
@@ -578,19 +590,42 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
 
-        // Check file type
-        const isValidType = allowedTypes.some(type => {
-            if (type.includes('/')) {
-                return file.type === type;
-            } else {
-                return fileExtension === type.toLowerCase();
-            }
-        });
+        // Check file type by extension first (more reliable)
+        let isValidType = false;
+        const allowedExtensions = allowedTypes.filter(type => !type.includes('/'));
+        const allowedMimeTypes = allowedTypes.filter(type => type.includes('/'));
 
-        if (!isValidType) {
+        // Check by extension
+        if (fileExtension && allowedExtensions.length > 0) {
+            isValidType = allowedExtensions.some(ext => fileExtension === ext.toLowerCase());
+        }
+
+        // If extension check fails, check by MIME type
+        if (!isValidType && file.type && allowedMimeTypes.length > 0) {
+            isValidType = allowedMimeTypes.some(mimeType => {
+                // Handle partial MIME type matches (e.g., "application/pdf" matches "pdf")
+                if (file.type === mimeType) return true;
+                // Also check if MIME type contains the type (e.g., "application/pdf" contains "pdf")
+                const mimeBase = mimeType.split('/')[1];
+                return file.type.includes(mimeBase);
+            });
+        }
+
+        // If still not valid, check if file extension exists
+        if (!isValidType && !fileExtension) {
             return { 
                 valid: false, 
-                message: `Format ${typeName} tidak valid. Format yang diterima: ${allowedTypes.join(', ').toUpperCase()}` 
+                message: `${typeName} tidak memiliki ekstensi file. Pastikan file memiliki ekstensi yang benar (${allowedExtensions.join(', ').toUpperCase()})` 
+            };
+        }
+
+        if (!isValidType) {
+            const formatList = allowedExtensions.length > 0 
+                ? allowedExtensions.join(', ').toUpperCase() 
+                : allowedTypes.join(', ').toUpperCase();
+            return { 
+                valid: false, 
+                message: `Format ${typeName} tidak valid (${fileExtension || 'tidak diketahui'}). Format yang diterima: ${formatList}` 
             };
         }
 
@@ -677,12 +712,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Real-time validation for CV file
     cvInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        // First do basic validation
         const validation = validateFile(this, 2, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
-        if (validation.valid) {
-            removeFieldError('cv');
-        } else {
+        
+        if (!validation.valid) {
             showFieldError('cv', validation.message);
             showNotification(validation.message, 'warning');
+            return;
+        }
+
+        // If it's a PDF file, check the header for corruption
+        if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const arrayBuffer = e.target.result;
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    const header = String.fromCharCode.apply(null, uint8Array.slice(0, 4));
+                    
+                    // PDF files should start with %PDF
+                    if (!header.startsWith('%PDF')) {
+                        showFieldError('cv', 'File PDF tidak valid atau corrupt. Pastikan file adalah PDF yang benar.');
+                        showNotification('File PDF tidak valid atau corrupt. Silakan pilih file PDF yang benar.', 'warning');
+                        cvInput.value = ''; // Clear the invalid file
+                        return;
+                    } else {
+                        // PDF header is valid
+                        removeFieldError('cv');
+                    }
+                } catch (error) {
+                    console.error('Error reading PDF header:', error);
+                    showFieldError('cv', 'Tidak dapat membaca file. Pastikan file tidak corrupt.');
+                    showNotification('Tidak dapat membaca file. Pastikan file tidak corrupt.', 'warning');
+                }
+            };
+            reader.onerror = function() {
+                showFieldError('cv', 'Error membaca file. Pastikan file tidak corrupt.');
+                showNotification('Error membaca file. Pastikan file tidak corrupt.', 'warning');
+            };
+            reader.readAsArrayBuffer(file.slice(0, 4)); // Only read first 4 bytes
+        } else {
+            // Not a PDF, just use normal validation
+            removeFieldError('cv');
         }
     });
 
