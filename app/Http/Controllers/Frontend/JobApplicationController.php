@@ -19,7 +19,27 @@ class JobApplicationController extends Controller
 
     public function storeApplication(Request $request, JobVacancy $jobVacancy)
     {
+        \Log::info('Job Application: Starting application submission', [
+            'job_vacancy_id' => $jobVacancy->id,
+            'job_unique_code' => $jobVacancy->unique_code,
+            'job_position' => $jobVacancy->position,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'is_logged_in' => Auth::check(),
+            'user_id' => Auth::id(),
+        ]);
+
         try {
+            // Validate request
+            \Log::info('Job Application: Validating request data', [
+                'has_name' => $request->has('name'),
+                'has_whatsapp' => $request->has('whatsapp'),
+                'has_cv' => $request->hasFile('cv'),
+                'has_photo' => $request->hasFile('photo'),
+                'cv_size' => $request->hasFile('cv') ? $request->file('cv')->getSize() : null,
+                'photo_size' => $request->hasFile('photo') ? $request->file('photo')->getSize() : null,
+            ]);
+
             $request->validate([
                 'name' => 'required|string|max:255',
                 'whatsapp' => 'required|string|max:20',
@@ -27,88 +47,260 @@ class JobApplicationController extends Controller
                 'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024',
             ]);
 
+            \Log::info('Job Application: Validation passed');
+
             // Handle file uploads
-            $cvPath = $request->file('cv')->store('applications/cv', 'public');
-            $photoPath = $request->file('photo')->store('applications/photos', 'public');
+            \Log::info('Job Application: Starting file uploads');
+            try {
+                $cvPath = $request->file('cv')->store('applications/cv', 'public');
+                \Log::info('Job Application: CV uploaded successfully', [
+                    'cv_path' => $cvPath,
+                    'cv_size' => $request->file('cv')->getSize(),
+                    'cv_mime' => $request->file('cv')->getMimeType(),
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Job Application: CV upload failed', [
+                    'error' => $e->getMessage(),
+                    'cv_file' => $request->file('cv') ? $request->file('cv')->getClientOriginalName() : 'null',
+                ]);
+                throw $e;
+            }
+
+            try {
+                $photoPath = $request->file('photo')->store('applications/photos', 'public');
+                \Log::info('Job Application: Photo uploaded successfully', [
+                    'photo_path' => $photoPath,
+                    'photo_size' => $request->file('photo')->getSize(),
+                    'photo_mime' => $request->file('photo')->getMimeType(),
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Job Application: Photo upload failed', [
+                    'error' => $e->getMessage(),
+                    'photo_file' => $request->file('photo') ? $request->file('photo')->getClientOriginalName() : 'null',
+                ]);
+                // Clean up CV if photo upload fails
+                if (isset($cvPath)) {
+                    Storage::disk('public')->delete($cvPath);
+                }
+                throw $e;
+            }
 
             // Check if user is already logged in
             $isLoggedIn = Auth::check();
             $user = $isLoggedIn ? Auth::user() : null;
 
+            \Log::info('Job Application: Checking user authentication', [
+                'is_logged_in' => $isLoggedIn,
+                'user_id' => $user ? $user->id : null,
+                'user_email' => $user ? $user->email : null,
+            ]);
+
             // Check if applicant already exists for this user
             $applicant = null;
             if ($isLoggedIn && $user) {
                 $applicant = Applicant::where('user_id', $user->id)->first();
+                \Log::info('Job Application: Checking existing applicant', [
+                    'user_id' => $user->id,
+                    'applicant_found' => $applicant ? true : false,
+                    'applicant_id' => $applicant ? $applicant->id : null,
+                ]);
             }
 
             // Create applicant if not exists
             if (!$applicant) {
-                $applicant = Applicant::create([
-                    'user_id' => $user ? $user->id : null,
+                \Log::info('Job Application: Creating new applicant', [
                     'name' => $user ? $user->name : $request->name,
                     'email' => $user ? $user->email : null,
-                    'phone' => null, // Will be filled after social login if not logged in
                     'whatsapp' => $request->whatsapp,
-                    'cv_path' => $cvPath,
-                    'photo_path' => $photoPath,
-                    'status' => 'pending',
+                    'user_id' => $user ? $user->id : null,
                 ]);
+
+                try {
+                    $applicant = Applicant::create([
+                        'user_id' => $user ? $user->id : null,
+                        'name' => $user ? $user->name : $request->name,
+                        'email' => $user ? $user->email : null,
+                        'phone' => null, // Will be filled after social login if not logged in
+                        'whatsapp' => $request->whatsapp,
+                        'cv_path' => $cvPath,
+                        'photo_path' => $photoPath,
+                        'status' => 'pending',
+                    ]);
+
+                    \Log::info('Job Application: Applicant created successfully', [
+                        'applicant_id' => $applicant->id,
+                        'name' => $applicant->name,
+                        'whatsapp' => $applicant->whatsapp,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Job Application: Failed to create applicant', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    // Clean up uploaded files
+                    Storage::disk('public')->delete([$cvPath, $photoPath]);
+                    throw $e;
+                }
             } else {
                 // Update existing applicant with new CV and photo
-                $applicant->update([
-                    'cv_path' => $cvPath,
-                    'photo_path' => $photoPath,
-                    'whatsapp' => $request->whatsapp,
+                \Log::info('Job Application: Updating existing applicant', [
+                    'applicant_id' => $applicant->id,
+                    'old_cv_path' => $applicant->cv_path,
+                    'old_photo_path' => $applicant->photo_path,
                 ]);
+
+                try {
+                    // Delete old files
+                    if ($applicant->cv_path) {
+                        Storage::disk('public')->delete($applicant->cv_path);
+                    }
+                    if ($applicant->photo_path) {
+                        Storage::disk('public')->delete($applicant->photo_path);
+                    }
+
+                    $applicant->update([
+                        'cv_path' => $cvPath,
+                        'photo_path' => $photoPath,
+                        'whatsapp' => $request->whatsapp,
+                    ]);
+
+                    \Log::info('Job Application: Applicant updated successfully', [
+                        'applicant_id' => $applicant->id,
+                        'new_cv_path' => $cvPath,
+                        'new_photo_path' => $photoPath,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Job Application: Failed to update applicant', [
+                        'applicant_id' => $applicant->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    // Clean up uploaded files
+                    Storage::disk('public')->delete([$cvPath, $photoPath]);
+                    throw $e;
+                }
             }
 
             // Use the job from model binding
             $job = $jobVacancy;
-            
-            \Log::info('JobApplicationController Debug:', [
-                'job_vacancy_param' => $jobVacancy->unique_code,
-                'job_object' => $job,
-                'job_id' => $job->id,
-                'job_position' => $job->position
-            ]);
             $jobId = $job->id;
             
-            // Create application
-            $application = Application::create([
-                'user_id' => $user ? $user->id : null,
+            \Log::info('Job Application: Creating application record', [
+                'job_id' => $jobId,
+                'job_position' => $job->position,
                 'applicant_id' => $applicant->id,
-                'job_vacancy_id' => $jobId,
-                'status' => 'pending',
+                'user_id' => $user ? $user->id : null,
             ]);
 
+            // Create application
+            try {
+                $application = Application::create([
+                    'user_id' => $user ? $user->id : null,
+                    'applicant_id' => $applicant->id,
+                    'job_vacancy_id' => $jobId,
+                    'status' => 'pending',
+                ]);
+
+                \Log::info('Job Application: Application created successfully', [
+                    'application_id' => $application->id,
+                    'applicant_id' => $applicant->id,
+                    'job_vacancy_id' => $jobId,
+                    'status' => $application->status,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Job Application: Failed to create application', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                    'applicant_id' => $applicant->id,
+                    'job_id' => $jobId,
+                ]);
+                // Clean up uploaded files
+                Storage::disk('public')->delete([$cvPath, $photoPath]);
+                throw $e;
+            }
+
             // Check if user has completed screening test
-            $screeningResult = $this->getUserScreeningResult($user);
-            
-            \Log::info('Screening Test Check Debug:', [
+            \Log::info('Job Application: Checking screening test result', [
                 'is_logged_in' => $isLoggedIn,
                 'user_id' => $user ? $user->id : null,
                 'applicant_id' => $applicant->id,
+            ]);
+
+            $screeningResult = $this->getUserScreeningResult($user);
+            
+            \Log::info('Job Application: Screening test check completed', [
+                'is_logged_in' => $isLoggedIn,
+                'user_id' => $user ? $user->id : null,
+                'applicant_id' => $applicant->id,
+                'screening_result_found' => $screeningResult ? true : false,
                 'screening_result' => $screeningResult ? [
                     'id' => $screeningResult->id,
                     'is_passed' => $screeningResult->is_passed,
                     'score' => $screeningResult->score,
-                    'completed_at' => $screeningResult->completed_at
+                    'completed_at' => $screeningResult->completed_at ? $screeningResult->completed_at->toDateTimeString() : null,
+                    'status' => $screeningResult->status,
                 ] : null
             ]);
             
             // Check screening result regardless of login status
             if ($screeningResult && $screeningResult->is_passed) {
-                \Log::info('Reusing existing screening result, skipping test invitation');
-                // Reuse screening result, skip test invitation
-                $this->createApplicationWithExistingScreening($applicant, $application, $screeningResult);
-                
-                // Send waiting notification (tanpa URL test)
-                $this->sendWaitingNotification($applicant);
+                \Log::info('Job Application: Reusing existing screening result, skipping test invitation', [
+                    'screening_result_id' => $screeningResult->id,
+                    'application_id' => $application->id,
+                ]);
+
+                try {
+                    // Reuse screening result, skip test invitation
+                    $this->createApplicationWithExistingScreening($applicant, $application, $screeningResult);
+                    
+                    \Log::info('Job Application: Application updated with existing screening result', [
+                        'application_id' => $application->id,
+                        'test_session_id' => $screeningResult->id,
+                    ]);
+                    
+                    // Send waiting notification (tanpa URL test)
+                    $this->sendWaitingNotification($applicant);
+                } catch (\Exception $e) {
+                    \Log::error('Job Application: Failed to process existing screening result', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'application_id' => $application->id,
+                        'screening_result_id' => $screeningResult->id,
+                    ]);
+                    throw $e;
+                }
             } else {
-                \Log::info('No existing screening result or not passed, sending test invitation');
-                // Send screening test invitation
-                $this->sendTestInvitation($applicant);
+                \Log::info('Job Application: No existing screening result or not passed, sending test invitation', [
+                    'applicant_id' => $applicant->id,
+                    'application_id' => $application->id,
+                ]);
+
+                try {
+                    // Send screening test invitation
+                    $testInvitationResult = $this->sendTestInvitation($applicant);
+                    
+                    \Log::info('Job Application: Test invitation sent', [
+                        'applicant_id' => $applicant->id,
+                        'application_id' => $application->id,
+                        'test_invitation_result' => $testInvitationResult,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Job Application: Failed to send test invitation', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'applicant_id' => $applicant->id,
+                        'application_id' => $application->id,
+                    ]);
+                    // Don't throw - application is already created, just log the error
+                }
             }
+
+            \Log::info('Job Application: Application submission completed successfully', [
+                'application_id' => $application->id,
+                'applicant_id' => $applicant->id,
+                'job_vacancy_id' => $jobId,
+                'is_logged_in' => $isLoggedIn,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -118,99 +310,284 @@ class JobApplicationController extends Controller
                 'is_logged_in' => $isLoggedIn,
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Job Application: Validation error', [
+                'errors' => $e->errors(),
+                'job_id' => $jobVacancy->id ?? 'unknown',
+                'job_unique_code' => $jobVacancy->unique_code ?? 'unknown',
+                'request_data' => $request->except(['cv', 'photo', '_token']),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error. Please check your input.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            \Log::error('Application submission error:', [
+            \Log::error('Job Application: Application submission error', [
                 'error' => $e->getMessage(),
-                'job_id' => $job->id ?? 'unknown',
-                'request_data' => $request->except(['cv', 'photo'])
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+                'job_id' => $jobVacancy->id ?? 'unknown',
+                'job_unique_code' => $jobVacancy->unique_code ?? 'unknown',
+                'job_position' => $jobVacancy->position ?? 'unknown',
+                'request_data' => $request->except(['cv', 'photo', '_token']),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'is_logged_in' => Auth::check(),
+                'user_id' => Auth::id(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Error submitting application. Please try again.',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while processing your application.'
             ], 500);
         }
     }
 
     public function completeRegistration(Request $request)
     {
-        $request->validate([
-            'applicant_id' => 'required|exists:applicants,id',
-            'provider' => 'required|in:google,linkedin',
-            'provider_id' => 'required|string',
-            'name' => 'required|string',
-            'email' => 'required|email',
-            'avatar' => 'nullable|string',
-        ]);
-
-        $applicant = Applicant::findOrFail($request->applicant_id);
-        
-        $applicant->update([
+        \Log::info('Job Application: Starting registration completion', [
+            'applicant_id' => $request->applicant_id,
             'provider' => $request->provider,
-            'provider_id' => $request->provider_id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $applicant->whatsapp, // Use WhatsApp as phone number
-            'avatar' => $request->avatar,
-            'email_verified_at' => now(),
+            'ip_address' => $request->ip(),
         ]);
 
-        // Send test invitation
-        $this->sendTestInvitation($applicant);
+        try {
+            $request->validate([
+                'applicant_id' => 'required|exists:applicants,id',
+                'provider' => 'required|in:google,linkedin',
+                'provider_id' => 'required|string',
+                'name' => 'required|string',
+                'email' => 'required|email',
+                'avatar' => 'nullable|string',
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Registration completed! Test invitation sent.',
-        ]);
+            \Log::info('Job Application: Registration completion validation passed', [
+                'applicant_id' => $request->applicant_id,
+            ]);
+
+            $applicant = Applicant::findOrFail($request->applicant_id);
+            
+            \Log::info('Job Application: Updating applicant with social login data', [
+                'applicant_id' => $applicant->id,
+                'provider' => $request->provider,
+                'email' => $request->email,
+            ]);
+
+            $applicant->update([
+                'provider' => $request->provider,
+                'provider_id' => $request->provider_id,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $applicant->whatsapp, // Use WhatsApp as phone number
+                'avatar' => $request->avatar,
+                'email_verified_at' => now(),
+            ]);
+
+            \Log::info('Job Application: Applicant updated successfully', [
+                'applicant_id' => $applicant->id,
+                'email' => $applicant->email,
+            ]);
+
+            // Send test invitation
+            $testInvitationResult = $this->sendTestInvitation($applicant);
+
+            \Log::info('Job Application: Registration completion finished', [
+                'applicant_id' => $applicant->id,
+                'test_invitation_sent' => $testInvitationResult,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration completed! Test invitation sent.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Job Application: Registration completion validation error', [
+                'errors' => $e->errors(),
+                'applicant_id' => $request->applicant_id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error.',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: Registration completion error', [
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $request->applicant_id,
+                'request_data' => $request->except(['_token']),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error completing registration. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred.'
+            ], 500);
+        }
     }
 
     private function sendTestInvitation(Applicant $applicant)
     {
+        \Log::info('Job Application: Starting test invitation process', [
+            'applicant_id' => $applicant->id,
+            'applicant_name' => $applicant->name,
+            'applicant_whatsapp' => $applicant->whatsapp,
+        ]);
+
         // Get screening test package (is_screening_test = true, active)
         $testPackage = TestPackage::where('is_screening_test', true)
             ->where('is_active', true)
             ->first();
 
         if (!$testPackage) {
+            \Log::warning('Job Application: No active screening test package found', [
+                'applicant_id' => $applicant->id,
+            ]);
             return false;
         }
 
-        // Create test session
-        $testSession = TestSession::create([
-            'user_id' => $applicant->user_id,
-            'package_id' => $testPackage->id,
+        \Log::info('Job Application: Screening test package found', [
+            'test_package_id' => $testPackage->id,
+            'test_package_name' => $testPackage->name,
             'applicant_id' => $applicant->id,
-            'status' => 'pending',
-            'access_token' => Str::random(60),
-            'expires_at' => now()->addDay(),
         ]);
 
-        // Update application with test session
-        $application = $applicant->applications()->latest()->first();
-        if ($application) {
-            $application->update([
+        try {
+            // Create test session
+            $testSession = TestSession::create([
+                'user_id' => $applicant->user_id,
+                'package_id' => $testPackage->id,
+                'applicant_id' => $applicant->id,
+                'status' => 'pending',
+                'access_token' => Str::random(60),
+                'expires_at' => now()->addDay(),
+            ]);
+
+            \Log::info('Job Application: Test session created', [
                 'test_session_id' => $testSession->id,
-                'status' => 'sent',
-                'test_sent_at' => now(),
+                'applicant_id' => $applicant->id,
+                'package_id' => $testPackage->id,
+                'access_token' => substr($testSession->access_token, 0, 10) . '...',
+                'expires_at' => $testSession->expires_at->toDateTimeString(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: Failed to create test session', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $applicant->id,
+                'package_id' => $testPackage->id,
+            ]);
+            return false;
+        }
+
+        // Update application with test session
+        try {
+            $application = $applicant->applications()->latest()->first();
+            if ($application) {
+                $application->update([
+                    'test_session_id' => $testSession->id,
+                    'status' => 'sent',
+                    'test_sent_at' => now(),
+                ]);
+
+                \Log::info('Job Application: Application updated with test session', [
+                    'application_id' => $application->id,
+                    'test_session_id' => $testSession->id,
+                    'status' => 'sent',
+                ]);
+            } else {
+                \Log::warning('Job Application: No application found for applicant', [
+                    'applicant_id' => $applicant->id,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Job Application: Failed to update application with test session', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $applicant->id,
+                'test_session_id' => $testSession->id,
             ]);
         }
 
         // Update applicant status
-        $applicant->update(['status' => 'sent']);
+        try {
+            $applicant->update(['status' => 'sent']);
+            \Log::info('Job Application: Applicant status updated to sent', [
+                'applicant_id' => $applicant->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: Failed to update applicant status', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $applicant->id,
+            ]);
+        }
 
-        // TODO: Send WhatsApp notification
-        $this->sendWhatsAppNotification($applicant, $testSession);
+        // Send WhatsApp notification
+        try {
+            $whatsappResult = $this->sendWhatsAppNotification($applicant, $testSession);
+            \Log::info('Job Application: WhatsApp notification sent', [
+                'applicant_id' => $applicant->id,
+                'test_session_id' => $testSession->id,
+                'whatsapp_result' => $whatsappResult,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: Failed to send WhatsApp notification', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $applicant->id,
+                'test_session_id' => $testSession->id,
+                'applicant_whatsapp' => $applicant->whatsapp,
+            ]);
+            // Don't fail the whole process if WhatsApp fails
+        }
 
         return true;
     }
 
     private function sendWhatsAppNotification(Applicant $applicant, TestSession $testSession)
     {
-        $whatsappService = new WhatsAppService();
-        $testUrl = route('test.take', ['session' => $testSession, 'token' => $testSession->access_token]);
-        
-        return $whatsappService->sendTestInvitation($applicant, $testUrl);
+        \Log::info('Job Application: Sending WhatsApp notification', [
+            'applicant_id' => $applicant->id,
+            'applicant_name' => $applicant->name,
+            'applicant_whatsapp' => $applicant->whatsapp,
+            'test_session_id' => $testSession->id,
+        ]);
+
+        try {
+            $whatsappService = new WhatsAppService();
+            $testUrl = route('test.take', ['session' => $testSession, 'token' => $testSession->access_token]);
+            
+            \Log::info('Job Application: WhatsApp test URL generated', [
+                'test_url' => $testUrl,
+                'applicant_id' => $applicant->id,
+                'test_session_id' => $testSession->id,
+            ]);
+            
+            $result = $whatsappService->sendTestInvitation($applicant, $testUrl);
+            
+            \Log::info('Job Application: WhatsApp notification sent successfully', [
+                'applicant_id' => $applicant->id,
+                'test_session_id' => $testSession->id,
+                'whatsapp_result' => $result,
+            ]);
+            
+            return $result;
+        } catch (\Exception $e) {
+            \Log::error('Job Application: WhatsApp notification failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $applicant->id,
+                'test_session_id' => $testSession->id,
+                'applicant_whatsapp' => $applicant->whatsapp,
+            ]);
+            throw $e;
+        }
     }
 
     private function getUserScreeningResult($user)
@@ -253,26 +630,84 @@ class JobApplicationController extends Controller
 
     private function createApplicationWithExistingScreening($applicant, $application, $screeningResult)
     {
-        // Update application with existing test session
-        $application->update([
-            'test_session_id' => $screeningResult->id,
-            'status' => 'check', // Status langsung ke 'check' karena test sudah selesai
-            'test_sent_at' => $screeningResult->completed_at,
-            'test_completed_at' => $screeningResult->completed_at,
-            'test_score' => $screeningResult->score,
+        \Log::info('Job Application: Creating application with existing screening result', [
+            'applicant_id' => $applicant->id,
+            'application_id' => $application->id,
+            'screening_result_id' => $screeningResult->id,
+            'screening_score' => $screeningResult->score,
+            'screening_is_passed' => $screeningResult->is_passed,
         ]);
 
-        // Update applicant status
-        $applicant->update(['status' => 'check']);
+        try {
+            // Update application with existing test session
+            $application->update([
+                'test_session_id' => $screeningResult->id,
+                'status' => 'check', // Status langsung ke 'check' karena test sudah selesai
+                'test_sent_at' => $screeningResult->completed_at,
+                'test_completed_at' => $screeningResult->completed_at,
+                'test_score' => $screeningResult->score,
+            ]);
+
+            \Log::info('Job Application: Application updated with existing screening', [
+                'application_id' => $application->id,
+                'test_session_id' => $screeningResult->id,
+                'status' => 'check',
+            ]);
+
+            // Update applicant status
+            $applicant->update(['status' => 'check']);
+
+            \Log::info('Job Application: Applicant status updated to check', [
+                'applicant_id' => $applicant->id,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: Failed to create application with existing screening', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $applicant->id,
+                'application_id' => $application->id,
+                'screening_result_id' => $screeningResult->id,
+            ]);
+            throw $e;
+        }
     }
 
     private function sendWaitingNotification(Applicant $applicant)
     {
-        $whatsappService = new WhatsAppService();
-        $message = "Halo {$applicant->name}, aplikasi Anda telah diterima. " .
-                   "Kami sedang memproses hasil test screening Anda. " .
-                   "Mohon tunggu informasi selanjutnya dari tim HR kami.";
-        
-        return $whatsappService->sendMessage($applicant->whatsapp, $message);
+        \Log::info('Job Application: Sending waiting notification', [
+            'applicant_id' => $applicant->id,
+            'applicant_name' => $applicant->name,
+            'applicant_whatsapp' => $applicant->whatsapp,
+        ]);
+
+        try {
+            $whatsappService = new WhatsAppService();
+            $message = "Halo {$applicant->name}, aplikasi Anda telah diterima. " .
+                       "Kami sedang memproses hasil test screening Anda. " .
+                       "Mohon tunggu informasi selanjutnya dari tim HR kami.";
+            
+            \Log::info('Job Application: Waiting notification message prepared', [
+                'applicant_id' => $applicant->id,
+                'message_length' => strlen($message),
+            ]);
+            
+            $result = $whatsappService->sendMessage($applicant->whatsapp, $message);
+            
+            \Log::info('Job Application: Waiting notification sent successfully', [
+                'applicant_id' => $applicant->id,
+                'whatsapp_result' => $result,
+            ]);
+            
+            return $result;
+        } catch (\Exception $e) {
+            \Log::error('Job Application: Waiting notification failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'applicant_id' => $applicant->id,
+                'applicant_whatsapp' => $applicant->whatsapp,
+            ]);
+            // Don't throw - this is a notification, not critical
+            return false;
+        }
     }
 }
