@@ -9,6 +9,8 @@ use App\Models\Application;
 use App\Models\TestPackage;
 use App\Models\TestSession;
 use App\Services\WhatsAppService;
+use App\Helpers\PdfCompressor;
+use App\Helpers\ImageCompressor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -43,8 +45,8 @@ class JobApplicationController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'whatsapp' => 'required|string|max:20',
-                'cv' => 'required|file|mimes:pdf,doc,docx|max:2048',
-                'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024',
+                'cv' => 'required|file|mimes:pdf,doc,docx|max:25600', // 25MB = 25600 KB
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024', // 1MB
             ]);
 
             \Log::info('Job Application: Validation passed');
@@ -53,9 +55,28 @@ class JobApplicationController extends Controller
             \Log::info('Job Application: Starting file uploads');
             try {
                 $cvPath = $request->file('cv')->store('applications/cv', 'public');
+                $cvFullPath = Storage::disk('public')->path($cvPath);
+                $originalSize = filesize($cvFullPath);
+                
+                // Compress PDF if it's a PDF file
+                if ($request->file('cv')->getMimeType() === 'application/pdf') {
+                    \Log::info('Job Application: Attempting to compress PDF', [
+                        'cv_path' => $cvPath,
+                        'original_size' => $originalSize
+                    ]);
+                    PdfCompressor::compress($cvFullPath);
+                    $compressedSize = filesize($cvFullPath);
+                    \Log::info('Job Application: PDF compression completed', [
+                        'cv_path' => $cvPath,
+                        'original_size' => $originalSize,
+                        'compressed_size' => $compressedSize,
+                        'savings' => $originalSize - $compressedSize
+                    ]);
+                }
+                
                 \Log::info('Job Application: CV uploaded successfully', [
                     'cv_path' => $cvPath,
-                    'cv_size' => $request->file('cv')->getSize(),
+                    'cv_size' => filesize($cvFullPath),
                     'cv_mime' => $request->file('cv')->getMimeType(),
                 ]);
             } catch (\Exception $e) {
@@ -68,9 +89,34 @@ class JobApplicationController extends Controller
 
             try {
                 $photoPath = $request->file('photo')->store('applications/photos', 'public');
+                $photoFullPath = Storage::disk('public')->path($photoPath);
+                $originalSize = filesize($photoFullPath);
+                
+                // Compress and resize image if it's an image file
+                if (in_array($request->file('photo')->getMimeType(), ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'])) {
+                    \Log::info('Job Application: Attempting to compress and resize image', [
+                        'photo_path' => $photoPath,
+                        'original_size' => $originalSize
+                    ]);
+                    
+                    // First resize if needed (max 1920x1920 to keep reasonable size)
+                    ImageCompressor::resizeIfNeeded($photoFullPath, 1920, 1920);
+                    
+                    // Then compress with quality 85
+                    ImageCompressor::compress($photoFullPath, 85);
+                    
+                    $compressedSize = filesize($photoFullPath);
+                    \Log::info('Job Application: Image compression completed', [
+                        'photo_path' => $photoPath,
+                        'original_size' => $originalSize,
+                        'compressed_size' => $compressedSize,
+                        'savings' => $originalSize - $compressedSize
+                    ]);
+                }
+                
                 \Log::info('Job Application: Photo uploaded successfully', [
                     'photo_path' => $photoPath,
-                    'photo_size' => $request->file('photo')->getSize(),
+                    'photo_size' => filesize($photoFullPath),
                     'photo_mime' => $request->file('photo')->getMimeType(),
                 ]);
             } catch (\Exception $e) {

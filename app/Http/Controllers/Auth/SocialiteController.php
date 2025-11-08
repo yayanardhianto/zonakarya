@@ -40,7 +40,15 @@ class SocialiteController extends Controller {
         // Set Google configuration
         self::setGoogleLoginInfo();
         
-        return Socialite::driver('google')->redirect();
+        // Only force account selection if user is not logged in (guest)
+        // If already logged in, allow automatic login with existing account
+        $socialiteDriver = Socialite::driver('google');
+        if (!Auth::check()) {
+            // User is not logged in, force account selection
+            $socialiteDriver = $socialiteDriver->with(['prompt' => 'select_account']);
+        }
+        
+        return $socialiteDriver->redirect();
     }
 
     public function redirectToLinkedIn() {
@@ -82,6 +90,14 @@ class SocialiteController extends Controller {
         // Set configuration based on driver
         if ($driver == SocialiteDriverType::GOOGLE->value) {
             self::setGoogleLoginInfo();
+            // Only force account selection if user is not logged in (guest)
+            // If already logged in, allow automatic login with existing account
+            $socialiteDriver = Socialite::driver($driver);
+            if (!Auth::check()) {
+                // User is not logged in, force account selection
+                $socialiteDriver = $socialiteDriver->with(['prompt' => 'select_account']);
+            }
+            return $socialiteDriver->redirect();
         } elseif ($driver == SocialiteDriverType::LINKEDIN->value) {
             self::setLinkedInLoginInfo();
         }

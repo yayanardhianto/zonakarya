@@ -315,7 +315,7 @@
                                 <div class="form-group">
                                     <label for="cv">{{ __('CV/Resume') }} <span class="text-danger">*</span></label>
                                     <input type="file" class="form-control" id="cv" name="cv" accept=".pdf,.doc,.docx" required>
-                                    <small class="form-text text-muted">{{ __('Format yang diterima: PDF, DOC, DOCX (Maks: 2MB)') }}</small>
+                                    <small class="form-text text-muted">{{ __('Format yang diterima: PDF, DOC, DOCX (Maks: 25MB)') }}</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -716,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!file) return;
 
         // First do basic validation
-        const validation = validateFile(this, 2, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
+        const validation = validateFile(this, 25, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
         
         if (!validation.valid) {
             showFieldError('cv', validation.message);
@@ -833,7 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Validate CV
-        const cvValidation = validateFile(cvInput, 2, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
+        const cvValidation = validateFile(cvInput, 25, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
         if (!cvValidation.valid) {
             showFieldError('cv', cvValidation.message);
             errors.push(cvValidation.message);
