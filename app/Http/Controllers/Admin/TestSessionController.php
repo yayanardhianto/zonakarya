@@ -7,6 +7,7 @@ use App\Models\TestSession;
 use App\Models\TestPackage;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -178,7 +179,13 @@ class TestSessionController extends Controller
             $dateTo = $request->get('date_to');
 
             // Build query with filters
-            $query = TestSession::with(['package.category', 'applicant', 'user', 'jobVacancy']);
+            $query = TestSession::with([
+                'package.category', 
+                'applicant', 
+                'user', 
+                'jobVacancy',
+                'answers.question.options' // Load answers with questions and options
+            ]);
 
             if ($request->filled('status')) {
                 $query->where('status', $status);
@@ -197,6 +204,15 @@ class TestSessionController extends Controller
             }
 
             $sessions = $query->orderBy('created_at', 'desc')->get();
+            
+            // Find maximum number of questions across all sessions to determine column count
+            $maxQuestions = 0;
+            foreach ($sessions as $session) {
+                $questionCount = $session->answers->count();
+                if ($questionCount > $maxQuestions) {
+                    $maxQuestions = $questionCount;
+                }
+            }
 
             // Create new Spreadsheet object
             $spreadsheet = new Spreadsheet();
@@ -205,7 +221,7 @@ class TestSessionController extends Controller
             // Set title
             $sheet->setTitle('Test Sessions Export');
 
-            // Set headers
+            // Set headers - base headers + dynamic question/answer columns
             $headers = [
                 'ID',
                 'Applicant/User Name',
@@ -222,6 +238,12 @@ class TestSessionController extends Controller
                 'Duration (Minutes)',
                 'Created At'
             ];
+            
+            // Add question and answer columns dynamically
+            for ($i = 1; $i <= $maxQuestions; $i++) {
+                $headers[] = "Test Question #{$i}";
+                $headers[] = "Test Answer #{$i}";
+            }
 
             $col = 1;
             foreach ($headers as $header) {
@@ -249,49 +271,155 @@ class TestSessionController extends Controller
             // Add data
             $row = 2;
             foreach ($sessions as $session) {
-                $sheet->setCellValue('A' . $row, $session->id);
+                $col = 1;
+                
+                // Base session data
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->id);
                 
                 // Applicant/User Name
                 if ($session->applicant) {
-                    $sheet->setCellValue('B' . $row, $session->applicant->name);
-                    $sheet->setCellValue('C' . $row, $session->applicant->email);
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->applicant->name);
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->applicant->email);
                 } elseif ($session->user) {
-                    $sheet->setCellValue('B' . $row, $session->user->name);
-                    $sheet->setCellValue('C' . $row, $session->user->email);
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->user->name);
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->user->email);
                 } else {
-                    $sheet->setCellValue('B' . $row, 'N/A');
-                    $sheet->setCellValue('C' . $row, 'N/A');
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, 'N/A');
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, 'N/A');
                 }
                 
-                $sheet->setCellValue('D' . $row, $session->package->name);
-                $sheet->setCellValue('E' . $row, $session->package->category->name);
-                $sheet->setCellValue('F' . $row, $session->jobVacancy ? $session->jobVacancy->position : 'N/A');
-                $sheet->setCellValue('G' . $row, ucfirst($session->status));
-                $sheet->setCellValue('H' . $row, $session->score ?? 'N/A');
-                $sheet->setCellValue('I' . $row, $session->is_passed ? 'Yes' : ($session->score !== null ? 'No' : 'N/A'));
-                $sheet->setCellValue('J' . $row, $session->isInProgress() ? $session->progress_percentage . '%' : 'N/A');
-                $sheet->setCellValue('K' . $row, $session->started_at ? $session->started_at->format('Y-m-d H:i:s') : 'Not Started');
-                $sheet->setCellValue('L' . $row, $session->completed_at ? $session->completed_at->format('Y-m-d H:i:s') : 'Not Completed');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->package->name);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->package->category->name);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->jobVacancy ? $session->jobVacancy->position : 'N/A');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, ucfirst($session->status));
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->score ?? 'N/A');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->is_passed ? 'Yes' : ($session->score !== null ? 'No' : 'N/A'));
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->isInProgress() ? $session->progress_percentage . '%' : 'N/A');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->started_at ? $session->started_at->format('Y-m-d H:i:s') : 'Not Started');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->completed_at ? $session->completed_at->format('Y-m-d H:i:s') : 'Not Completed');
                 
                 // Calculate duration
                 if ($session->started_at && $session->completed_at) {
                     $duration = $session->started_at->diffInMinutes($session->completed_at);
-                    $sheet->setCellValue('M' . $row, $duration);
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $duration);
                 } else {
-                    $sheet->setCellValue('M' . $row, 'N/A');
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, 'N/A');
                 }
                 
-                $sheet->setCellValue('N' . $row, $session->created_at->format('Y-m-d H:i:s'));
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->created_at->format('Y-m-d H:i:s'));
+                
+                // Add questions and answers
+                // Get answers ordered by question order (assuming questions have order field or by ID)
+                $answers = $session->answers->sortBy(function($answer) {
+                    return $answer->question->id ?? 0;
+                });
+                
+                $answerIndex = 0;
+                foreach ($answers as $answer) {
+                    $question = $answer->question;
+                    
+                    // Question text
+                    $questionText = $question ? strip_tags($question->question_text ?? 'N/A') : 'N/A';
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $questionText);
+                    
+                    // Answer text - handle different answer types
+                    $answerText = '';
+                    
+                    // Check for video answer
+                    if (!empty($answer->video_answer)) {
+                        // Generate full URL for video
+                        $videoPath = trim($answer->video_answer);
+                        
+                        // If already a full URL (http/https), use it directly
+                        if (strpos($videoPath, 'http://') === 0 || strpos($videoPath, 'https://') === 0) {
+                            $videoUrl = $videoPath;
+                        }
+                        // If it starts with /storage/, it's already a public URL path - make it absolute
+                        elseif (strpos($videoPath, '/storage/') === 0 || strpos($videoPath, 'storage/') === 0) {
+                            // Normalize to start with /
+                            $normalizedPath = '/' . ltrim($videoPath, '/');
+                            $videoUrl = url($normalizedPath);
+                        }
+                        // If it's a storage path like "public/test_videos/..."
+                        elseif (strpos($videoPath, 'public/test_videos/') === 0) {
+                            // Remove 'public/' prefix to get relative path
+                            $relativePath = str_replace('public/', '', $videoPath);
+                            // Use Storage::url which returns /storage/test_videos/...
+                            $videoUrl = Storage::url($relativePath);
+                            // Make it absolute URL
+                            $videoUrl = url($videoUrl);
+                        }
+                        // If it's just "test_videos/..." (without public/)
+                        elseif (strpos($videoPath, 'test_videos/') === 0) {
+                            // Use Storage::url directly
+                            $videoUrl = Storage::url($videoPath);
+                            // Make it absolute URL
+                            $videoUrl = url($videoUrl);
+                        }
+                        // If it's just a filename
+                        else {
+                            // Assume it's in test_videos directory
+                            $videoUrl = Storage::url('test_videos/' . ltrim($videoPath, '/'));
+                            // Make it absolute URL
+                            $videoUrl = url($videoUrl);
+                        }
+                        
+                        $answerText = $videoUrl;
+                    }
+                    // Check for text answer
+                    elseif (!empty($answer->answer_text)) {
+                        $answerText = strip_tags($answer->answer_text);
+                    }
+                    // Check for selected option (multiple choice)
+                    elseif ($answer->selectedOption) {
+                        $optionText = strip_tags($answer->selectedOption->option_text ?? 'N/A');
+                        // Add indicator for correct/incorrect answer
+                        if ($answer->is_correct !== null) {
+                            if ($answer->is_correct) {
+                                $answerText = $optionText . ' [CORRECT]';
+                            } else {
+                                $answerText = $optionText . ' [WRONG]';
+                            }
+                        } else {
+                            $answerText = $optionText;
+                        }
+                    }
+                    // Check for scale value
+                    elseif (isset($answer->scale_value)) {
+                        $answerText = $answer->scale_value;
+                    }
+                    else {
+                        $answerText = 'No Answer';
+                    }
+                    
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $answerText);
+                    
+                    $answerIndex++;
+                }
+                
+                // Fill remaining question/answer columns with empty values
+                for ($i = $answerIndex; $i < $maxQuestions; $i++) {
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, '');
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, '');
+                }
+                
                 $row++;
             }
 
             // Auto-size columns
-            foreach (range('A', 'N') as $column) {
-                $sheet->getColumnDimension($column)->setAutoSize(true);
+            $totalColumns = count($headers);
+            for ($col = 1; $col <= $totalColumns; $col++) {
+                $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+                $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
+                // Set max width for question/answer columns to prevent extremely wide columns
+                if ($col > 14) { // After base columns
+                    $sheet->getColumnDimension($columnLetter)->setWidth(50);
+                }
             }
 
             // Add borders to data
-            $dataRange = 'A1:N' . ($row - 1);
+            $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalColumns);
+            $dataRange = 'A1:' . $lastColumn . ($row - 1);
             $sheet->getStyle($dataRange)->applyFromArray([
                 'borders' => [
                     'allBorders' => [
