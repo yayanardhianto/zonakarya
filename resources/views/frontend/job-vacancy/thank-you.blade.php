@@ -178,7 +178,7 @@
                                 <a href="{{ route('jobs.index') }}" class="btn btn-primary">
                                     <i class="fas fa-search"></i> {{ __('Lihat Lowongan Lain') }}
                                 </a>
-                                <a href="{{ route('home') }}" class="btn btn-outline-secondary">
+                                <a href="{{ route('home') }}" class="btn btn-outline-secondary mt-0 mt-md-2">
                                     <i class="fas fa-home"></i> {{ __('Kembali ke Home') }}
                                 </a>
                             </div>
