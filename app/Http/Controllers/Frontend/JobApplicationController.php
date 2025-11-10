@@ -21,14 +21,21 @@ class JobApplicationController extends Controller
 
     public function storeApplication(Request $request, JobVacancy $jobVacancy)
     {
-        \Log::info('Job Application: Starting application submission', [
-            'job_vacancy_id' => $jobVacancy->id,
-            'job_unique_code' => $jobVacancy->unique_code,
-            'job_position' => $jobVacancy->position,
+        // Log request immediately, even before validation
+        \Log::info('Job Application: Request received', [
+            'job_vacancy_id' => $jobVacancy->id ?? 'unknown',
+            'job_unique_code' => $jobVacancy->unique_code ?? 'unknown',
+            'job_position' => $jobVacancy->position ?? 'unknown',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'is_logged_in' => Auth::check(),
             'user_id' => Auth::id(),
+            'has_cv' => $request->hasFile('cv'),
+            'has_photo' => $request->hasFile('photo'),
+            'cv_size' => $request->hasFile('cv') ? $request->file('cv')->getSize() : null,
+            'photo_size' => $request->hasFile('photo') ? $request->file('photo')->getSize() : null,
+            'content_length' => $request->header('Content-Length'),
+            'content_type' => $request->header('Content-Type'),
         ]);
 
         try {
@@ -362,6 +369,12 @@ class JobApplicationController extends Controller
                 'job_id' => $jobVacancy->id ?? 'unknown',
                 'job_unique_code' => $jobVacancy->unique_code ?? 'unknown',
                 'request_data' => $request->except(['cv', 'photo', '_token']),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'file_sizes' => [
+                    'cv' => $request->hasFile('cv') ? $request->file('cv')->getSize() : null,
+                    'photo' => $request->hasFile('photo') ? $request->file('photo')->getSize() : null,
+                ],
             ]);
 
             return response()->json([
@@ -370,9 +383,12 @@ class JobApplicationController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            // Enhanced error logging with more context
             \Log::error('Job Application: Application submission error', [
                 'error' => $e->getMessage(),
                 'error_class' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
                 'job_id' => $jobVacancy->id ?? 'unknown',
                 'job_unique_code' => $jobVacancy->unique_code ?? 'unknown',
@@ -382,6 +398,17 @@ class JobApplicationController extends Controller
                 'user_agent' => $request->userAgent(),
                 'is_logged_in' => Auth::check(),
                 'user_id' => Auth::id(),
+                'has_cv' => $request->hasFile('cv'),
+                'has_photo' => $request->hasFile('photo'),
+                'cv_size' => $request->hasFile('cv') ? $request->file('cv')->getSize() : null,
+                'photo_size' => $request->hasFile('photo') ? $request->file('photo')->getSize() : null,
+                'content_length' => $request->header('Content-Length'),
+                'server_info' => [
+                    'upload_max_filesize' => ini_get('upload_max_filesize'),
+                    'post_max_size' => ini_get('post_max_size'),
+                    'max_execution_time' => ini_get('max_execution_time'),
+                    'memory_limit' => ini_get('memory_limit'),
+                ],
             ]);
 
             return response()->json([

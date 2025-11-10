@@ -26,7 +26,21 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            //
+            // Log all exceptions, especially for job application routes
+            if (request()->is('jobs/*/apply') || request()->is('applications/*')) {
+                \Log::error('Job Application: Unhandled exception', [
+                    'error' => $e->getMessage(),
+                    'error_class' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                    'url' => request()->fullUrl(),
+                    'method' => request()->method(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'request_data' => request()->except(['cv', 'photo', '_token', 'password']),
+                ]);
+            }
         });
     }
 
@@ -50,6 +64,20 @@ class Handler extends ExceptionHandler
 
     public function render($request, Throwable $exception)
     {
+        // Log errors for job application routes before rendering
+        if (($request->is('jobs/*/apply') || $request->is('applications/*')) && !($exception instanceof \Illuminate\Validation\ValidationException)) {
+            \Log::error('Job Application: Exception in render', [
+                'error' => $exception->getMessage(),
+                'error_class' => get_class($exception),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
+        
         if ($exception instanceof AccessPermissionDeniedException || $exception instanceof DemoModeEnabledException) {
             return $exception->render($request);
         }
