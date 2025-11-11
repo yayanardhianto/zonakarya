@@ -9,6 +9,7 @@ use App\Models\TestQuestion;
 use App\Models\TestAnswer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -290,76 +291,114 @@ class TestController extends Controller
 
         $question = TestQuestion::findOrFail($request->question_id);
         
-        // Check if already answered
-        $existingAnswer = $session->answers()
-            ->where('question_id', $question->id)
-            ->first();
-
-        $answerData = [
-            'question_id' => $question->id,
-            'answered_at' => Carbon::now()
-        ];
-
-        if ($question->isMultipleChoice()) {
-            $answerData['selected_option_id'] = $request->selected_option_id;
+        // Use database transaction to prevent race conditions
+        try {
+            DB::beginTransaction();
             
-            if ($request->selected_option_id) {
-                $selectedOption = $question->options()
-                    ->where('id', $request->selected_option_id)
-                    ->first();
-                    
-                if ($selectedOption) {
-                    $answerData['is_correct'] = $selectedOption->is_correct;
-                    $answerData['points_earned'] = $selectedOption->is_correct ? $question->points : 0;
+            // Lock the session row to prevent concurrent updates
+            $session = TestSession::lockForUpdate()->findOrFail($session->id);
+            
+            // Check if session is still valid
+            if ($session->isCompleted() || $session->isExpired()) {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Test session is already completed or expired.'], 400);
+            }
+            
+            // Check if already answered (with lock to prevent duplicate)
+            $existingAnswer = $session->answers()
+                ->where('question_id', $question->id)
+                ->lockForUpdate()
+                ->first();
+
+            $answerData = [
+                'question_id' => $question->id,
+                'answered_at' => Carbon::now()
+            ];
+
+            if ($question->isMultipleChoice()) {
+                $answerData['selected_option_id'] = $request->selected_option_id;
+                
+                if ($request->selected_option_id) {
+                    $selectedOption = $question->options()
+                        ->where('id', $request->selected_option_id)
+                        ->first();
+                        
+                    if ($selectedOption) {
+                        $answerData['is_correct'] = $selectedOption->is_correct;
+                        $answerData['points_earned'] = $selectedOption->is_correct ? $question->points : 0;
+                    }
                 }
-            }
-        } elseif ($question->isScale()) {
-            $answerData['scale_value'] = $request->scale_value;
-            // Scale questions are automatically scored based on value
-            $answerData['is_correct'] = true; // All scale answers are considered valid
-            $answerData['points_earned'] = $request->scale_value ? round(($request->scale_value / 10) * $question->points) : 0;
-        } elseif ($question->isVideoRecord()) {
-            // Handle video answer or text fallback
-            if ($request->video_answer) {
-                $answerData['video_answer'] = $request->video_answer;
-                $answerData['points_earned'] = $question->points;
-            } elseif ($request->video_text_fallback) {
-                // Store text fallback as answer_text for video questions
-                $answerData['answer_text'] = $request->video_text_fallback;
-                $answerData['points_earned'] = $question->points * 0.8; // Slightly lower points for text fallback
-            }
-            // Video record questions are automatically scored
-            $answerData['is_correct'] = true; // All video answers (or text fallback) are considered valid
-        } elseif ($question->isForcedChoice()) {
-            // Handle forced choice answers
-            if ($request->forced_choice_most !== null && $request->forced_choice_least !== null) {
-                $forcedChoiceData = [
-                    'most_similar' => $request->forced_choice_most,
-                    'least_similar' => $request->forced_choice_least
-                ];
-                $answerData['answer_text'] = json_encode($forcedChoiceData);
-                $answerData['is_correct'] = true; // All forced choice answers are considered valid
-                $answerData['points_earned'] = $question->points;
+            } elseif ($question->isScale()) {
+                $answerData['scale_value'] = $request->scale_value;
+                // Scale questions are automatically scored based on value
+                $answerData['is_correct'] = true; // All scale answers are considered valid
+                $answerData['points_earned'] = $request->scale_value ? round(($request->scale_value / 10) * $question->points) : 0;
+            } elseif ($question->isVideoRecord()) {
+                // Handle video answer or text fallback
+                if ($request->video_answer) {
+                    $answerData['video_answer'] = $request->video_answer;
+                    $answerData['points_earned'] = $question->points;
+                } elseif ($request->video_text_fallback) {
+                    // Store text fallback as answer_text for video questions
+                    $answerData['answer_text'] = $request->video_text_fallback;
+                    $answerData['points_earned'] = $question->points * 0.8; // Slightly lower points for text fallback
+                }
+                // Video record questions are automatically scored
+                $answerData['is_correct'] = true; // All video answers (or text fallback) are considered valid
+            } elseif ($question->isForcedChoice()) {
+                // Handle forced choice answers
+                if ($request->forced_choice_most !== null && $request->forced_choice_least !== null) {
+                    $forcedChoiceData = [
+                        'most_similar' => $request->forced_choice_most,
+                        'least_similar' => $request->forced_choice_least
+                    ];
+                    $answerData['answer_text'] = json_encode($forcedChoiceData);
+                    $answerData['is_correct'] = true; // All forced choice answers are considered valid
+                    $answerData['points_earned'] = $question->points;
+                } else {
+                    $answerData['answer_text'] = null;
+                    $answerData['is_correct'] = false;
+                    $answerData['points_earned'] = 0;
+                }
             } else {
-                $answerData['answer_text'] = null;
-                $answerData['is_correct'] = false;
+                $answerData['answer_text'] = $request->answer_text;
+                // Essay questions need manual grading
+                $answerData['is_correct'] = null;
                 $answerData['points_earned'] = 0;
             }
-        } else {
-            $answerData['answer_text'] = $request->answer_text;
-            // Essay questions need manual grading
-            $answerData['is_correct'] = null;
-            $answerData['points_earned'] = 0;
-        }
 
-        if ($existingAnswer) {
-            $existingAnswer->update($answerData);
-        } else {
-            $session->answers()->create($answerData);
+            if ($existingAnswer) {
+                $existingAnswer->update($answerData);
+            } else {
+                $session->answers()->create($answerData);
+            }
+            
+            DB::commit();
+            
+            // Auto-save progress
+            return response()->json(['success' => true, 'message' => 'Answer saved successfully']);
+            
+        } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+            \Log::error('Test Answer: Database error', [
+                'error' => $e->getMessage(),
+                'session_id' => $session->id,
+                'question_id' => $request->question_id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Error saving your answer. Please try again.'], 500);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Test Answer: Unexpected error', [
+                'error' => $e->getMessage(),
+                'session_id' => $session->id,
+                'question_id' => $request->question_id,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Error saving your answer. Please try again.'], 500);
         }
-
-        // Auto-save progress
-        return response()->json(['success' => true, 'message' => 'Answer saved successfully']);
     }
 
     public function result(Request $request, TestSession $session)

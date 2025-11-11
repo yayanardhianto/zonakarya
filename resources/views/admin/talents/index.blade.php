@@ -216,7 +216,7 @@
                                                         @php
                                                             $latestApplication = $talent->applications->first();
                                                         @endphp
-                                                        @if($latestApplication->status != 'onboard')
+                                                        @if($latestApplication && $latestApplication->status != 'onboard')
                                                         <button type="button" 
                                                                 class="btn btn-sm btn-success" 
                                                                 title="{{ __('Reapply') }}"

@@ -11,6 +11,7 @@ use App\Services\WhatsAppService;
 use App\Traits\NewUserCreateTrait;
 use App\Traits\SetConfigTrait;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -122,7 +123,22 @@ class SocialiteController extends Controller {
         }
         try {
             $provider_name = SocialiteDriverType::from($driver)->value;
+            
+            // Add logging for debugging concurrent login issues
+            \Log::info('Social Login: Starting callback', [
+                'driver' => $driver,
+                'provider' => $provider_name,
+                'session_id' => session()->getId(),
+                'ip_address' => request()->ip(),
+            ]);
+            
             $callbackUser = Socialite::driver($provider_name)->user();
+            
+            \Log::info('Social Login: User retrieved from provider', [
+                'driver' => $driver,
+                'provider_id' => $callbackUser->getId(),
+                'email' => $callbackUser->getEmail(),
+            ]);
             
             // Check if this is an applicant registration
             $applicantId = request('applicant_id') ?? session('applicant_id');
@@ -162,20 +178,46 @@ class SocialiteController extends Controller {
                         }
                         
                         // User is active and not banned, login
-                        Auth::guard('web')->login($user, true);
-                        $notification = __('Logged in successfully.');
-                        $notification = ['message' => $notification, 'alert-type' => 'success'];
+                        // Use database transaction to prevent race conditions during login
+                        try {
+                            DB::beginTransaction();
+                            
+                            // Regenerate session ID to prevent session fixation
+                            session()->regenerate();
+                            
+                            Auth::guard('web')->login($user, true);
+                            
+                            DB::commit();
+                            
+                            \Log::info('Social Login: User logged in successfully', [
+                                'user_id' => $user->id,
+                                'email' => $user->email,
+                                'driver' => $driver,
+                            ]);
+                            
+                            $notification = __('Logged in successfully.');
+                            $notification = ['message' => $notification, 'alert-type' => 'success'];
 
-                        $intendedUrl = session()->get('url.intended');
-                        if ($intendedUrl) {
-                            // Clear the intended URL from session
-                            session()->forget('url.intended');
-                            return redirect($intendedUrl)->with($notification);
+                            $intendedUrl = session()->get('url.intended');
+                            if ($intendedUrl) {
+                                // Clear the intended URL from session
+                                session()->forget('url.intended');
+                                return redirect($intendedUrl)->with($notification);
+                            }
+                            if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
+                                return redirect()->route('dashboard');
+                            }
+                            return redirect()->intended(route('dashboard'))->with($notification);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            \Log::error('Social Login: Error during login', [
+                                'error' => $e->getMessage(),
+                                'user_id' => $user->id,
+                                'driver' => $driver,
+                                'trace' => $e->getTraceAsString(),
+                            ]);
+                            throw $e;
                         }
-                        if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
-                            return redirect()->route('dashboard');
-                        }
-                        return redirect()->intended(route('dashboard'))->with($notification);
                     } else {
                         // User exists but inactive or banned
                         $notification = __('Inactive account');
@@ -201,20 +243,46 @@ class SocialiteController extends Controller {
                             $user->update($updateData);
                         }
                         
-                        Auth::guard('web')->login($user, true);
-                        $notification = __('Logged in successfully.');
-                        $notification = ['message' => $notification, 'alert-type' => 'success'];
+                        // Use database transaction to prevent race conditions during login
+                        try {
+                            DB::beginTransaction();
+                            
+                            // Regenerate session ID to prevent session fixation
+                            session()->regenerate();
+                            
+                            Auth::guard('web')->login($user, true);
+                            
+                            DB::commit();
+                            
+                            \Log::info('Social Login: User logged in successfully (new socialite record)', [
+                                'user_id' => $user->id,
+                                'email' => $user->email,
+                                'driver' => $driver,
+                            ]);
+                            
+                            $notification = __('Logged in successfully.');
+                            $notification = ['message' => $notification, 'alert-type' => 'success'];
 
-                        $intendedUrl = session()->get('url.intended');
-                        if ($intendedUrl) {
-                            // Clear the intended URL from session
-                            session()->forget('url.intended');
-                            return redirect($intendedUrl)->with($notification);
+                            $intendedUrl = session()->get('url.intended');
+                            if ($intendedUrl) {
+                                // Clear the intended URL from session
+                                session()->forget('url.intended');
+                                return redirect($intendedUrl)->with($notification);
+                            }
+                            if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
+                                return redirect()->route('dashboard');
+                            }
+                            return redirect()->intended(route('dashboard'))->with($notification);
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+                            \Log::error('Social Login: Error during login (new socialite record)', [
+                                'error' => $e->getMessage(),
+                                'user_id' => $user->id,
+                                'driver' => $driver,
+                                'trace' => $e->getTraceAsString(),
+                            ]);
+                            throw $e;
                         }
-                        if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
-                            return redirect()->route('dashboard');
-                        }
-                        return redirect()->intended(route('dashboard'))->with($notification);
                     } else {
                         $notification = __('Login Failed');
                         $notification = ['message' => $notification, 'alert-type' => 'error'];
@@ -227,23 +295,64 @@ class SocialiteController extends Controller {
 
                 if ($socialite) {
                     $user = User::find($socialite->user_id);
-                    Auth::guard('web')->login($user, true);
-                    $notification = __('Logged in successfully.');
-                    $notification = ['message' => $notification, 'alert-type' => 'success'];
+                    
+                    // Use database transaction to prevent race conditions during login
+                    try {
+                        DB::beginTransaction();
+                        
+                        // Regenerate session ID to prevent session fixation
+                        session()->regenerate();
+                        
+                        Auth::guard('web')->login($user, true);
+                        
+                        DB::commit();
+                        
+                        \Log::info('Social Login: New user created and logged in successfully', [
+                            'user_id' => $user->id,
+                            'email' => $user->email,
+                            'driver' => $driver,
+                        ]);
+                        
+                        $notification = __('Logged in successfully.');
+                        $notification = ['message' => $notification, 'alert-type' => 'success'];
 
-                    $intendedUrl = session()->get('url.intended');
-                    if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
-                        return redirect()->route('dashboard');
+                        $intendedUrl = session()->get('url.intended');
+                        if ($intendedUrl && Str::contains($intendedUrl, '/admin')) {
+                            return redirect()->route('dashboard');
+                        }
+                        return redirect()->intended(route('dashboard'))->with($notification);
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        \Log::error('Social Login: Error during login (new user)', [
+                            'error' => $e->getMessage(),
+                            'user_id' => $user->id ?? 'unknown',
+                            'driver' => $driver,
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+                        throw $e;
                     }
-                    return redirect()->intended(route('dashboard'))->with($notification);
                 } else {
+                    \Log::error('Social Login: Failed to create new user', [
+                        'email' => $callbackUser->getEmail(),
+                        'driver' => $driver,
+                    ]);
                     $notification = __('Login Failed');
                     $notification = ['message' => $notification, 'alert-type' => 'error'];
                     return redirect()->back()->with($notification);
                 }
             }
         } catch (\Exception $e) {
-            return to_route('login');
+            \Log::error('Social Login: Unhandled exception in callback', [
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'driver' => $driver,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'session_id' => session()->getId(),
+                'ip_address' => request()->ip(),
+            ]);
+            return to_route('login')->with('error', 'Login failed. Please try again.');
         }
     }
 
