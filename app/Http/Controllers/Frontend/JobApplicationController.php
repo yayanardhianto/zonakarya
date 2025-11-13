@@ -232,16 +232,29 @@ class JobApplicationController extends Controller
                 ]);
 
                 try {
+                    // Get email from user if logged in, otherwise leave null (will be filled by social login)
+                    $applicantEmail = $user ? $user->email : null;
+                    
                     $applicant = Applicant::create([
                         'user_id' => $user ? $user->id : null,
                         'name' => $user ? $user->name : $request->name,
-                        'email' => $user ? $user->email : null,
+                        'email' => $applicantEmail,
                         'phone' => null, // Will be filled after social login if not logged in
                         'whatsapp' => $request->whatsapp,
                         'cv_path' => $cvPath,
                         'photo_path' => $photoPath,
                         'status' => 'pending',
                     ]);
+                    
+                    // If user is logged in but applicant email is still null, sync from user
+                    if ($user && !$applicant->email && $user->email) {
+                        $applicant->update(['email' => $user->email]);
+                        \Log::info('Job Application: Synced email from user to applicant', [
+                            'applicant_id' => $applicant->id,
+                            'user_id' => $user->id,
+                            'email' => $user->email,
+                        ]);
+                    }
 
                     \Log::info('Job Application: Applicant created successfully', [
                         'applicant_id' => $applicant->id,
@@ -274,16 +287,30 @@ class JobApplicationController extends Controller
                         Storage::disk('public')->delete($applicant->photo_path);
                     }
 
-                    $applicant->update([
+                    // Prepare update data
+                    $updateData = [
                         'cv_path' => $cvPath,
                         'photo_path' => $photoPath,
                         'whatsapp' => $request->whatsapp,
-                    ]);
+                    ];
+                    
+                    // Sync email from user if applicant email is null and user has email
+                    if (!$applicant->email && $user && $user->email) {
+                        $updateData['email'] = $user->email;
+                        \Log::info('Job Application: Syncing email from user to existing applicant', [
+                            'applicant_id' => $applicant->id,
+                            'user_id' => $user->id,
+                            'email' => $user->email,
+                        ]);
+                    }
+
+                    $applicant->update($updateData);
 
                     \Log::info('Job Application: Applicant updated successfully', [
                         'applicant_id' => $applicant->id,
                         'new_cv_path' => $cvPath,
                         'new_photo_path' => $photoPath,
+                        'email_synced' => isset($updateData['email']),
                     ]);
                 } catch (\Exception $e) {
                     \Log::error('Job Application: Failed to update applicant', [

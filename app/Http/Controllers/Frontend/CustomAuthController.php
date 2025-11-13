@@ -27,6 +27,16 @@ class CustomAuthController extends Controller
             // Check if user has applicant record
             $applicant = Applicant::where('user_id', $user->id)->first();
             
+            // Sync email from user to applicant if applicant email is null
+            if ($applicant && !$applicant->email && $user->email) {
+                $applicant->update(['email' => $user->email]);
+                \Log::info('Custom Auth: Synced email from user to applicant', [
+                    'applicant_id' => $applicant->id,
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                ]);
+            }
+            
             if ($applicant) {
                 // User has applicant record, redirect to status page
                 return response()->json([

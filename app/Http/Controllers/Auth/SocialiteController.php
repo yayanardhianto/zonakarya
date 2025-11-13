@@ -157,9 +157,33 @@ class SocialiteController extends Controller {
                 return $this->handleApplicantRegistration($callbackUser, $provider_name, $applicantId);
             }
             
-            $user = User::where('email', $callbackUser->getEmail())->first();
+            // Get email from social provider
+            $socialEmail = $callbackUser->getEmail();
+            
+            // If email is null, log warning but continue (some providers might not provide email)
+            if (empty($socialEmail)) {
+                \Log::warning('Social Login: Email is null from provider', [
+                    'provider' => $provider_name,
+                    'provider_id' => $callbackUser->getId(),
+                ]);
+            }
+            
+            $user = null;
+            if (!empty($socialEmail)) {
+                $user = User::where('email', $socialEmail)->first();
+            }
             
             if ($user) {
+                // Sync email to applicant if applicant exists and email is null
+                $applicant = Applicant::where('user_id', $user->id)->first();
+                if ($applicant && !$applicant->email && !empty($socialEmail)) {
+                    $applicant->update(['email' => $socialEmail]);
+                    \Log::info('Social Login: Synced email from user to applicant on login', [
+                        'applicant_id' => $applicant->id,
+                        'user_id' => $user->id,
+                        'email' => $socialEmail,
+                    ]);
+                }
                 // User exists, check if socialite record exists
                 $findDriver = $user
                     ->socialite()
@@ -365,10 +389,43 @@ class SocialiteController extends Controller {
         try {
             $applicant = Applicant::findOrFail($applicantId);
             
+            // Get email from social provider, fallback to existing email if null
+            $socialEmail = $callbackUser->getEmail();
+            if (empty($socialEmail)) {
+                \Log::warning('Social Login: Email is null from provider', [
+                    'provider' => $provider_name,
+                    'applicant_id' => $applicantId,
+                    'provider_id' => $callbackUser->getId(),
+                ]);
+                // Try to get email from user if already linked
+                if ($applicant->user_id) {
+                    $user = \App\Models\User::find($applicant->user_id);
+                    if ($user && $user->email) {
+                        $socialEmail = $user->email;
+                        \Log::info('Social Login: Using email from linked user', [
+                            'user_id' => $user->id,
+                            'email' => $socialEmail,
+                        ]);
+                    }
+                }
+            }
+            
             // Update applicant with social login info
-            $applicant->update([
-                'name' => $callbackUser->getName(),
-                'email' => $callbackUser->getEmail(),
+            $updateData = [
+                'name' => $callbackUser->getName() ?: $applicant->name,
+            ];
+            
+            // Only update email if we have a valid email
+            if (!empty($socialEmail)) {
+                $updateData['email'] = $socialEmail;
+            }
+            
+            $applicant->update($updateData);
+            
+            \Log::info('Social Login: Applicant updated with social info', [
+                'applicant_id' => $applicant->id,
+                'email' => $updateData['email'] ?? 'not updated',
+                'provider' => $provider_name,
             ]);
 
             // Create or find user account for future logins
@@ -472,10 +529,27 @@ class SocialiteController extends Controller {
 
     private function createOrFindUser($callbackUser, $provider_name)
     {
+        // Get email from social provider
+        $socialEmail = $callbackUser->getEmail();
+        
         // Check if user already exists by email
-        $user = User::where('email', $callbackUser->getEmail())->first();
+        $user = null;
+        if (!empty($socialEmail)) {
+            $user = User::where('email', $socialEmail)->first();
+        }
         
         if ($user) {
+            // Sync email to applicant if applicant exists and email is null
+            $applicant = Applicant::where('user_id', $user->id)->first();
+            if ($applicant && !$applicant->email && !empty($socialEmail)) {
+                $applicant->update(['email' => $socialEmail]);
+                \Log::info('Social Login: Synced email from user to applicant in createOrFindUser', [
+                    'applicant_id' => $applicant->id,
+                    'user_id' => $user->id,
+                    'email' => $socialEmail,
+                ]);
+            }
+            
             // User exists, check if socialite record exists
             $findDriver = $user
                 ->socialite()
@@ -493,14 +567,36 @@ class SocialiteController extends Controller {
             }
         } else {
             // Create new user
+            $socialEmail = $callbackUser->getEmail();
+            if (empty($socialEmail)) {
+                // Generate a temporary email if provider doesn't provide one
+                $socialEmail = 'user_' . $callbackUser->getId() . '@' . strtolower($provider_name) . '.temp';
+                \Log::warning('Social Login: Email is null, using temporary email', [
+                    'provider' => $provider_name,
+                    'provider_id' => $callbackUser->getId(),
+                    'temp_email' => $socialEmail,
+                ]);
+            }
+            
             $user = User::create([
-                'name' => $callbackUser->getName(),
-                'email' => $callbackUser->getEmail(),
+                'name' => $callbackUser->getName() ?: 'User',
+                'email' => $socialEmail,
                 'status' => UserStatus::ACTIVE->value,
                 'is_banned' => UserStatus::UNBANNED->value,
-                'email_verified_at' => now(),
+                'email_verified_at' => !empty($callbackUser->getEmail()) ? now() : null,
                 'password' => Hash::make(Str::random(10)), // Random password for social login
             ]);
+            
+            // Sync email to applicant if applicant exists and email is null
+            $applicant = Applicant::where('user_id', $user->id)->first();
+            if ($applicant && !$applicant->email && !empty($socialEmail) && strpos($socialEmail, '@') !== false) {
+                $applicant->update(['email' => $socialEmail]);
+                \Log::info('Social Login: Synced email from user to applicant', [
+                    'applicant_id' => $applicant->id,
+                    'user_id' => $user->id,
+                    'email' => $socialEmail,
+                ]);
+            }
 
             // Create socialite record
             $user->socialite()->create([
