@@ -10,6 +10,13 @@ use App\Models\Talent;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ApplicantController extends Controller
 {
@@ -1032,6 +1039,256 @@ class ApplicantController extends Controller
                 'success' => false,
                 'message' => 'Error rejecting application: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function exportExcel(Request $request)
+    {
+        try {
+            // Get filter parameters
+            $status = $request->get('status');
+            $jobVacancyId = $request->get('job_vacancy_id');
+            $search = $request->get('search');
+
+            // Build query with filters
+            $query = Application::with(['user', 'applicant', 'jobVacancy']);
+
+            if ($request->filled('status')) {
+                $query->where('status', $status);
+            }
+
+            if ($request->filled('job_vacancy_id')) {
+                $query->where('job_vacancy_id', $jobVacancyId);
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                                  ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('applicant', function($applicantQuery) use ($search) {
+                        $applicantQuery->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+                    });
+                });
+            }
+
+            $applications = $query->orderBy('created_at', 'desc')->get();
+
+            // Create new Spreadsheet object
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Set title
+            $sheet->setTitle('Applicants Export');
+
+            // Set headers
+            $headers = [
+                'ID',
+                'Name',
+                'Email',
+                'WhatsApp',
+                'Position Applied',
+                'Status',
+                'Applied Date',
+                'CV Link',
+                'Photo Link',
+            ];
+
+            $col = 1;
+            foreach ($headers as $header) {
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1', $header);
+                $col++;
+            }
+
+            // Style headers
+            $headerRange = 'A1:' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)) . '1';
+            $sheet->getStyle($headerRange)->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '4472C4']
+                ],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ]);
+
+            // Add data
+            $row = 2;
+            foreach ($applications as $application) {
+                $col = 1;
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->id);
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->user->name ?? $application->applicant->name ?? 'N/A');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->user->email ?? $application->applicant->email ?? 'N/A');
+                
+                // Format WhatsApp as text to prevent scientific notation
+                $whatsapp = $application->applicant->whatsapp ?? 'N/A';
+                if ($whatsapp !== 'N/A') {
+                    // Normalize phone number
+                    $cleanPhone = preg_replace('/[^0-9]/', '', $whatsapp);
+                    if (substr($cleanPhone, 0, 1) === '0') {
+                        $cleanPhone = '62' . substr($cleanPhone, 1);
+                    } elseif (substr($cleanPhone, 0, 2) !== '62') {
+                        $cleanPhone = '62' . $cleanPhone;
+                    }
+                    // Set as text to prevent Excel from converting to number
+                    $sheet->setCellValueExplicit(
+                        \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row,
+                        $cleanPhone,
+                        DataType::TYPE_STRING
+                    );
+                } else {
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, 'N/A');
+                }
+                
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->jobVacancy->position ?? 'N/A');
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, ucfirst(str_replace('_', ' ', $application->status)));
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->created_at->format('Y-m-d H:i:s'));
+                
+                // CV Link - Generate absolute URL
+                $cvLink = 'N/A';
+                if ($application->applicant->cv_path && Storage::disk('public')->exists($application->applicant->cv_path)) {
+                    $cvLink = url(route('admin.applicants.view-cv', $application->applicant, false));
+                }
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $cvLink);
+                
+                // Photo Link - Generate absolute URL
+                $photoLink = 'N/A';
+                if ($application->applicant->photo_path && Storage::disk('public')->exists($application->applicant->photo_path)) {
+                    $photoLink = url(route('admin.applicants.view-photo', $application->applicant, false));
+                }
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $photoLink);
+                
+                $row++;
+            }
+
+            // Auto-size columns
+            $totalColumns = count($headers);
+            for ($col = 1; $col <= $totalColumns; $col++) {
+                $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col);
+                $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
+            }
+
+            // Add borders to data
+            $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($totalColumns);
+            $dataRange = 'A1:' . $lastColumn . ($row - 1);
+            $sheet->getStyle($dataRange)->applyFromArray([
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => '000000']
+                    ]
+                ]
+            ]);
+
+            // Create filename with filters
+            $filename = 'applicants-export';
+            if ($status) {
+                $filename .= '-' . $status;
+            }
+            if ($jobVacancyId) {
+                $job = JobVacancy::find($jobVacancyId);
+                $filename .= '-' . strtolower(str_replace(' ', '-', $job->position ?? 'job'));
+            }
+            $filename .= '-' . date('Y-m-d-H-i-s') . '.xlsx';
+
+            // Create writer and save
+            $writer = new Xlsx($spreadsheet);
+            
+            // Set headers for download
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+
+            $writer->save('php://output');
+            exit;
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting Excel: ' . $e->getMessage());
+        }
+    }
+
+    public function exportPdf(Request $request)
+    {
+        try {
+            // Get filter parameters
+            $status = $request->get('status');
+            $jobVacancyId = $request->get('job_vacancy_id');
+            $search = $request->get('search');
+
+            // Build query with filters
+            $query = Application::with(['user', 'applicant', 'jobVacancy']);
+
+            if ($request->filled('status')) {
+                $query->where('status', $status);
+            }
+
+            if ($request->filled('job_vacancy_id')) {
+                $query->where('job_vacancy_id', $jobVacancyId);
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('user', function($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                                  ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('applicant', function($applicantQuery) use ($search) {
+                        $applicantQuery->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+                    });
+                });
+            }
+
+            $applications = $query->orderBy('created_at', 'desc')->get();
+
+            // Get filter info for display
+            $filterInfo = [];
+            if ($status) {
+                $filterInfo[] = 'Status: ' . ucfirst(str_replace('_', ' ', $status));
+            }
+            if ($jobVacancyId) {
+                $job = JobVacancy::find($jobVacancyId);
+                $filterInfo[] = 'Job: ' . ($job->position ?? 'N/A');
+            }
+            if ($search) {
+                $filterInfo[] = 'Search: ' . $search;
+            }
+
+            $data = [
+                'applications' => $applications,
+                'filterInfo' => $filterInfo,
+                'exportDate' => now()->format('d M Y H:i:s')
+            ];
+
+            $pdf = Pdf::loadView('admin.applicants.export-pdf', $data);
+            $pdf->setPaper('A4', 'landscape');
+
+            // Create filename with filters
+            $filename = 'applicants-export';
+            if ($status) {
+                $filename .= '-' . $status;
+            }
+            if ($jobVacancyId) {
+                $job = JobVacancy::find($jobVacancyId);
+                $filename .= '-' . strtolower(str_replace(' ', '-', $job->position ?? 'job'));
+            }
+            $filename .= '-' . date('Y-m-d-H-i-s') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error exporting PDF: ' . $e->getMessage());
         }
     }
 }

@@ -159,6 +159,69 @@ class JobApplicationController extends Controller
                 ]);
             }
 
+            // Check if applicant already applied to this job vacancy
+            // Check by email if not logged in, or by applicant_id if logged in
+            $existingApplication = null;
+            if ($applicant) {
+                // If logged in and applicant exists, check by applicant_id
+                $existingApplication = Application::where('applicant_id', $applicant->id)
+                    ->where('job_vacancy_id', $jobVacancy->id)
+                    ->first();
+            } else {
+                // If not logged in, check by whatsapp (most reliable identifier)
+                if ($request->has('whatsapp')) {
+                    // Normalize WhatsApp number
+                    $whatsapp = preg_replace('/[^0-9]/', '', $request->whatsapp);
+                    if (substr($whatsapp, 0, 1) === '0') {
+                        $whatsapp = '62' . substr($whatsapp, 1);
+                    } elseif (substr($whatsapp, 0, 2) !== '62') {
+                        $whatsapp = '62' . $whatsapp;
+                    }
+                    
+                    // Try to find applicant by whatsapp (check multiple formats)
+                    $existingApplicant = Applicant::where(function($query) use ($whatsapp) {
+                        $query->where('whatsapp', $whatsapp)
+                              ->orWhere('whatsapp', '0' . substr($whatsapp, 2)) // Also check with 0 prefix
+                              ->orWhere('whatsapp', '+' . $whatsapp) // Also check with + prefix
+                              ->orWhere('whatsapp', preg_replace('/[^0-9]/', '', $whatsapp)); // Also check without any prefix
+                    })->first();
+                    
+                    if ($existingApplicant) {
+                        $existingApplication = Application::where('applicant_id', $existingApplicant->id)
+                            ->where('job_vacancy_id', $jobVacancy->id)
+                            ->first();
+                    }
+                }
+            }
+
+            if ($existingApplication) {
+                \Log::warning('Job Application: Duplicate application detected', [
+                    'applicant_id' => $applicant ? $applicant->id : null,
+                    'job_vacancy_id' => $jobVacancy->id,
+                    'existing_application_id' => $existingApplication->id,
+                    'existing_status' => $existingApplication->status,
+                ]);
+                
+                // Clean up uploaded files
+                if (isset($cvPath)) {
+                    Storage::disk('public')->delete($cvPath);
+                }
+                if (isset($photoPath)) {
+                    Storage::disk('public')->delete($photoPath);
+                }
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => __('Anda sudah pernah melamar untuk lowongan ini sebelumnya.'),
+                    'duplicate' => true,
+                    'existing_application' => [
+                        'id' => $existingApplication->id,
+                        'status' => $existingApplication->status,
+                        'created_at' => $existingApplication->created_at->format('d M Y H:i'),
+                    ]
+                ], 400);
+            }
+
             // Create applicant if not exists
             if (!$applicant) {
                 \Log::info('Job Application: Creating new applicant', [

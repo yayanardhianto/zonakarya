@@ -111,6 +111,10 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         Route::get('test-session/{testSession}/qr-code', [TestPackageController::class, 'generateQRCode'])->name('test-session.qr-code');
         
         // Applicant Management Routes
+        // Export routes must be before resource route
+        Route::get('applicants/export-excel', [\App\Http\Controllers\Admin\ApplicantController::class, 'exportExcel'])->name('applicants.export-excel');
+        Route::get('applicants/export-pdf', [\App\Http\Controllers\Admin\ApplicantController::class, 'exportPdf'])->name('applicants.export-pdf');
+        
         Route::resource('applicants', \App\Http\Controllers\Admin\ApplicantController::class)->only(['index', 'show']);
         Route::put('applicants/{applicant}/status', [\App\Http\Controllers\Admin\ApplicantController::class, 'updateStatus'])->name('applicants.update-status');
         Route::post('applicants/{applicant}/send-test', [\App\Http\Controllers\Admin\ApplicantController::class, 'sendTest'])->name('applicants.send-test');

@@ -219,6 +219,16 @@
                                             <!-- <p class="text-muted">{{ __('Please record a short video sharing your thoughts, experience, or testimonial.') }}</p> -->
                                         </div>
                                         
+                                        <!-- Video Recording Instructions -->
+                                        <div class="alert alert-info mb-4" id="videoInstructions">
+                                            <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>{{ __('Instruksi Sebelum Merekam') }}</h6>
+                                            <ul class="text-start mb-0">
+                                                <li>{{ __('Pastikan kamu siap untuk pembuatan Video') }}</li>
+                                                <li>{{ __('Pastikan ruangan terang dan tidak gelap') }}</li>
+                                                <li>{{ __('Pastikan kamu sudah menggunakan pakaian yang rapi dan sopan') }}</li>
+                                            </ul>
+                                        </div>
+                                        
                                         <div class="video-recorder-wrapper">
                                             <!-- Live Camera Preview -->
                                             <div class="camera-preview-container mb-4" id="cameraPreviewContainer" style="display: none;">
@@ -771,10 +781,47 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
     
+    // Function to validate if question is answered
+    function validateAnswer() {
+        const questionType = '{{ $currentQuestion->question_type ?? "" }}';
+        let isAnswered = false;
+        
+        if (questionType === 'multiple_choice') {
+            const selectedOption = document.querySelector('input[name="selected_option_id"]:checked');
+            isAnswered = selectedOption !== null;
+        } else if (questionType === 'scale') {
+            const scaleValue = document.getElementById('scale_value');
+            isAnswered = scaleValue && scaleValue.value !== '';
+        } else if (questionType === 'video_record') {
+            const videoAnswer = document.getElementById('videoAnswer');
+            const videoTextFallback = document.getElementById('videoTextFallback');
+            const hasVideoAnswer = videoAnswer && videoAnswer.value && videoAnswer.value.trim() !== '';
+            const hasTextFallback = videoTextFallback && videoTextFallback.value && videoTextFallback.value.trim() !== '';
+            isAnswered = hasVideoAnswer || hasTextFallback;
+        } else if (questionType === 'forced_choice') {
+            const mostSelected = document.querySelector('input[name="most_similar"]:checked');
+            const leastSelected = document.querySelector('input[name="least_similar"]:checked');
+            isAnswered = mostSelected !== null && leastSelected !== null && mostSelected.value !== leastSelected.value;
+        } else {
+            // Essay or text answer
+            const answerText = document.querySelector('textarea[name="answer_text"]');
+            isAnswered = answerText && answerText.value.trim() !== '';
+        }
+        
+        return isAnswered;
+    }
+    
     // Manual save
     if (saveAnswerBtn) {
         saveAnswerBtn.addEventListener('click', function() {
             if (!testStarted) return;
+            
+            // Validate answer before saving
+            if (!validateAnswer()) {
+                alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum menyimpan.") }}');
+                return;
+            }
+            
             console.log('Save button clicked');
             autoSave();
         });
@@ -784,6 +831,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (nextQuestionBtn) {
         nextQuestionBtn.addEventListener('click', function() {
             if (!testStarted) return;
+            
+            // Validate answer before proceeding
+            if (!validateAnswer()) {
+                alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum melanjutkan ke pertanyaan berikutnya.") }}');
+                return;
+            }
+            
             console.log('Next question button clicked');
             // Save current answer first and wait for completion
             autoSave().then(() => {
@@ -866,6 +920,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function nextQuestion() {
+        // Validate answer before proceeding
+        if (!validateAnswer()) {
+            alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum melanjutkan ke pertanyaan berikutnya.") }}');
+            return;
+        }
+        
         // Check if video is currently recording and stop it
         const wasRecording = autoStopRecordingIfActive();
         
@@ -936,6 +996,12 @@ document.addEventListener('DOMContentLoaded', function() {
         completeTestBtn.addEventListener('click', function() {
             if (!testStarted) return;
             console.log('Complete test button clicked');
+            
+            // Validate answer before completing test
+            if (!validateAnswer()) {
+                alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum menyelesaikan tes.") }}');
+                return;
+            }
             
             // Check if current question is video record and has unsaved answer
             const currentQuestionType = '{{ $currentQuestion->question_type ?? "" }}';
@@ -1111,6 +1177,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function startRecording() {
         console.log('Starting recording...');
+        
+        // Hide instructions when recording starts
+        const videoInstructions = document.getElementById('videoInstructions');
+        if (videoInstructions) {
+            videoInstructions.style.display = 'none';
+        }
+        
         try {
             // Try with ideal constraints first
             let stream;
@@ -1340,6 +1413,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide previews
         if (cameraPreviewContainer) cameraPreviewContainer.style.display = 'none';
         if (videoPreviewContainer) videoPreviewContainer.style.display = 'none';
+        
+        // Show instructions again when retaking
+        const videoInstructions = document.getElementById('videoInstructions');
+        if (videoInstructions) {
+            videoInstructions.style.display = 'block';
+        }
         
         if (recordingStatus) recordingStatus.textContent = '{{ __("Click the red button to start recording") }}';
         if (recordingTimerElement) recordingTimerElement.style.display = 'none';

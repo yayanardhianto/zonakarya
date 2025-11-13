@@ -55,91 +55,108 @@
             <div class="card">
                 <div class="card-header">
                     <div class="w-100">
-                        <div class="btn-group status-filter-tabs" role="group" aria-label="Status Filter">
-                            <a href="{{ request()->fullUrlWithQuery(['status' => '']) }}" 
-                               class="btn {{ !request('status') ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
-                                {{ __('All') }}
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'pending']) }}" 
-                               class="btn {{ request('status') == 'pending' ? 'btn-warning' : 'btn-outline-warning' }} btn-sm">
-                                {{ __('Pending') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['pending'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'sent']) }}" 
-                               class="btn {{ request('status') == 'sent' ? 'btn-info' : 'btn-outline-info' }} btn-sm">
-                                {{ __('Test Screening') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['sent'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'check']) }}" 
-                               class="btn {{ request('status') == 'check' ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
-                                {{ __('Check') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['check'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'short_call']) }}" 
-                               class="btn {{ request('status') == 'short_call' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
-                                {{ __('Short Call') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['short_call'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'group_interview']) }}" 
-                               class="btn {{ request('status') == 'group_interview' ? 'btn-info' : 'btn-outline-info' }} btn-sm">
-                                {{ __('Group Interview') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['group_interview'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'test_psychology']) }}" 
-                               class="btn {{ request('status') == 'test_psychology' ? 'btn-secondary' : 'btn-outline-secondary' }} btn-sm">
-                                {{ __('Test Psychology') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['test_psychology'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'ojt']) }}" 
-                               class="btn {{ request('status') == 'ojt' ? 'btn-dark' : 'btn-outline-dark' }} btn-sm">
-                                {{ __('OJT') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['ojt'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'final_interview']) }}" 
-                               class="btn {{ request('status') == 'final_interview' ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
-                                {{ __('Final Interview') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['final_interview'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'sent_offering_letter']) }}" 
-                               class="btn {{ request('status') == 'sent_offering_letter' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
-                                {{ __('Sent Offering Letter') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['sent_offering_letter'] ?? 0 }}</span>
-                                @endif
-                            </a>
-                            <!-- <a href="{{ request()->fullUrlWithQuery(['status' => 'onboard']) }}" 
-                               class="btn {{ request('status') == 'onboard' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
-                                {{ __('Onboard') }}
-                            </a> -->
-                            <!-- <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected']) }}" 
-                               class="btn {{ request('status') == 'rejected' ? 'btn-danger' : 'btn-outline-danger' }} btn-sm">
-                                {{ __('Rejected') }}
-                            </a> -->
-                            <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected_by_applicant']) }}" 
-                               class="btn {{ request('status') == 'rejected_by_applicant' ? 'btn-danger' : 'btn-outline-danger' }} btn-sm">
-                                {{ __('Rejected by Applicant') }}
-                                @if(request('job_vacancy_id') && isset($statusCounts))
-                                    <span class="badge badge-light ml-1">{{ $statusCounts['rejected_by_applicant'] ?? 0 }}</span>
-                                @endif
-                            </a>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4>{{ __('Applicants List') }}</h4>
+                            <!-- Export Dropdown -->
+                            <div class="dropdown">
+                                <button class="btn btn-success dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-download me-1"></i> {{ __('Export') }}
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                    <li><a class="dropdown-item" href="#" onclick="exportData('excel')"><i class="fas fa-file-excel text-success me-1"></i> {{ __('Export to Excel') }}</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="exportData('pdf')"><i class="fas fa-file-pdf text-danger me-1"></i> {{ __('Export to PDF') }}</a></li>
+                                </ul>
+                            </div>
                         </div>
-                        <h4 class="mt-3">{{ __('Applicants List') }}</h4>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="btn-group status-filter-tabs" role="group" aria-label="Status Filter">
+                                <a href="{{ request()->fullUrlWithQuery(['status' => '']) }}" 
+                                class="btn {{ !request('status') ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
+                                    {{ __('All') }}
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'pending']) }}" 
+                                class="btn {{ request('status') == 'pending' ? 'btn-warning' : 'btn-outline-warning' }} btn-sm">
+                                    {{ __('Pending') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['pending'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'sent']) }}" 
+                                class="btn {{ request('status') == 'sent' ? 'btn-info' : 'btn-outline-info' }} btn-sm">
+                                    {{ __('Test Screening') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['sent'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'check']) }}" 
+                                class="btn {{ request('status') == 'check' ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
+                                    {{ __('Check') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['check'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'short_call']) }}" 
+                                class="btn {{ request('status') == 'short_call' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
+                                    {{ __('Short Call') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['short_call'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'group_interview']) }}" 
+                                class="btn {{ request('status') == 'group_interview' ? 'btn-info' : 'btn-outline-info' }} btn-sm">
+                                    {{ __('Group Interview') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['group_interview'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'test_psychology']) }}" 
+                                class="btn {{ request('status') == 'test_psychology' ? 'btn-secondary' : 'btn-outline-secondary' }} btn-sm">
+                                    {{ __('Test Psychology') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['test_psychology'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'ojt']) }}" 
+                                class="btn {{ request('status') == 'ojt' ? 'btn-dark' : 'btn-outline-dark' }} btn-sm">
+                                    {{ __('OJT') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['ojt'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'final_interview']) }}" 
+                                class="btn {{ request('status') == 'final_interview' ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
+                                    {{ __('Final Interview') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['final_interview'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'sent_offering_letter']) }}" 
+                                class="btn {{ request('status') == 'sent_offering_letter' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
+                                    {{ __('Sent Offering Letter') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['sent_offering_letter'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <!-- <a href="{{ request()->fullUrlWithQuery(['status' => 'onboard']) }}" 
+                                class="btn {{ request('status') == 'onboard' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
+                                    {{ __('Onboard') }}
+                                </a> -->
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected']) }}" 
+                               class="btn {{ request('status') == 'rejected' ? 'btn-danger' : 'btn-outline-danger' }} btn-sm">
+                                    {{ __('Rejected/Recycle Bin') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['rejected'] ?? 0 }}</span>
+                                    @endif
+                                </a>
+                                <!-- <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected_by_applicant']) }}" 
+                                class="btn {{ request('status') == 'rejected_by_applicant' ? 'btn-danger' : 'btn-outline-danger' }} btn-sm">
+                                    {{ __('Rejected by Applicant') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['rejected_by_applicant'] ?? 0 }}</span>
+                                    @endif
+                                </a> -->
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
@@ -158,7 +175,7 @@
                             </thead>
                             <tbody>
                                 @forelse($applications as $application)
-                                @if($application->status != 'onboard' && $application->status != 'rejected')
+                                @if($application->status != 'onboard' && $application->status != 'rejected_by_applicant')
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
@@ -2712,6 +2729,32 @@ window.onclick = function(event) {
     if (event.target == modal) {
         closeTestResultModal();
     }
+}
+
+// Export function
+function exportData(type) {
+    let exportUrl = '';
+    
+    if (type === 'excel') {
+        exportUrl = '{{ route("admin.applicants.export-excel") }}';
+    } else if (type === 'pdf') {
+        exportUrl = '{{ route("admin.applicants.export-pdf") }}';
+    }
+    
+    // Add filter parameters to URL
+    const params = new URLSearchParams();
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.get('status')) params.append('status', urlParams.get('status'));
+    if (urlParams.get('job_vacancy_id')) params.append('job_vacancy_id', urlParams.get('job_vacancy_id'));
+    if (urlParams.get('search')) params.append('search', urlParams.get('search'));
+    
+    if (params.toString()) {
+        exportUrl += '?' + params.toString();
+    }
+    
+    // Open export URL in new window
+    window.open(exportUrl, '_blank');
 }
 
 // Initialize Bootstrap dropdowns

@@ -184,12 +184,29 @@
                             <h5 class="mb-0">{{ $setting->label_apply_position ?? __('Lamar Posisi Ini') }}</h5>
                         </div>
                         <div class="card-body">
+                            @if($hasExistingApplication && $existingApplication)
+                                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>{{ __('Perhatian!') }}</strong>
+                                    {{ __('Anda sudah pernah melamar untuk lowongan ini sebelumnya pada') }} 
+                                    <strong>{{ $existingApplication->created_at->format('d M Y H:i') }}</strong>.
+                                    {{ __('Status lamaran Anda saat ini:') }} 
+                                    <strong>{{ ucfirst(str_replace('_', ' ', $existingApplication->status)) }}</strong>.
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            @endif
+                            
                             <p class="text-muted mb-3">{{ __('Tertarik dengan posisi ini? Hubungi perusahaan langsung menggunakan informasi yang tersedia.') }}</p>
                             
                             <div class="d-grid gap-2">
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal">
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal" 
+                                        @if($hasExistingApplication) disabled @endif>
                                     <i class="fas fa-paper-plane me-2"></i>
-                                    {{ $setting->label_send_application ?? __('Kirim Lamaran') }}
+                                    @if($hasExistingApplication)
+                                        {{ __('Sudah Melamar') }}
+                                    @else
+                                        {{ $setting->label_send_application ?? __('Kirim Lamaran') }}
+                                    @endif
                                 </button>
                                 
                                 <a href="mailto:{{ $jobVacancy->contact_email }}?subject=Application for {{ $jobVacancy->position }}" 
@@ -253,13 +270,24 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    @if($hasExistingApplication && $existingApplication)
+                        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>{{ __('Anda sudah pernah melamar untuk lowongan ini!') }}</strong><br>
+                            {{ __('Lamaran sebelumnya dibuat pada') }}: <strong>{{ $existingApplication->created_at->format('d M Y H:i') }}</strong><br>
+                            {{ __('Status lamaran') }}: <strong>{{ ucfirst(str_replace('_', ' ', $existingApplication->status)) }}</strong><br>
+                            <small>{{ __('Anda tidak dapat melamar lagi untuk lowongan yang sama.') }}</small>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+                    
                     @auth
-                        @if($applicant)
+                        @if($applicant && !$hasExistingApplication)
                             <div class="alert alert-info mb-3">
                                 <i class="fas fa-info-circle"></i>
                                 {{ __('Data lamaran sebelumnya telah diisi otomatis. Anda dapat mengubah informasi jika diperlukan.') }}
                             </div>
-                        @else
+                        @elseif(!$hasExistingApplication)
                             <div class="alert alert-success mb-3">
                                 <i class="fas fa-check-circle"></i>
                                 {{ __('Selamat datang kembali! Informasi profil Anda telah diisi otomatis.') }}
@@ -267,7 +295,7 @@
                         @endif
                     @endauth
                     
-                    <form id="applyForm" enctype="multipart/form-data">
+                    <form id="applyForm" enctype="multipart/form-data" @if($hasExistingApplication) style="pointer-events: none; opacity: 0.6;" @endif>
                         @csrf
                         <div class="row">
                             <div class="col-md-6">
@@ -350,7 +378,10 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Batal') }}</button>
-                    <button type="button" class="btn btn-primary" id="submitApplication">{{ __('Kirim Lamaran') }}</button>
+                    <button type="button" class="btn btn-primary" id="submitApplication" 
+                            @if($hasExistingApplication) disabled @endif>
+                        {{ __('Kirim Lamaran') }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -859,6 +890,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('submitApplication').addEventListener('click', function() {
         const submitBtn = this;
         
+        // Check if already applied
+        @if($hasExistingApplication && $existingApplication)
+            showNotification('{{ __("Anda sudah pernah melamar untuk lowongan ini sebelumnya pada") }} {{ $existingApplication->created_at->format("d M Y H:i") }}. {{ __("Status lamaran Anda saat ini:") }} {{ ucfirst(str_replace("_", " ", $existingApplication->status)) }}.', 'warning');
+            return;
+        @endif
+        
         // Validate form before submission
         const validation = validateForm();
         
@@ -892,7 +929,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    throw new Error('Response is not JSON: ' + text);
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 currentApplicantId = data.applicant_id;
@@ -912,8 +958,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 1000);
                 @endauth
             } else {
-                const errorMsg = data.message || data.errors || '{{ __("Error mengirim lamaran") }}';
-                showNotification(errorMsg, 'danger');
+                // Check if it's a duplicate application error
+                if (data.duplicate) {
+                    const duplicateMsg = data.message || '{{ __("Anda sudah pernah melamar untuk lowongan ini sebelumnya.") }}';
+                    if (data.existing_application) {
+                        showNotification(duplicateMsg + ' {{ __("Lamaran sebelumnya dibuat pada") }}: ' + data.existing_application.created_at + '. {{ __("Status") }}: ' + data.existing_application.status, 'warning');
+                    } else {
+                        showNotification(duplicateMsg, 'warning');
+                    }
+                } else {
+                    const errorMsg = data.message || data.errors || '{{ __("Error mengirim lamaran") }}';
+                    showNotification(errorMsg, 'danger');
+                }
                 
                 // Show field errors if any
                 if (data.errors) {

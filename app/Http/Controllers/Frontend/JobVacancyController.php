@@ -57,12 +57,25 @@ class JobVacancyController extends Controller
         // Get user data if logged in
         $user = auth()->user();
         $applicant = null;
+        $hasExistingApplication = false;
+        $existingApplication = null;
         
         if ($user) {
             $applicant = \App\Models\Applicant::where('user_id', $user->id)->first();
+            
+            // Check if user/applicant already applied to this job vacancy
+            if ($applicant) {
+                $existingApplication = \App\Models\Application::where('applicant_id', $applicant->id)
+                    ->where('job_vacancy_id', $jobVacancy->id)
+                    ->first();
+                
+                if ($existingApplication) {
+                    $hasExistingApplication = true;
+                }
+            }
         }
 
-        return view('frontend.job-vacancy.show', compact('jobVacancy', 'user', 'applicant'));
+        return view('frontend.job-vacancy.show', compact('jobVacancy', 'user', 'applicant', 'hasExistingApplication', 'existingApplication'));
     }
 
     /**
