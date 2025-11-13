@@ -26,8 +26,8 @@ class WhatsAppService
         try {
             $url = "https://whook2.eva.id/kirim_pesan/";
             
-            // Clean phone number (remove non-numeric characters)
-            $cleanPhone = preg_replace('/[^0-9]/', '', $to);
+            // Normalize phone number to international format (62xxxxxxxxxx)
+            $cleanPhone = $this->normalizePhoneNumber($to);
             
             $messageData = [
                 'eva_email' => 'banksat5@yahoo.com',
@@ -171,12 +171,45 @@ class WhatsAppService
     }
 
     /**
+     * Normalize phone number to international format (62xxxxxxxxxx)
+     * Converts: 081234567890 -> 6281234567890
+     * Converts: +6281234567890 -> 6281234567890
+     * Converts: 6281234567890 -> 6281234567890
+     */
+    private function normalizePhoneNumber($phone)
+    {
+        // Remove all non-numeric characters
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        
+        // If empty, return as is
+        if (empty($cleanPhone)) {
+            return $phone;
+        }
+        
+        // If starts with 0, replace with 62
+        if (substr($cleanPhone, 0, 1) === '0') {
+            $cleanPhone = '62' . substr($cleanPhone, 1);
+        }
+        // If starts with 62, keep it
+        elseif (substr($cleanPhone, 0, 2) === '62') {
+            // Already in correct format
+        }
+        // If doesn't start with 62, assume it's local format and add 62
+        else {
+            $cleanPhone = '62' . $cleanPhone;
+        }
+        
+        return $cleanPhone;
+    }
+
+    /**
      * Generate WhatsApp web link
      */
     public function generateWebLink($phone, $message)
     {
+        $normalizedPhone = $this->normalizePhoneNumber($phone);
         $encodedMessage = urlencode($message);
-        return "https://wa.me/{$phone}?text={$encodedMessage}";
+        return "https://wa.me/{$normalizedPhone}?text={$encodedMessage}";
     }
 
     /**

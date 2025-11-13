@@ -1080,6 +1080,37 @@
 
 @push('js')
 <script>
+/**
+ * Normalize phone number to international format (62xxxxxxxxxx)
+ * Converts: 081234567890 -> 6281234567890
+ * Converts: +6281234567890 -> 6281234567890
+ * Converts: 6281234567890 -> 6281234567890
+ */
+function normalizePhoneNumber(phone) {
+    if (!phone) return phone;
+    
+    // Remove all non-numeric characters
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    
+    // If empty, return as is
+    if (!cleanPhone) return phone;
+    
+    // If starts with 0, replace with 62
+    if (cleanPhone.startsWith('0')) {
+        cleanPhone = '62' + cleanPhone.substring(1);
+    }
+    // If starts with 62, keep it
+    else if (cleanPhone.startsWith('62')) {
+        // Already in correct format
+    }
+    // If doesn't start with 62, assume it's local format and add 62
+    else {
+        cleanPhone = '62' + cleanPhone;
+    }
+    
+    return cleanPhone;
+}
+
 function nextStep(applicantId, applicationId) {
     if (confirm('{{ __("Move to next step (Short Call)?") }}')) {
         fetch(`/admin/applicants/${applicantId}/next-step`, {
@@ -1314,8 +1345,8 @@ function sendNextStep() {
                     message += '\n\n' + notes.trim();
                 }
                 
-                // Create WhatsApp URL
-                const phoneNumber = data.applicant.whatsapp.replace(/[^0-9]/g, ''); // Remove non-numeric characters
+                // Create WhatsApp URL with normalized phone number
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
                 const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
                 
                 // Open WhatsApp in new tab

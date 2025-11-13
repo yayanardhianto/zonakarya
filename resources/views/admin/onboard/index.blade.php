@@ -325,6 +325,37 @@
 
 @push('js')
 <script>
+/**
+ * Normalize phone number to international format (62xxxxxxxxxx)
+ * Converts: 081234567890 -> 6281234567890
+ * Converts: +6281234567890 -> 6281234567890
+ * Converts: 6281234567890 -> 6281234567890
+ */
+function normalizePhoneNumber(phone) {
+    if (!phone) return phone;
+    
+    // Remove all non-numeric characters
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    
+    // If empty, return as is
+    if (!cleanPhone) return phone;
+    
+    // If starts with 0, replace with 62
+    if (cleanPhone.startsWith('0')) {
+        cleanPhone = '62' + cleanPhone.substring(1);
+    }
+    // If starts with 62, keep it
+    else if (cleanPhone.startsWith('62')) {
+        // Already in correct format
+    }
+    // If doesn't start with 62, assume it's local format and add 62
+    else {
+        cleanPhone = '62' + cleanPhone;
+    }
+    
+    return cleanPhone;
+}
+
 function viewCv(applicantId) {
     const modal = document.getElementById('cvModal');
     const cvFrame = document.getElementById('cvFrame');
@@ -355,7 +386,7 @@ function contactApplicant(applicantId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const phoneNumber = data.applicant.whatsapp.replace(/[^0-9]/g, '');
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
                 const message = `Halo ${data.applicant.name}, selamat! Anda telah berhasil lolos semua tahapan seleksi dan sekarang sudah onboard di ${data.job.company_name} sebagai ${data.job.position}.`;
                 const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
                 
