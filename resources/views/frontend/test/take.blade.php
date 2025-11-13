@@ -219,16 +219,6 @@
                                             <!-- <p class="text-muted">{{ __('Please record a short video sharing your thoughts, experience, or testimonial.') }}</p> -->
                                         </div>
                                         
-                                        <!-- Video Recording Instructions -->
-                                        <div class="alert alert-info mb-4" id="videoInstructions">
-                                            <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>{{ __('Instruksi Sebelum Merekam') }}</h6>
-                                            <ul class="text-start mb-0">
-                                                <li>{{ __('Pastikan kamu siap untuk pembuatan Video') }}</li>
-                                                <li>{{ __('Pastikan ruangan terang dan tidak gelap') }}</li>
-                                                <li>{{ __('Pastikan kamu sudah menggunakan pakaian yang rapi dan sopan') }}</li>
-                                            </ul>
-                                        </div>
-                                        
                                         <div class="video-recorder-wrapper">
                                             <!-- Live Camera Preview -->
                                             <div class="camera-preview-container mb-4" id="cameraPreviewContainer" style="display: none;">
@@ -414,6 +404,54 @@
         </div> <!-- End test-interface -->
     </div>
 
+    <!-- Video Instructions Modal -->
+    @if($currentQuestion->isVideoRecord())
+    <div class="modal fade" id="videoInstructionsModal" tabindex="-1" aria-labelledby="videoInstructionsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="videoInstructionsModalLabel">
+                        <i class="fas fa-info-circle me-2"></i>{{ __('Instruksi Sebelum Merekam') }}
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6 class="mb-3"><i class="fas fa-video me-2"></i>{{ __('Persiapan Video Recording') }}</h6>
+                        <ul class="text-start mb-0">
+                            <li class="mb-2">{{ __('Pastikan kamu siap untuk pembuatan Video') }}</li>
+                            <li class="mb-2">{{ __('Pastikan ruangan terang dan tidak gelap') }}</li>
+                            <li class="mb-2">{{ __('Pastikan kamu sudah menggunakan pakaian yang rapi dan sopan') }}</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>{{ __('Perhatian') }}:</strong> {{ __('Timer tes akan dimulai setelah Anda klik tombol "Mengerti" di bawah ini.') }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary btn-lg" id="understandVideoInstructions">
+                        <i class="fas fa-check me-2"></i>{{ __('Mengerti') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 10000;">
+        <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="fas fa-exclamation-triangle text-warning me-2" id="toastIcon"></i>
+                <strong class="me-auto" id="toastTitle">{{ __('Peringatan') }}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                {{ __('Pertanyaan harus dijawab terlebih dahulu.') }}
+            </div>
+        </div>
+    </div>
+
     <!-- Auto-save indicator -->
     <div id="auto-save-indicator" class="position-fixed top-0 end-0 p-3" style="z-index: 9999; display: none;">
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -435,6 +473,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let isFullscreen = false;
     let timerInterval;
     let testStarted = false;
+    let videoInstructionsRead = false; // Flag untuk menandai apakah instruksi video sudah dibaca
     
     // Check if we're accessing a specific question (test already started)
     const urlParams = new URLSearchParams(window.location.search);
@@ -534,9 +573,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Start timer and auto-save
-        startTimer();
-        startAutoSave();
+        // Check if current question is video record
+        const isVideoQuestion = {{ $currentQuestion->isVideoRecord() ? 'true' : 'false' }};
+        if (isVideoQuestion) {
+            // Show video instructions modal first
+            const videoModal = new bootstrap.Modal(document.getElementById('videoInstructionsModal'));
+            videoModal.show();
+        } else {
+            // Start timer and auto-save for non-video questions
+            startTimer();
+            startAutoSave();
+        }
     }
     
     // Start Test Button
@@ -555,11 +602,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update progress bar
         updateProgress();
         
-        // Start timer and auto-save only if not already started
-        if (!testStarted) {
-            startTimer();
-            startAutoSave();
-            testStarted = true;
+        // Check if current question is video record
+        const isVideoQuestion = {{ $currentQuestion->isVideoRecord() ? 'true' : 'false' }};
+        if (isVideoQuestion) {
+            // Show video instructions modal first
+            const videoModal = new bootstrap.Modal(document.getElementById('videoInstructionsModal'));
+            videoModal.show();
+        } else {
+            // Start timer and auto-save for non-video questions
+            if (!testStarted) {
+                startTimer();
+                startAutoSave();
+                testStarted = true;
+            }
         }
         
         console.log('Test started');
@@ -811,6 +866,64 @@ document.addEventListener('DOMContentLoaded', function() {
         return isAnswered;
     }
     
+    // Toast notification function
+    function showToast(message, type = 'warning') {
+        const toast = document.getElementById('toastNotification');
+        const toastMessage = document.getElementById('toastMessage');
+        const toastIcon = document.getElementById('toastIcon');
+        const toastTitle = document.getElementById('toastTitle');
+        
+        // Set message
+        toastMessage.textContent = message;
+        
+        // Set icon and title based on type
+        if (type === 'warning') {
+            toastIcon.className = 'fas fa-exclamation-triangle text-warning me-2';
+            toastTitle.textContent = '{{ __("Peringatan") }}';
+            toast.className = 'toast border-warning';
+        } else if (type === 'error') {
+            toastIcon.className = 'fas fa-times-circle text-danger me-2';
+            toastTitle.textContent = '{{ __("Error") }}';
+            toast.className = 'toast border-danger';
+        } else if (type === 'success') {
+            toastIcon.className = 'fas fa-check-circle text-success me-2';
+            toastTitle.textContent = '{{ __("Berhasil") }}';
+            toast.className = 'toast border-success';
+        } else {
+            toastIcon.className = 'fas fa-info-circle text-info me-2';
+            toastTitle.textContent = '{{ __("Informasi") }}';
+            toast.className = 'toast border-info';
+        }
+        
+        // Show toast
+        const bsToast = new bootstrap.Toast(toast, {
+            autohide: true,
+            delay: 3000
+        });
+        bsToast.show();
+    }
+    
+    // Video instructions modal handler
+    @if($currentQuestion->isVideoRecord())
+    const understandVideoBtn = document.getElementById('understandVideoInstructions');
+    if (understandVideoBtn) {
+        understandVideoBtn.addEventListener('click', function() {
+            videoInstructionsRead = true;
+            const videoModal = bootstrap.Modal.getInstance(document.getElementById('videoInstructionsModal'));
+            if (videoModal) {
+                videoModal.hide();
+            }
+            
+            // Start timer and auto-save after user understands instructions
+            if (!testStarted) {
+                startTimer();
+                startAutoSave();
+                testStarted = true;
+            }
+        });
+    }
+    @endif
+    
     // Manual save
     if (saveAnswerBtn) {
         saveAnswerBtn.addEventListener('click', function() {
@@ -818,7 +931,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Validate answer before saving
             if (!validateAnswer()) {
-                alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum menyimpan.") }}');
+                showToast('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum menyimpan.") }}', 'warning');
                 return;
             }
             
@@ -834,7 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Validate answer before proceeding
             if (!validateAnswer()) {
-                alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum melanjutkan ke pertanyaan berikutnya.") }}');
+                showToast('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum melanjutkan ke pertanyaan berikutnya.") }}', 'warning');
                 return;
             }
             
@@ -846,7 +959,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 navigateToNextQuestion();
             }).catch(error => {
                 console.error('Error saving answer:', error);
-                alert('{{ __("Error saving your answer. Please try again.") }}');
+                showToast('{{ __("Error saving your answer. Please try again.") }}', 'error');
             });
         });
     }
@@ -922,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function nextQuestion() {
         // Validate answer before proceeding
         if (!validateAnswer()) {
-            alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum melanjutkan ke pertanyaan berikutnya.") }}');
+            showToast('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum melanjutkan ke pertanyaan berikutnya.") }}', 'warning');
             return;
         }
         
@@ -999,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Validate answer before completing test
             if (!validateAnswer()) {
-                alert('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum menyelesaikan tes.") }}');
+                showToast('{{ __("Pertanyaan harus dijawab terlebih dahulu sebelum menyelesaikan tes.") }}', 'warning');
                 return;
             }
             
@@ -1178,10 +1291,10 @@ document.addEventListener('DOMContentLoaded', function() {
     async function startRecording() {
         console.log('Starting recording...');
         
-        // Hide instructions when recording starts
-        const videoInstructions = document.getElementById('videoInstructions');
-        if (videoInstructions) {
-            videoInstructions.style.display = 'none';
+        // Check if video instructions have been read
+        if (!videoInstructionsRead) {
+            showToast('{{ __("Silakan baca dan klik 'Mengerti' pada instruksi video terlebih dahulu.") }}', 'warning');
+            return;
         }
         
         try {
@@ -1413,12 +1526,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide previews
         if (cameraPreviewContainer) cameraPreviewContainer.style.display = 'none';
         if (videoPreviewContainer) videoPreviewContainer.style.display = 'none';
-        
-        // Show instructions again when retaking
-        const videoInstructions = document.getElementById('videoInstructions');
-        if (videoInstructions) {
-            videoInstructions.style.display = 'block';
-        }
         
         if (recordingStatus) recordingStatus.textContent = '{{ __("Click the red button to start recording") }}';
         if (recordingTimerElement) recordingTimerElement.style.display = 'none';
@@ -2052,6 +2159,61 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .scale-labels {
         font-weight: 500;
+    }
+    
+    /* Toast Notification Styles */
+    .toast-container {
+        z-index: 10000;
+    }
+    
+    .toast {
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .toast-header {
+        font-weight: 600;
+    }
+    
+    .toast.border-warning {
+        border-left: 4px solid #ffc107;
+    }
+    
+    .toast.border-danger {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .toast.border-success {
+        border-left: 4px solid #28a745;
+    }
+    
+    .toast.border-info {
+        border-left: 4px solid #17a2b8;
+    }
+    
+    /* Video Instructions Modal */
+    #videoInstructionsModal .modal-content {
+        border-radius: 15px;
+    }
+    
+    #videoInstructionsModal .modal-header {
+        border-radius: 15px 15px 0 0;
+    }
+    
+    #videoInstructionsModal .modal-body ul {
+        padding-left: 1.5rem;
+    }
+    
+    #videoInstructionsModal .modal-body li {
+        margin-bottom: 0.75rem;
+    }
+    
+    @media (max-width: 576px) {
+        .toast {
+            min-width: 250px;
+            max-width: 90%;
+        }
     }
 </style>
 @endpush
