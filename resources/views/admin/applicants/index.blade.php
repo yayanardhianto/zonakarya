@@ -211,7 +211,7 @@
                                         <td class="text-small py-2">
                                                 <span class="badge badge-info">{{ $application->jobVacancy->position }}</span>
                                                 @if($application->jobVacancy->location)
-                                                    <span class="text-muted text-small mt-2"><i class="fas fa-map-marker-alt text-small me-1"></i> {{ $application->jobVacancy->location }}</span>
+                                                    <br><br><span class="text-muted text-small"><i class="fas fa-map-marker-alt text-small me-1"></i> {{ $application->jobVacancy->location }}</span>
                                                 @endif
                                         </td>
                                         <td>
