@@ -208,7 +208,7 @@
                                                 <br><small class="text-muted">{{ $application->applicant->whatsapp }}</small>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td class="text-small py-2">
                                                 <span class="badge badge-info">{{ $application->jobVacancy->position }}</span>
                                                 @if($application->jobVacancy->location)
                                                     <br><small class="text-muted"><i class="fas fa-map-marker-alt"></i> {{ $application->jobVacancy->location }}</small>
