@@ -441,13 +441,13 @@
     <!-- Toast Container -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 10000;">
         <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
+            <div class="toast-header bg-white text-dark">
                 <i class="fas fa-exclamation-triangle text-warning me-2" id="toastIcon"></i>
                 <strong class="me-auto" id="toastTitle">{{ __('Peringatan') }}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
-            <div class="toast-body" id="toastMessage">
-                {{ __('Pertanyaan harus dijawab terlebih dahulu.') }}
+            <div class="toast-body bg-white text-dark" id="toastMessage">
+                {{ __('Pertanyaan harus dijawab terlebih dahulu, sebelum melanjutkan ke pertanyaan berikutnya.') }}
             </div>
         </div>
     </div>
