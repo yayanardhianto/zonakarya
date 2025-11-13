@@ -410,7 +410,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="videoInstructionsModalLabel">
+                    <h5 class="modal-title text-white" id="videoInstructionsModalLabel">
                         <i class="fas fa-info-circle me-2"></i>{{ __('Instruksi Sebelum Merekam') }}
                     </h5>
                 </div>

@@ -210,6 +210,9 @@
                                         </td>
                                         <td>
                                                 <span class="badge badge-info">{{ $application->jobVacancy->position }}</span>
+                                                @if($application->jobVacancy->location)
+                                                    <br><small class="text-muted"><i class="fas fa-map-marker-alt"></i> {{ $application->jobVacancy->location }}</small>
+                                                @endif
                                         </td>
                                         <td>
                                             <span class="badge badge-{{ $application->status_badge }}">

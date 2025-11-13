@@ -1149,7 +1149,12 @@ class ApplicantController extends Controller
                     $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, 'N/A');
                 }
                 
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->jobVacancy->position ?? 'N/A');
+                // Position with location
+                $positionText = $application->jobVacancy->position ?? 'N/A';
+                if ($application->jobVacancy->location) {
+                    $positionText .= ' - ' . $application->jobVacancy->location;
+                }
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $positionText);
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, ucfirst(str_replace('_', ' ', $application->status)));
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->created_at->format('Y-m-d H:i:s'));
                 

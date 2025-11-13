@@ -277,7 +277,12 @@
                         <td>{{ $application->user->email ?? $application->applicant->email ?? 'N/A' }}</td>
                         <td>{{ $application->applicant->phone ?? 'N/A' }}</td>
                         <td>{{ $application->applicant->whatsapp ?? 'N/A' }}</td>
-                        <td>{{ $application->jobVacancy->position ?? 'N/A' }}</td>
+                        <td>
+                            {{ $application->jobVacancy->position ?? 'N/A' }}
+                            @if($application->jobVacancy->location)
+                                <br><small style="color: #666;">📍 {{ $application->jobVacancy->location }}</small>
+                            @endif
+                        </td>
                         <td>{{ $application->jobVacancy->company_name ?? 'N/A' }}</td>
                         <td style="text-align: center;">
                             <span class="status-badge status-{{ $application->status }}">
