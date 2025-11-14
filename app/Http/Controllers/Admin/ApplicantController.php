@@ -59,7 +59,7 @@ class ApplicantController extends Controller
         $statusCounts = [];
         if ($request->filled('job_vacancy_id')) {
             // Get all possible statuses
-            $allStatuses = ['pending', 'sent', 'check', 'short_call', 'group_interview', 'test_psychology', 'ojt', 'final_interview', 'sent_offering_letter', 'rejected', 'rejected_by_applicant'];
+            $allStatuses = ['pending', 'sent', 'check', 'short_call', 'individual_interview', 'group_interview', 'test_psychology', 'ojt', 'final_interview', 'sent_offering_letter', 'rejected', 'rejected_by_applicant'];
             
             // Get counts for existing statuses
             $existingCounts = Application::where('job_vacancy_id', $request->job_vacancy_id)
@@ -490,6 +490,115 @@ class ApplicantController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error processing group interview: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function individualInterview(Request $request, Applicant $applicant)
+    {
+        // Debug: Log all request data
+        \Log::info('Individual Interview - Raw Request Data:', [
+            'all' => $request->all(),
+            'headers' => $request->headers->all(),
+            'method' => $request->method(),
+            'url' => $request->url()
+        ]);
+
+        $request->validate([
+            'application_id' => 'required|exists:applications,id',
+            'name' => 'required|string|max:255',
+            'level_potential' => 'nullable|string|max:255',
+            'talent_potential' => 'nullable|string|max:255',
+            'position_potential' => 'nullable|string|max:255',
+            'communication' => 'nullable|integer|min:1|max:5',
+            'attitude' => 'nullable|integer|min:1|max:5',
+            'initiative' => 'nullable|integer|min:1|max:5',
+            'leadership' => 'nullable|integer|min:1|max:5',
+            'notes' => 'nullable|string'
+        ]);
+
+        try {
+            // Debug: Log the request data
+            \Log::info('Individual Interview Request Data:', $request->all());
+            
+            // Get specific application for status update
+            $application = Application::findOrFail($request->application_id);
+            
+            // Verify application belongs to this applicant
+            if ($application->applicant_id !== $applicant->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application does not belong to this applicant.'
+                ], 400);
+            }
+            
+            $city = $application->jobVacancy ? $application->jobVacancy->location : 'Unknown';
+            
+            // Update application status to individual_interview
+            $application->update(['status' => 'individual_interview']);
+            
+            // Update applicant status to match the latest application status
+            $latestApplication = $applicant->applications()->latest()->first();
+            if ($latestApplication) {
+                $applicant->update(['status' => $latestApplication->status]);
+            }
+            
+            // Debug: Log the status update
+            \Log::info('Status Update Debug:', [
+                'applicant_id' => $applicant->id,
+                'application_id' => $application->id,
+                'old_status' => $application->getOriginal('status'),
+                'new_status' => 'individual_interview',
+                'updated_application_status' => $application->fresh()->status,
+                'updated_applicant_status' => $applicant->fresh()->status
+            ]);
+
+            // Create talent record with flexible data
+            $talentData = [
+                'name' => $request->name,
+                'city' => $city,
+                'attitude_level' => $request->attitude ?: null,
+                'level_potential' => $request->level_potential,
+                'potential_position' => $request->position_potential,
+                'communication' => $request->communication,
+                'talent_potential' => $request->talent_potential,
+                'initiative' => $request->initiative,
+                'leadership' => $request->leadership,
+                'notes' => $request->notes,
+                'applicant_id' => $applicant->id,
+                'user_id' => $applicant->user_id
+            ];
+
+            // Remove null values to keep database clean
+            $talentData = array_filter($talentData, function($value) {
+                return $value !== null && $value !== '';
+            });
+
+            // Debug: Log the final talent data before saving
+            \Log::info('Final Talent Data Before Save:', $talentData);
+
+            // Update existing talent or create new one
+            $talent = $applicant->talent()->updateOrCreate(
+                ['applicant_id' => $applicant->id],
+                $talentData
+            );
+            
+            // Debug: Log the saved talent data
+            \Log::info('Saved Talent Data:', $talent->toArray());
+
+            // Log the action
+            \Log::info("Applicant {$applicant->name} moved to individual interview and saved to talent database");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Applicant moved to individual interview and saved to talent database'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in individualInterview: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error processing individual interview: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -18,6 +18,7 @@ class WhatsAppTemplateController extends Controller
     {
         $types = [
             'short_call_invitation' => 'Short Call Invitation',
+            'individual_interview_invitation' => 'Individual Interview Invitation',
             'group_interview_invitation' => 'Group Interview Invitation',
             'test_psychology_invitation' => 'Test Psychology Invitation',
             'ojt_invitation' => 'OJT Invitation',
@@ -28,6 +29,7 @@ class WhatsAppTemplateController extends Controller
         
         $defaultVariables = [
             'short_call_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME'],
+            'individual_interview_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'group_interview_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'test_psychology_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'ojt_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
@@ -43,7 +45,7 @@ class WhatsAppTemplateController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:short_call_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation',
+            'type' => 'required|in:short_call_invitation,individual_interview_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation',
             'template' => 'required|string',
             'variables' => 'nullable|array',
             'is_active' => 'nullable|boolean'
@@ -70,6 +72,7 @@ class WhatsAppTemplateController extends Controller
     {
         $types = [
             'short_call_invitation' => 'Short Call Invitation',
+            'individual_interview_invitation' => 'Individual Interview Invitation',
             'group_interview_invitation' => 'Group Interview Invitation',
             'test_psychology_invitation' => 'Test Psychology Invitation',
             'ojt_invitation' => 'OJT Invitation',
@@ -80,6 +83,7 @@ class WhatsAppTemplateController extends Controller
         
         $defaultVariables = [
             'short_call_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME'],
+            'individual_interview_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'group_interview_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'test_psychology_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'ojt_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
@@ -95,7 +99,7 @@ class WhatsAppTemplateController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:short_call_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation',
+            'type' => 'required|in:short_call_invitation,individual_interview_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation',
             'template' => 'required|string',
             'variables' => 'nullable|array',
             'is_active' => 'nullable|boolean'

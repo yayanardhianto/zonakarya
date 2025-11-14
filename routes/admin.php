@@ -124,6 +124,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         Route::get('applicants/{applicant}/view-cv', [\App\Http\Controllers\Admin\ApplicantController::class, 'viewCv'])->name('applicants.view-cv');
         Route::get('applicants/{applicant}/view-photo', [\App\Http\Controllers\Admin\ApplicantController::class, 'viewPhoto'])->name('applicants.view-photo');
         Route::get('applicants/{applicant}/whatsapp-data', [\App\Http\Controllers\Admin\ApplicantController::class, 'getWhatsAppData'])->name('applicants.whatsapp-data');
+        Route::post('applicants/{applicant}/individual-interview', [\App\Http\Controllers\Admin\ApplicantController::class, 'individualInterview'])->name('applicants.individual-interview');
         Route::post('applicants/{applicant}/group-interview', [\App\Http\Controllers\Admin\ApplicantController::class, 'groupInterview'])->name('applicants.group-interview');
         Route::post('applicants/{applicant}/reject-save-talent', [\App\Http\Controllers\Admin\ApplicantController::class, 'rejectSaveTalent'])->name('applicants.reject-save-talent');
         Route::post('applicants/{applicant}/test-psychology', [\App\Http\Controllers\Admin\ApplicantController::class, 'testPsychology'])->name('applicants.test-psychology');

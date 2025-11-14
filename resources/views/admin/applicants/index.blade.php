@@ -102,6 +102,13 @@
                                         <span class="badge badge-light ml-1">{{ $statusCounts['short_call'] ?? 0 }}</span>
                                     @endif
                                 </a>
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'individual_interview']) }}" 
+                                class="btn {{ request('status') == 'individual_interview' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
+                                    {{ __('Individual Interview') }}
+                                    @if(request('job_vacancy_id') && isset($statusCounts))
+                                        <span class="badge badge-light ml-1">{{ $statusCounts['individual_interview'] ?? 0 }}</span>
+                                    @endif
+                                </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'group_interview']) }}" 
                                 class="btn {{ request('status') == 'group_interview' ? 'btn-info' : 'btn-outline-info' }} btn-sm">
                                     {{ __('Group Interview') }}
@@ -209,7 +216,7 @@
                                             @endif
                                         </td>
                                         <td class="text-small py-2">
-                                                <span class="badge badge-info">{{ $application->jobVacancy->position }}</span>
+                                                <span class="badge badge-info">{{ $application->jobVacancy->position }}</span><br>
                                                 @if($application->jobVacancy->location)
                                                     <span class="text-muted text-small mt-2"><i class="fas fa-map-marker-alt text-small me-1"></i> {{ $application->jobVacancy->location }}</span>
                                                 @endif
@@ -272,6 +279,11 @@
                                                         </li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li>
+                                                            <a class="dropdown-item" href="#" onclick="showIndividualInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                <i class="fas fa-user me-2"></i>{{ __('Next Step - Individual Interview') }}
+                                                            </a>
+                                                        </li>
+                                                        <li>
                                                             <a class="dropdown-item" href="#" onclick="showGroupInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
                                                                 <i class="fas fa-users me-2"></i>{{ __('Next Step - Group Interview') }}
                                                             </a>
@@ -286,7 +298,49 @@
                                                                 <i class="fas fa-user-minus me-2"></i>{{ __('Reject + Save Talent') }}
                                                             </a>
                                                         </li>
+                                                    @elseif($application->status == 'individual_interview')
+                                                        @php
+                                                            $hasGroupInterview = $application->applicant->applications()
+                                                                ->where('status', 'group_interview')
+                                                                ->where('id', '!=', $application->id)
+                                                                ->exists();
+                                                        @endphp
+                                                        @if(!$hasGroupInterview)
+                                                            <li>
+                                                                <a class="dropdown-item" href="#" onclick="showGroupInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                    <i class="fas fa-users me-2"></i>{{ __('Next Step - Group Interview') }}
+                                                                </a>
+                                                            </li>
+                                                        @endif
+                                                        <li>
+                                                            <a class="dropdown-item" href="#" onclick="showTestPsychologyModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                <i class="fas fa-brain me-2"></i>{{ __('Next Step - Test Psychology') }}
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item text-danger" href="#" onclick="showRejectModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                <i class="fas fa-times me-2"></i>{{ __('Reject') }}
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item text-warning" href="#" onclick="showRejectSaveTalentModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                <i class="fas fa-user-minus me-2"></i>{{ __('Reject + Save Talent') }}
+                                                            </a>
+                                                        </li>
                                                     @elseif($application->status == 'group_interview')
+                                                        @php
+                                                            $hasIndividualInterview = $application->applicant->applications()
+                                                                ->where('status', 'individual_interview')
+                                                                ->where('id', '!=', $application->id)
+                                                                ->exists();
+                                                        @endphp
+                                                        @if(!$hasIndividualInterview)
+                                                            <li>
+                                                                <a class="dropdown-item" href="#" onclick="showIndividualInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                    <i class="fas fa-user me-2"></i>{{ __('Next Step - Individual Interview') }}
+                                                                </a>
+                                                            </li>
+                                                        @endif
                                                         <li>
                                                             <a class="dropdown-item" href="#" onclick="showTestPsychologyModal({{ $application->applicant->id }}, {{ $application->id }})">
                                                                 <i class="fas fa-brain me-2"></i>{{ __('Next Step - Test Psychology') }}
@@ -500,6 +554,71 @@
                 <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button type="button" class="btn btn-secondary" onclick="closeNextStepModal()">{{ __('Cancel') }}</button>
                     <button type="button" class="btn btn-success" onclick="sendNextStep()">
+                        <i class="fab fa-whatsapp"></i> {{ __('Open WhatsApp & Process') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Individual Interview Modal -->
+<div id="individualInterviewModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 50%; border-radius: 8px;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>{{ __('Next Step - Individual Interview') }}</h3>
+            <span class="close" onclick="closeIndividualInterviewModal()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form>
+                <input type="hidden" id="individualInterviewApplicantId" value="">
+                <input type="hidden" id="individualInterviewApplicationId" value="">
+                
+                <div class="mb-3">
+                    <label for="individualInterviewTemplateSelect" class="form-label">{{ __('Select WhatsApp Template for Individual Interview') }}</label>
+                    <select id="individualInterviewTemplateSelect" class="form-select" required onchange="previewIndividualInterviewTemplate()">
+                        <option value="">{{ __('Loading templates...') }}</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="individualInterviewDate" class="form-label">{{ __('Date') }}</label>
+                    <input type="date" id="individualInterviewDate" class="form-control" placeholder="{{ __('Enter date') }}">
+                </div>
+                <div class="mb-3">
+                    <label for="individualInterviewTime" class="form-label">{{ __('Time') }}</label>
+                    <input type="time" id="individualInterviewTime" class="form-control" placeholder="{{ __('Enter time') }}">
+                </div>
+                <div class="mb-3">
+                    <label for="individualInterviewLocation" class="form-label">{{ __('Location') }}</label>
+                    <input type="text" id="individualInterviewLocation" class="form-control" placeholder="{{ __('Enter location') }}">
+                </div>
+                <div class="mb-3" id="individualInterviewTemplatePreview" style="display: none;">
+                    <label class="form-label">{{ __('Template Preview') }}</label>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <i class="fab fa-whatsapp text-success" style="font-size: 24px;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="bg-light p-3 rounded" style="max-width: 300px;">
+                                        <div id="individualInterviewPreviewContent" class="text-dark"></div>
+                                    </div>
+                                    <small class="text-muted mt-2 d-block">{{ __('Variables will be replaced with actual data') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="individualInterviewNotes" class="form-label">{{ __('Additional Notes (Optional)') }}</label>
+                    <textarea id="individualInterviewNotes" class="form-control" rows="3" placeholder="{{ __('Enter any additional notes...') }}"></textarea>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeIndividualInterviewModal()">{{ __('Cancel') }}</button>
+                    <button type="button" class="btn btn-success" onclick="sendIndividualInterview()">
                         <i class="fab fa-whatsapp"></i> {{ __('Open WhatsApp & Process') }}
                     </button>
                 </div>
@@ -1412,6 +1531,202 @@ function updateApplicantStatus(applicantId, applicationId, templateId, notes) {
     });
 }
 
+// Individual Interview Modal Functions
+function showIndividualInterviewModal(applicantId, applicationId) {
+    const modal = document.getElementById('individualInterviewModal');
+    document.getElementById('individualInterviewApplicantId').value = applicantId;
+    document.getElementById('individualInterviewApplicationId').value = applicationId;
+    modal.style.display = 'block';
+    
+    // Load WhatsApp templates for individual interview
+    loadIndividualInterviewTemplates();
+}
+
+function closeIndividualInterviewModal() {
+    document.getElementById('individualInterviewModal').style.display = 'none';
+}
+
+function loadIndividualInterviewTemplates() {
+    fetch('/admin/whatsapp-templates/get')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('individualInterviewTemplateSelect');
+            select.innerHTML = '<option value="">Select Template</option>';
+            if (data.success && data.templates) {
+                // Store templates globally for preview
+                templatesData = data.templates;
+                data.templates.forEach(template => {
+                    if (template.type === 'individual_interview_invitation') {
+                        const option = document.createElement('option');
+                        option.value = template.id;
+                        option.textContent = template.name;
+                        select.appendChild(option);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading templates:', error);
+        });
+}
+
+function previewIndividualInterviewTemplate() {
+    const select = document.getElementById('individualInterviewTemplateSelect');
+    const templateId = select.value;
+    const previewDiv = document.getElementById('individualInterviewTemplatePreview');
+    const previewContent = document.getElementById('individualInterviewPreviewContent');
+    
+    if (!templateId) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+    
+    const template = templatesData.find(t => t.id == templateId);
+    if (template) {
+        // Replace variables with sample data
+        let message = template.template;
+        const sampleData = {
+            'NAME': 'John Doe',
+            'POSITION': 'Software Developer',
+            'COMPANY': 'Tech Company',
+            'DATE': new Date().toLocaleDateString('id-ID', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            }),
+            'TIME': new Date().toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            }),
+            'LOCATION': 'Jakarta'
+        };
+        
+        Object.keys(sampleData).forEach(key => {
+            const regex = new RegExp(`{${key}}`, 'g');
+            message = message.replace(regex, sampleData[key]);
+        });
+        
+        previewContent.textContent = message;
+        previewDiv.style.display = 'block';
+    }
+}
+
+function sendIndividualInterview() {
+    const applicantId = document.getElementById('individualInterviewApplicantId').value;
+    const applicationId = document.getElementById('individualInterviewApplicationId').value;
+    const templateId = document.getElementById('individualInterviewTemplateSelect').value;
+    const notes = document.getElementById('individualInterviewNotes').value;
+    const date = document.getElementById('individualInterviewDate').value || '';
+    const time = document.getElementById('individualInterviewTime').value || '';
+    const location = document.getElementById('individualInterviewLocation').value || '';
+    if (!templateId) {
+        alert('Please select a WhatsApp template');
+        return;
+    }
+    if (!date) {
+        alert('Please enter a date');
+        return;
+    }
+    if (!time) {
+        alert('Please enter a time');
+        return;
+    }
+    if (!location) {
+        alert('Please enter a location');
+        return;
+    }
+    const template = templatesData.find(t => t.id == templateId);
+    if (!template) {
+        alert('Template not found');
+        return;
+    }
+    
+    // Get applicant and job data
+    fetch(`/admin/applicants/${applicantId}/whatsapp-data`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Replace template variables with actual data
+                let message = template.template;
+                const variables = {
+                    'NAME': data.applicant.name,
+                    'POSITION': data.job.position,
+                    'COMPANY': data.job.company_name,
+                    'DATE': new Date(date).toLocaleDateString('id-ID', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    }),
+                    'TIME': time,
+                    'LOCATION': location
+                };
+                // Replace variables in template
+                Object.keys(variables).forEach(key => {
+                    const regex = new RegExp(`{${key}}`, 'g');
+                    message = message.replace(regex, variables[key]);
+                });
+                
+                // Add notes if provided
+                if (notes.trim()) {
+                    message += '\n\n' + notes.trim();
+                }
+                
+                // Create WhatsApp URL with normalized phone number
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
+                const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+                
+                // Open WhatsApp in new tab
+                window.open(whatsappUrl, '_blank');
+                
+                // Update status to individual interview
+                fetch(`/admin/applicants/${applicantId}/individual-interview`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        application_id: applicationId,
+                        name: data.applicant.name,
+                        level_potential: '',
+                        talent_potential: '',
+                        position_potential: '',
+                        communication: '',
+                        attitude: '',
+                        initiative: '',
+                        leadership: '',
+                        notes: notes
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Close WhatsApp modal and show talent form modal
+                        closeIndividualInterviewModal();
+                        showTalentFormModal(applicantId, 'individual_interview', applicationId);
+                    } else {
+                        alert('Error updating status: ' + data.message);
+                        closeIndividualInterviewModal();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating status:', error);
+                    alert('Error updating status');
+                    closeIndividualInterviewModal();
+                });
+                
+            } else {
+                alert('Error getting applicant data: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error getting applicant data');
+        });
+}
+
 // Group Interview Modal Functions
 function showGroupInterviewModal(applicantId, applicationId) {
     const modal = document.getElementById('groupInterviewModal');
@@ -1998,7 +2313,9 @@ function showTalentFormModal(applicantId, actionType, applicationId = null) {
     console.log('Set Action Type to:', document.getElementById('talentActionType').value);
     
     // Set title based on action type
-    if (actionType === 'group_interview') {
+    if (actionType === 'individual_interview') {
+        title.textContent = '{{ __("Talent Information - Individual Interview") }}';
+    } else if (actionType === 'group_interview') {
         title.textContent = '{{ __("Talent Information - Group Interview") }}';
     } else if (actionType === 'reject_save') {
         title.textContent = '{{ __("Talent Information - Reject Save") }}';
@@ -2101,7 +2418,9 @@ function saveTalentData() {
     
     // Determine endpoint based on action type
     let endpoint = '';
-    if (actionType === 'group_interview') {
+    if (actionType === 'individual_interview') {
+        endpoint = `/admin/applicants/${applicantId}/individual-interview`;
+    } else if (actionType === 'group_interview') {
         endpoint = `/admin/applicants/${applicantId}/group-interview`;
     } else if (actionType === 'reject_save') {
         endpoint = `/admin/applicants/${applicantId}/reject-save-talent`;
