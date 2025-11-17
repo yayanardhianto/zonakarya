@@ -305,7 +305,7 @@
                 <div class="stat-label">Expired</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number">{{ $sessions->where('is_passed', true)->count() }}</div>
+                <div class="stat-number">{{ $sessions->filter(function($s) { return $s->is_passed === true || (isset($s->multiple_choice_is_passed) && $s->multiple_choice_is_passed === true); })->count() }}</div>
                 <div class="stat-label">Passed</div>
             </div>
         </div>
@@ -362,6 +362,11 @@
                                     {{ $session->score }}%
                                 </span>
                                 <br><small>{{ $session->is_passed ? 'Passed' : 'Failed' }}</small>
+                            @elseif(isset($session->multiple_choice_score) && $session->multiple_choice_score !== null)
+                                <span class="{{ $session->multiple_choice_is_passed ? 'score-passed' : 'score-failed' }}">
+                                    {{ $session->multiple_choice_score }}%
+                                </span>
+                                <br><small>{{ $session->multiple_choice_is_passed ? 'Passed' : 'Failed' }} (MC Only)</small>
                             @else
                                 <span style="color: #999;">N/A</span>
                             @endif
@@ -441,6 +446,10 @@
                             @if($session->score !== null)
                                 <span class="{{ $session->is_passed ? 'score-passed' : 'score-failed' }}">
                                     {{ $session->score }}%
+                                </span>
+                            @elseif(isset($session->multiple_choice_score) && $session->multiple_choice_score !== null)
+                                <span class="{{ $session->multiple_choice_is_passed ? 'score-passed' : 'score-failed' }}">
+                                    {{ $session->multiple_choice_score }}% (MC Only)
                                 </span>
                             @else
                                 N/A

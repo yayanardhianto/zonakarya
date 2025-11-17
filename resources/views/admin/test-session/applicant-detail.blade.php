@@ -61,6 +61,24 @@
                     @endif
                 </td>
             </tr>
+            @elseif(isset($multipleChoiceScorePercentage) && $multipleChoiceScorePercentage !== null)
+            <tr>
+                <th>{{ __('Score (Multiple Choice Only)') }}:</th>
+                <td>
+                    <span class="badge bg-info">
+                        {{ $multipleChoiceScorePercentage }}%
+                    </span>
+                    <small class="text-muted ms-2">
+                        ({{ $multipleChoiceScore ?? 0 }}/{{ $multipleChoiceMax ?? 0 }} points)
+                    </small>
+                    <div class="mt-1">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            {{ __('Score calculated from multiple choice questions only. Other question types require manual review.') }}
+                        </small>
+                    </div>
+                </td>
+            </tr>
             @endif
         </table>
     </div>

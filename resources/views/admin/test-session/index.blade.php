@@ -200,7 +200,7 @@
                                                             @break
                                                     @endswitch
                                                 </td>
-                                                <td>
+                                                <td class="py-2 px-1 text-center">
                                                     @if($session->score !== null)
                                                         <span class="badge {{ $session->is_passed ? 'bg-success' : 'bg-danger' }}">
                                                             {{ $session->score }}%
@@ -210,6 +210,16 @@
                                                         @else
                                                             <br><small class="text-danger">{{ __('Failed') }}</small>
                                                         @endif
+                                                    @elseif(isset($session->multiple_choice_score) && $session->multiple_choice_score !== null)
+                                                        <span class="badge {{ $session->multiple_choice_is_passed ? 'bg-success' : 'bg-danger' }}">
+                                                            {{ $session->multiple_choice_score }}%
+                                                        </span>
+                                                        @if($session->multiple_choice_is_passed)
+                                                            <br><small class="text-success">{{ __('Passed') }}</small>
+                                                        @else
+                                                            <br><small class="text-danger">{{ __('Failed') }}</small>
+                                                        @endif
+                                                        <br><small class="text-muted text-small fs-xs"><i class="fas fa-info-circle text-small ms-1"></i> {{ __('MC Only') }}</small>
                                                     @else
                                                         <span class="text-muted">{{ __('N/A') }}</span>
                                                     @endif

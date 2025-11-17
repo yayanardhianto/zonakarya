@@ -19,7 +19,7 @@ class TestSessionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = TestSession::with(['package.category', 'applicant', 'user', 'jobVacancy']);
+        $query = TestSession::with(['package.category', 'package.questions', 'applicant', 'user', 'jobVacancy', 'answers.question']);
         
         
         // Filter by status
@@ -43,6 +43,36 @@ class TestSessionController extends Controller
         
         $sessions = $query->orderBy('created_at', 'desc')->paginate(15)->appends($request->query());
         $packages = TestPackage::active()->get();
+        
+        // Calculate multiple choice score for each session (for admin display)
+        foreach ($sessions as $session) {
+            if ($session->status === 'completed') {
+                // Calculate score based on multiple choice questions only
+                $multipleChoiceScore = $session->answers()
+                    ->whereHas('question', function($query) {
+                        $query->where('question_type', 'multiple_choice');
+                    })
+                    ->sum('points_earned');
+                
+                $multipleChoiceMax = $session->package->questions()
+                    ->where('question_type', 'multiple_choice')
+                    ->sum('points');
+                
+                $multipleChoiceScorePercentage = null;
+                $multipleChoiceIsPassed = null;
+                if ($multipleChoiceMax > 0) {
+                    $multipleChoiceScorePercentage = round(($multipleChoiceScore / $multipleChoiceMax) * 100);
+                    $multipleChoiceIsPassed = $multipleChoiceScorePercentage >= $session->package->passing_score;
+                }
+                
+                // Add as dynamic attributes
+                $session->multiple_choice_score = $multipleChoiceScorePercentage;
+                $session->multiple_choice_is_passed = $multipleChoiceIsPassed;
+            } else {
+                $session->multiple_choice_score = null;
+                $session->multiple_choice_is_passed = null;
+            }
+        }
         
         return view('admin.test-session.index', compact('sessions', 'packages'));
     }
@@ -166,7 +196,23 @@ class TestSessionController extends Controller
             abort(404, 'Test session not found');
         }
         
-        return view('admin.test-session.applicant-detail', compact('testSession'));
+        // Calculate score based on multiple choice questions only (for admin display)
+        $multipleChoiceScore = $testSession->answers()
+            ->whereHas('question', function($query) {
+                $query->where('question_type', 'multiple_choice');
+            })
+            ->sum('points_earned');
+        
+        $multipleChoiceMax = $package->questions()
+            ->where('question_type', 'multiple_choice')
+            ->sum('points');
+        
+        $multipleChoiceScorePercentage = null;
+        if ($multipleChoiceMax > 0) {
+            $multipleChoiceScorePercentage = round(($multipleChoiceScore / $multipleChoiceMax) * 100);
+        }
+        
+        return view('admin.test-session.applicant-detail', compact('testSession', 'multipleChoiceScorePercentage', 'multipleChoiceScore', 'multipleChoiceMax'));
     }
 
     public function exportExcel(Request $request)
@@ -180,7 +226,8 @@ class TestSessionController extends Controller
 
             // Build query with filters
             $query = TestSession::with([
-                'package.category', 
+                'package.category',
+                'package.questions',
                 'applicant', 
                 'user', 
                 'jobVacancy',
@@ -204,6 +251,36 @@ class TestSessionController extends Controller
             }
 
             $sessions = $query->orderBy('created_at', 'desc')->get();
+            
+            // Calculate multiple choice score for each session
+            foreach ($sessions as $session) {
+                if ($session->status === 'completed') {
+                    // Calculate score based on multiple choice questions only
+                    $multipleChoiceScore = $session->answers()
+                        ->whereHas('question', function($query) {
+                            $query->where('question_type', 'multiple_choice');
+                        })
+                        ->sum('points_earned');
+                    
+                    $multipleChoiceMax = $session->package->questions()
+                        ->where('question_type', 'multiple_choice')
+                        ->sum('points');
+                    
+                    $multipleChoiceScorePercentage = null;
+                    $multipleChoiceIsPassed = null;
+                    if ($multipleChoiceMax > 0) {
+                        $multipleChoiceScorePercentage = round(($multipleChoiceScore / $multipleChoiceMax) * 100);
+                        $multipleChoiceIsPassed = $multipleChoiceScorePercentage >= $session->package->passing_score;
+                    }
+                    
+                    // Add as dynamic attributes
+                    $session->multiple_choice_score = $multipleChoiceScorePercentage;
+                    $session->multiple_choice_is_passed = $multipleChoiceIsPassed;
+                } else {
+                    $session->multiple_choice_score = null;
+                    $session->multiple_choice_is_passed = null;
+                }
+            }
             
             // Find maximum number of questions across all sessions to determine column count
             $maxQuestions = 0;
@@ -292,8 +369,18 @@ class TestSessionController extends Controller
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->package->category->name);
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->jobVacancy ? $session->jobVacancy->position : 'N/A');
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, ucfirst($session->status));
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->score ?? 'N/A');
-                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->is_passed ? 'Yes' : ($session->score !== null ? 'No' : 'N/A'));
+                
+                // Score column - show multiple choice score if main score is null
+                if ($session->score !== null) {
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->score . '%');
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->is_passed ? 'Yes' : 'No');
+                } elseif (isset($session->multiple_choice_score) && $session->multiple_choice_score !== null) {
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->multiple_choice_score . '% (MC Only)');
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->multiple_choice_is_passed ? 'Yes (MC Only)' : 'No (MC Only)');
+                } else {
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, 'N/A');
+                    $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, 'N/A');
+                }
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->isInProgress() ? $session->progress_percentage . '%' : 'N/A');
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->started_at ? $session->started_at->format('Y-m-d H:i:s') : 'Not Started');
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $session->completed_at ? $session->completed_at->format('Y-m-d H:i:s') : 'Not Completed');
@@ -472,7 +559,7 @@ class TestSessionController extends Controller
             $dateTo = $request->get('date_to');
 
             // Build query with filters
-            $query = TestSession::with(['package.category', 'applicant', 'user', 'jobVacancy']);
+            $query = TestSession::with(['package.category', 'package.questions', 'applicant', 'user', 'jobVacancy', 'answers.question']);
 
             if ($request->filled('status')) {
                 $query->where('status', $status);
@@ -491,6 +578,36 @@ class TestSessionController extends Controller
             }
 
             $sessions = $query->orderBy('created_at', 'desc')->get();
+
+            // Calculate multiple choice score for each session
+            foreach ($sessions as $session) {
+                if ($session->status === 'completed') {
+                    // Calculate score based on multiple choice questions only
+                    $multipleChoiceScore = $session->answers()
+                        ->whereHas('question', function($query) {
+                            $query->where('question_type', 'multiple_choice');
+                        })
+                        ->sum('points_earned');
+                    
+                    $multipleChoiceMax = $session->package->questions()
+                        ->where('question_type', 'multiple_choice')
+                        ->sum('points');
+                    
+                    $multipleChoiceScorePercentage = null;
+                    $multipleChoiceIsPassed = null;
+                    if ($multipleChoiceMax > 0) {
+                        $multipleChoiceScorePercentage = round(($multipleChoiceScore / $multipleChoiceMax) * 100);
+                        $multipleChoiceIsPassed = $multipleChoiceScorePercentage >= $session->package->passing_score;
+                    }
+                    
+                    // Add as dynamic attributes
+                    $session->multiple_choice_score = $multipleChoiceScorePercentage;
+                    $session->multiple_choice_is_passed = $multipleChoiceIsPassed;
+                } else {
+                    $session->multiple_choice_score = null;
+                    $session->multiple_choice_is_passed = null;
+                }
+            }
 
             // Get filter info for display
             $filterInfo = [];

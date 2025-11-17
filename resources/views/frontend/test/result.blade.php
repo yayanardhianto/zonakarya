@@ -13,7 +13,7 @@
                                 <i class="fas fa-clipboard-check fa-5x"></i>
                             </div>
                             <h1 class="display-4 fw-bold text-primary mt-3">{{ __('Tes Selesai!') }}</h1>
-                            <p class="lead text-primary">{{ __('Terima kasih telah menyelesaikan tes. Jawaban Anda telah dikirim untuk diperiksa.') }}</p>
+                            <p class="lead text-primary">{{ __('Terima kasih telah menyelesaikan tes. Kami akan meninjau CV Dan hasil tes Anda untuk lanjut/tidak ke tahap berikut-nya.') }}</p>
                         @elseif($session->is_passed)
                             <div class="text-success">
                                 <i class="fas fa-check-circle fa-5x"></i>
