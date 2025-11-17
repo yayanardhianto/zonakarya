@@ -19,7 +19,7 @@ class TestSessionController extends Controller
 {
     public function index(Request $request)
     {
-        $query = TestSession::with(['package.category', 'package.questions', 'applicant', 'user', 'jobVacancy', 'answers.question']);
+        $query = TestSession::with(['package.category', 'package.questions', 'applicant', 'user', 'jobVacancy', 'application.jobVacancy', 'answers.question']);
         
         
         // Filter by status
@@ -41,7 +41,7 @@ class TestSessionController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
         
-        $sessions = $query->orderBy('created_at', 'desc')->paginate(15)->appends($request->query());
+        $sessions = $query->orderBy('created_at', 'desc')->get();
         $packages = TestPackage::active()->get();
         
         // Calculate multiple choice score for each session (for admin display)
@@ -73,6 +73,43 @@ class TestSessionController extends Controller
                 $session->multiple_choice_is_passed = null;
             }
         }
+        
+        // Filter by score (Passed/Failed) - after calculating multiple choice scores
+        if ($request->filled('score_filter')) {
+            $scoreFilter = $request->get('score_filter');
+            $sessions = $sessions->filter(function($session) use ($scoreFilter) {
+                // Determine if session is passed or failed
+                // Priority: use normal score if available, otherwise use multiple choice score
+                $isPassed = null;
+                if ($session->score !== null) {
+                    $isPassed = $session->is_passed;
+                } elseif (isset($session->multiple_choice_score) && $session->multiple_choice_score !== null) {
+                    $isPassed = $session->multiple_choice_is_passed;
+                } else {
+                    // No score available, skip filtering for this session
+                    return false;
+                }
+                
+                if ($scoreFilter === 'passed') {
+                    return $isPassed === true;
+                } elseif ($scoreFilter === 'failed') {
+                    return $isPassed === false;
+                }
+                return true;
+            });
+        }
+        
+        // Paginate after filtering
+        $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
+        $perPage = 15;
+        $currentItems = $sessions->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        $sessions = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems,
+            $sessions->count(),
+            $perPage,
+            $currentPage,
+            ['path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath(), 'query' => $request->query()]
+        );
         
         return view('admin.test-session.index', compact('sessions', 'packages'));
     }
@@ -231,6 +268,7 @@ class TestSessionController extends Controller
                 'applicant', 
                 'user', 
                 'jobVacancy',
+                'application.jobVacancy',
                 'answers.question.options' // Load answers with questions and options
             ]);
 
@@ -559,7 +597,7 @@ class TestSessionController extends Controller
             $dateTo = $request->get('date_to');
 
             // Build query with filters
-            $query = TestSession::with(['package.category', 'package.questions', 'applicant', 'user', 'jobVacancy', 'answers.question']);
+            $query = TestSession::with(['package.category', 'package.questions', 'applicant', 'user', 'jobVacancy', 'application.jobVacancy', 'answers.question']);
 
             if ($request->filled('status')) {
                 $query->where('status', $status);
@@ -609,6 +647,31 @@ class TestSessionController extends Controller
                 }
             }
 
+            // Filter by score (Passed/Failed) - after calculating multiple choice scores
+            if ($request->filled('score_filter')) {
+                $scoreFilter = $request->get('score_filter');
+                $sessions = $sessions->filter(function($session) use ($scoreFilter) {
+                    // Determine if session is passed or failed
+                    // Priority: use normal score if available, otherwise use multiple choice score
+                    $isPassed = null;
+                    if ($session->score !== null) {
+                        $isPassed = $session->is_passed;
+                    } elseif (isset($session->multiple_choice_score) && $session->multiple_choice_score !== null) {
+                        $isPassed = $session->multiple_choice_is_passed;
+                    } else {
+                        // No score available, skip filtering for this session
+                        return false;
+                    }
+                    
+                    if ($scoreFilter === 'passed') {
+                        return $isPassed === true;
+                    } elseif ($scoreFilter === 'failed') {
+                        return $isPassed === false;
+                    }
+                    return true;
+                });
+            }
+
             // Get filter info for display
             $filterInfo = [];
             if ($status) {
@@ -617,6 +680,9 @@ class TestSessionController extends Controller
             if ($packageId) {
                 $package = TestPackage::find($packageId);
                 $filterInfo[] = 'Package: ' . $package->name;
+            }
+            if ($request->filled('score_filter')) {
+                $filterInfo[] = 'Score: ' . ucfirst($request->get('score_filter'));
             }
             if ($dateFrom) {
                 $filterInfo[] = 'From Date: ' . $dateFrom;

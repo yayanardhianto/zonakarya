@@ -74,7 +74,7 @@
                                                 </option>
                                             </select>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label for="package_id" class="form-label">{{ __('Package') }}</label>
                                             <select name="package_id" id="package_id" class="form-select">
                                                 <option value="">{{ __('All Packages') }}</option>
@@ -83,6 +83,18 @@
                                                         {{ $package->name }}
                                                     </option>
                                                 @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label for="score_filter" class="form-label">{{ __('Score') }}</label>
+                                            <select name="score_filter" id="score_filter" class="form-select">
+                                                <option value="">{{ __('All Scores') }}</option>
+                                                <option value="passed" {{ request('score_filter') == 'passed' ? 'selected' : '' }}>
+                                                    {{ __('Passed') }}
+                                                </option>
+                                                <option value="failed" {{ request('score_filter') == 'failed' ? 'selected' : '' }}>
+                                                    {{ __('Failed') }}
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="col-md-2">
@@ -113,7 +125,7 @@
                                 </div>
                             </div>
 
-                            @if(request()->hasAny(['status', 'package_id', 'date_from', 'date_to']))
+                            @if(request()->hasAny(['status', 'package_id', 'score_filter', 'date_from', 'date_to']))
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle"></i>
                                     <strong>{{ __('Filtered Results') }}:</strong>
@@ -122,6 +134,9 @@
                                     @endif
                                     @if(request('package_id'))
                                         | {{ __('Package') }}: {{ \App\Models\TestPackage::find(request('package_id'))->name ?? 'N/A' }}
+                                    @endif
+                                    @if(request('score_filter'))
+                                        | {{ __('Score') }}: {{ ucfirst(request('score_filter')) }}
                                     @endif
                                     @if(request('date_from'))
                                         | {{ __('From Date') }}: {{ request('date_from') }}
@@ -180,6 +195,8 @@
                                                 <td>
                                                     @if($session->jobVacancy)
                                                         {{ $session->jobVacancy->position }}
+                                                    @elseif($session->application && $session->application->jobVacancy)
+                                                        {{ $session->application->jobVacancy->position }}
                                                     @else
                                                         <span class="text-muted">{{ __('N/A') }}</span>
                                                     @endif
@@ -300,6 +317,7 @@ function exportData(type) {
     // Get current filter parameters
     const status = document.querySelector('select[name="status"]').value;
     const packageId = document.querySelector('select[name="package_id"]').value;
+    const scoreFilter = document.querySelector('select[name="score_filter"]').value;
     const dateFrom = document.querySelector('input[name="date_from"]').value;
     const dateTo = document.querySelector('input[name="date_to"]').value;
     
@@ -315,6 +333,7 @@ function exportData(type) {
     const params = new URLSearchParams();
     if (status) params.append('status', status);
     if (packageId) params.append('package_id', packageId);
+    if (scoreFilter) params.append('score_filter', scoreFilter);
     if (dateFrom) params.append('date_from', dateFrom);
     if (dateTo) params.append('date_to', dateTo);
     

@@ -347,6 +347,8 @@
                         <td>
                             @if($session->jobVacancy)
                                 {{ $session->jobVacancy->position }}
+                            @elseif($session->application && $session->application->jobVacancy)
+                                {{ $session->application->jobVacancy->position }}
                             @else
                                 <span style="color: #999;">N/A</span>
                             @endif
@@ -439,7 +441,7 @@
                         </div>
                         <div>
                             <span class="label">Job:</span>
-                            {{ $session->jobVacancy ? $session->jobVacancy->position : 'N/A' }}
+                            {{ $session->jobVacancy ? $session->jobVacancy->position : ($session->application && $session->application->jobVacancy ? $session->application->jobVacancy->position : 'N/A') }}
                         </div>
                         <div>
                             <span class="label">Score:</span>

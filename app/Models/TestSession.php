@@ -61,6 +61,11 @@ class TestSession extends Model
         return $this->hasMany(TestAnswer::class, 'session_id');
     }
 
+    public function application()
+    {
+        return $this->hasOne(Application::class, 'test_session_id');
+    }
+
     public function isPending()
     {
         return $this->status === 'pending';
