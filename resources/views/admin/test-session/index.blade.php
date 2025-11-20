@@ -188,7 +188,7 @@
                                                         <span class="text-muted">{{ __('N/A') }}</span>
                                                     @endif
                                                 </td>
-                                                <td>
+                                                <td class="py-3">
                                                     <span class="badge bg-secondary">{{ $session->package->name }}</span>
                                                     <br><small class="text-muted">{{ $session->package->category->name }}</small>
                                                 </td>
