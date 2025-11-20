@@ -42,7 +42,7 @@ class TestSessionController extends Controller
         }
         
         $sessions = $query->orderBy('created_at', 'desc')->get();
-        $packages = TestPackage::active()->get();
+        $packages = TestPackage::get();
         
         // Calculate multiple choice score for each session (for admin display)
         foreach ($sessions as $session) {
