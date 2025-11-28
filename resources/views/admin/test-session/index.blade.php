@@ -56,7 +56,7 @@
                                         </div>
                                         <div class="card-body">
                                             <form method="GET" class="row g-3">
-                                        <div class="col-md-3">
+                                        <div class="col-md-2">
                                             <label for="status" class="form-label">{{ __('Status') }}</label>
                                             <select name="status" id="status" class="form-select">
                                                 <option value="">{{ __('All Status') }}</option>
@@ -75,11 +75,22 @@
                                             </select>
                                         </div>
                                         <div class="col-md-2">
+                                            <label for="category_id" class="form-label">{{ __('Category') }}</label>
+                                            <select name="category_id" id="category_id" class="form-select" onchange="updatePackageOptions()">
+                                                <option value="">{{ __('All Categories') }}</option>
+                                                @foreach($categories as $category)
+                                                    <option value="{{ $category->id }}" data-packages="{{ $category->testPackages->pluck('id')->join(',') }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                                                        {{ $category->name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
                                             <label for="package_id" class="form-label">{{ __('Package') }}</label>
                                             <select name="package_id" id="package_id" class="form-select">
                                                 <option value="">{{ __('All Packages') }}</option>
                                                 @foreach($packages as $package)
-                                                    <option value="{{ $package->id }}" {{ request('package_id') == $package->id ? 'selected' : '' }}>
+                                                    <option value="{{ $package->id }}" data-category="{{ $package->category_id }}" {{ request('package_id') == $package->id ? 'selected' : '' }}>
                                                         {{ $package->name }}
                                                     </option>
                                                 @endforeach
@@ -87,7 +98,7 @@
                                         </div>
                                         <div class="col-md-2">
                                             <label for="score_filter" class="form-label">{{ __('Score') }}</label>
-                                            <select name="score_filter" id="score_filter" class="form-select">
+                                            <select name="score_filter" id="score_filter" class="form-select" onchange="toggleScoreInput()">
                                                 <option value="">{{ __('All Scores') }}</option>
                                                 <option value="passed" {{ request('score_filter') == 'passed' ? 'selected' : '' }}>
                                                     {{ __('Passed') }}
@@ -95,7 +106,16 @@
                                                 <option value="failed" {{ request('score_filter') == 'failed' ? 'selected' : '' }}>
                                                     {{ __('Failed') }}
                                                 </option>
+                                                <option value="greater_than" {{ request('score_filter') == 'greater_than' ? 'selected' : '' }}>
+                                                    {{ __('Greater Than') }}
+                                                </option>
                                             </select>
+                                        </div>
+                                        <div class="col-md-2" id="score_value_container" style="display: none;">
+                                            <label for="score_value" class="form-label">{{ __('Score Value') }}</label>
+                                            <input type="number" name="score_value" id="score_value" class="form-control" 
+                                                min="0" max="100" step="1" value="{{ request('score_value') }}" 
+                                                placeholder="{{ __('e.g., 70') }}">
                                         </div>
                                         <div class="col-md-2">
                                             <label for="date_from" class="form-label">{{ __('From Date') }}</label>
@@ -107,36 +127,49 @@
                                             <input type="date" name="date_to" id="date_to" class="form-control" 
                                                 value="{{ request('date_to') }}">
                                         </div>
-                                        <div class="col-md-1">
-                                            <label class="form-label">&nbsp;</label>
-                                            <button type="submit" class="btn btn-primary w-100">
-                                                <i class="fas fa-search me-1"></i>{{ __('Filter') }}
-                                            </button>
-                                        </div>
-                                        <div class="col-md-1">
-                                            <label class="form-label">&nbsp;</label>
-                                            <a href="{{ route('admin.test-session.index') }}" class="btn btn-outline-secondary w-100">
-                                                <i class="fas fa-times me-1"></i>{{ __('Clear') }}
-                                            </a>
-                                        </div>
+                                        <div class="d-flex justify-content-end gap-2 mt-4">
+                                            <div class="col-md-1">
+                                                <a href="{{ route('admin.test-session.index') }}" class="btn btn-outline-secondary w-100">
+                                                    <i class="fas fa-times me-1"></i>{{ __('Clear') }}
+                                                </a>
+                                            </div>
+                                            <div class="col-md-1">
+                                                <button type="submit" class="btn btn-primary w-100">
+                                                    <i class="fas fa-search me-1"></i>{{ __('Filter') }}
+                                                </button>
+                                            </div>
+
+                                        </div>      
                                             </form>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            @if(request()->hasAny(['status', 'package_id', 'score_filter', 'date_from', 'date_to']))
+                            @if(request()->hasAny(['status', 'package_id', 'category_id', 'score_filter', 'date_from', 'date_to']))
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle"></i>
                                     <strong>{{ __('Filtered Results') }}:</strong>
+                                    @if(request('category_id'))
+                                        {{ __('Category') }}: {{ \App\Models\TestCategory::find(request('category_id'))->name ?? 'N/A' }}
+                                    @endif
                                     @if(request('status'))
-                                        {{ __('Status') }}: {{ ucfirst(request('status')) }}
+                                        | {{ __('Status') }}: {{ ucfirst(request('status')) }}
                                     @endif
                                     @if(request('package_id'))
                                         | {{ __('Package') }}: {{ \App\Models\TestPackage::find(request('package_id'))->name ?? 'N/A' }}
                                     @endif
                                     @if(request('score_filter'))
-                                        | {{ __('Score') }}: {{ ucfirst(request('score_filter')) }}
+                                        | {{ __('Score') }}: 
+                                        @if(request('score_filter') === 'passed')
+                                            {{ __('Passed') }}
+                                        @elseif(request('score_filter') === 'failed')
+                                            {{ __('Failed') }}
+                                        @elseif(request('score_filter') === 'greater_than')
+                                            {{ __('Greater Than') }} {{ request('score_value') }}%
+                                        @else
+                                            {{ ucfirst(request('score_filter')) }}
+                                        @endif
                                     @endif
                                     @if(request('date_from'))
                                         | {{ __('From Date') }}: {{ request('date_from') }}
@@ -161,15 +194,60 @@
                                 <table class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
-                                            <th>{{ __('ID') }}</th>
+                                            <th style="min-width:90px;">
+                                                <a href="{{ route('admin.test-session.index', array_merge(request()->query(), ['sort_by' => 'id', 'sort_order' => $sortBy === 'id' && $sortOrder === 'asc' ? 'desc' : 'asc'])) }}" class="text-decoration-none">
+                                                    {{ __('ID') }}
+                                                    @if($sortBy === 'id')
+                                                        <i class="fas fa-sort-{{ $sortOrder === 'asc' ? 'up' : 'down' }}"></i>
+                                                    @else
+                                                        <i class="fas fa-sort"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
                                             <th>{{ __('Applicant/User') }}</th>
                                             <th>{{ __('Package') }}</th>
+                                            <th>
+                                                <a href="{{ route('admin.test-session.index', array_merge(request()->query(), ['sort_by' => 'status', 'sort_order' => $sortBy === 'status' && $sortOrder === 'asc' ? 'desc' : 'asc'])) }}" class="text-decoration-none">
+                                                    {{ __('Status') }}
+                                                    @if($sortBy === 'status')
+                                                        <i class="fas fa-sort-{{ $sortOrder === 'asc' ? 'up' : 'down' }}"></i>
+                                                    @else
+                                                        <i class="fas fa-sort"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
                                             <th>{{ __('Job') }}</th>
-                                            <th>{{ __('Status') }}</th>
-                                            <th>{{ __('Score') }}</th>
+                                            <th style="min-width:120px;">
+                                                <a href="{{ route('admin.test-session.index', array_merge(request()->query(), ['sort_by' => 'score', 'sort_order' => $sortBy === 'score' && $sortOrder === 'asc' ? 'desc' : 'asc'])) }}" class="text-decoration-none">
+                                                    {{ __('Score') }}
+                                                    @if($sortBy === 'score')
+                                                        <i class="fas fa-sort-{{ $sortOrder === 'asc' ? 'up' : 'down' }}"></i>
+                                                    @else
+                                                        <i class="fas fa-sort"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
                                             <th>{{ __('Progress') }}</th>
-                                            <th>{{ __('Started At') }}</th>
-                                            <th>{{ __('Completed At') }}</th>
+                                            <th>
+                                                <a href="{{ route('admin.test-session.index', array_merge(request()->query(), ['sort_by' => 'started_at', 'sort_order' => $sortBy === 'started_at' && $sortOrder === 'asc' ? 'desc' : 'asc'])) }}" class="text-decoration-none">
+                                                    {{ __('Started At') }}
+                                                    @if($sortBy === 'started_at')
+                                                        <i class="fas fa-sort-{{ $sortOrder === 'asc' ? 'up' : 'down' }}"></i>
+                                                    @else
+                                                        <i class="fas fa-sort"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th>
+                                                <a href="{{ route('admin.test-session.index', array_merge(request()->query(), ['sort_by' => 'completed_at', 'sort_order' => $sortBy === 'completed_at' && $sortOrder === 'asc' ? 'desc' : 'asc'])) }}" class="text-decoration-none">
+                                                    {{ __('Completed At') }}
+                                                    @if($sortBy === 'completed_at')
+                                                        <i class="fas fa-sort-{{ $sortOrder === 'asc' ? 'up' : 'down' }}"></i>
+                                                    @else
+                                                        <i class="fas fa-sort"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
                                             <th>{{ __('Actions') }}</th>
                                         </tr>
                                     </thead>
@@ -310,14 +388,39 @@
 </div>
 @endsection
 
+@push('css')
+<style>
+    table thead th a {
+        color: inherit;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    table thead th a:hover {
+        color: #007bff;
+    }
+    
+    table thead th i {
+        margin-left: 0.3rem;
+        opacity: 0.6;
+    }
+    
+    table thead th a:hover i {
+        opacity: 1;
+    }
+</style>
+@endpush
+
 @push('js')
 <script>
 // Export functionality
 function exportData(type) {
     // Get current filter parameters
+    const categoryId = document.querySelector('select[name="category_id"]').value;
     const status = document.querySelector('select[name="status"]').value;
     const packageId = document.querySelector('select[name="package_id"]').value;
     const scoreFilter = document.querySelector('select[name="score_filter"]').value;
+    const scoreValue = document.querySelector('input[name="score_value"]').value;
     const dateFrom = document.querySelector('input[name="date_from"]').value;
     const dateTo = document.querySelector('input[name="date_to"]').value;
     
@@ -331,9 +434,11 @@ function exportData(type) {
     
     // Add filter parameters to URL
     const params = new URLSearchParams();
+    if (categoryId) params.append('category_id', categoryId);
     if (status) params.append('status', status);
     if (packageId) params.append('package_id', packageId);
     if (scoreFilter) params.append('score_filter', scoreFilter);
+    if (scoreValue) params.append('score_value', scoreValue);
     if (dateFrom) params.append('date_from', dateFrom);
     if (dateTo) params.append('date_to', dateTo);
     
@@ -345,8 +450,58 @@ function exportData(type) {
     window.open(exportUrl, '_blank');
 }
 
-// Auto-submit form when filters change (optional)
+// Toggle score input field based on score filter selection
+function toggleScoreInput() {
+    const scoreFilter = document.getElementById('score_filter').value;
+    const scoreValueContainer = document.getElementById('score_value_container');
+    
+    if (scoreFilter === 'greater_than') {
+        scoreValueContainer.style.display = 'block';
+    } else {
+        scoreValueContainer.style.display = 'none';
+    }
+}
+
+// Update package options based on category selection
+function updatePackageOptions() {
+    const categorySelect = document.getElementById('category_id');
+    const packageSelect = document.getElementById('package_id');
+    const selectedCategoryId = categorySelect.value;
+    
+    // Get all package options
+    const allOptions = packageSelect.querySelectorAll('option');
+    
+    // Show/hide options based on category
+    allOptions.forEach(option => {
+        if (option.value === '') {
+            // Always show "All Packages" option
+            option.style.display = 'block';
+        } else {
+            const packageCategoryId = option.getAttribute('data-category');
+            if (selectedCategoryId === '') {
+                // Show all when no category selected
+                option.style.display = 'block';
+            } else if (packageCategoryId === selectedCategoryId) {
+                // Show only matching category
+                option.style.display = 'block';
+            } else {
+                // Hide non-matching
+                option.style.display = 'none';
+            }
+        }
+    });
+    
+    // Reset package selection if it's hidden
+    if (packageSelect.selectedOptions[0].style.display === 'none') {
+        packageSelect.value = '';
+    }
+}
+
+// Initialize package options on page load
 document.addEventListener('DOMContentLoaded', function() {
+    updatePackageOptions();
+    toggleScoreInput();
+    
     const filterForm = document.querySelector('form[method="GET"]');
     const filterInputs = filterForm.querySelectorAll('select, input[type="date"]');
     
@@ -360,3 +515,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+

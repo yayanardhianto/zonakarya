@@ -24,6 +24,7 @@ class WhatsAppTemplateController extends Controller
             'ojt_invitation' => 'OJT Invitation',
             'final_interview_invitation' => 'Final Interview Invitation',
             'offering_letter_invitation' => 'Offering Letter Invitation',
+            'test_reminder_invitation' => 'Test Reminder Invitation',
             'rejection_message' => 'Rejection Message'
         ];
         
@@ -35,6 +36,7 @@ class WhatsAppTemplateController extends Controller
             'ojt_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'final_interview_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'offering_letter_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
+            'test_reminder_invitation' => ['NAME', 'POSITION', 'COMPANY', 'TEST_LINK'],
             'rejection_message' => ['NAME', 'POSITION', 'COMPANY', 'REASON']
         ];
         
@@ -45,7 +47,7 @@ class WhatsAppTemplateController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:short_call_invitation,individual_interview_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation',
+            'type' => 'required|in:short_call_invitation,individual_interview_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation,test_reminder_invitation',
             'template' => 'required|string',
             'variables' => 'nullable|array',
             'is_active' => 'nullable|boolean'
@@ -78,6 +80,7 @@ class WhatsAppTemplateController extends Controller
             'ojt_invitation' => 'OJT Invitation',
             'final_interview_invitation' => 'Final Interview Invitation',
             'offering_letter_invitation' => 'Offering Letter Invitation',
+            'test_reminder_invitation' => 'Test Reminder Invitation',
             'rejection_message' => 'Rejection Message'
         ];
         
@@ -89,6 +92,7 @@ class WhatsAppTemplateController extends Controller
             'ojt_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'final_interview_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
             'offering_letter_invitation' => ['NAME', 'POSITION', 'COMPANY', 'DATE', 'TIME', 'LOCATION'],
+            'test_reminder_invitation' => ['NAME', 'POSITION', 'COMPANY', 'TEST_LINK'],
             'rejection_message' => ['NAME', 'POSITION', 'COMPANY', 'REASON']
         ];
         
@@ -99,7 +103,7 @@ class WhatsAppTemplateController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:short_call_invitation,individual_interview_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation',
+            'type' => 'required|in:short_call_invitation,individual_interview_invitation,rejection_message,group_interview_invitation,test_psychology_invitation,ojt_invitation,final_interview_invitation,offering_letter_invitation,test_reminder_invitation',
             'template' => 'required|string',
             'variables' => 'nullable|array',
             'is_active' => 'nullable|boolean'

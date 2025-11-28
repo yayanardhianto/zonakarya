@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class WhatsAppTemplate extends Model
 {
@@ -51,27 +52,39 @@ class WhatsAppTemplate extends Model
      */
     private function normalizePhoneNumber($phone)
     {
-        // Remove all non-numeric characters
-        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
-        
-        // If empty, return as is
-        if (empty($cleanPhone)) {
+        // Log raw input for debugging
+        Log::debug('WhatsAppTemplate normalizePhoneNumber input', ['raw' => $phone]);
+
+        // Ensure string
+        $phoneStr = (string) $phone;
+
+        // Remove all non-digit characters
+        $cleanPhone = preg_replace('/\D+/', '', $phoneStr);
+
+        // If empty after cleaning, return original input
+        if ($cleanPhone === null || $cleanPhone === '') {
+            Log::debug('WhatsAppTemplate normalizePhoneNumber output', ['result' => $phone]);
             return $phone;
         }
-        
-        // If starts with 0, replace with 62
-        if (substr($cleanPhone, 0, 1) === '0') {
+
+        // Normalize rules:
+        // - starts with '0'  => replace leading 0 with 62
+        // - starts with '62' => keep
+        // - starts with '8'  => add 62 (local without leading zero)
+        // - starts with other => add 62 as fallback
+
+        if (strpos($cleanPhone, '0') === 0) {
             $cleanPhone = '62' . substr($cleanPhone, 1);
-        }
-        // If starts with 62, keep it
-        elseif (substr($cleanPhone, 0, 2) === '62') {
-            // Already in correct format
-        }
-        // If doesn't start with 62, assume it's local format and add 62
-        else {
+        } elseif (strpos($cleanPhone, '62') === 0) {
+            // already good
+        } elseif (strpos($cleanPhone, '8') === 0) {
+            $cleanPhone = '62' . $cleanPhone;
+        } else {
             $cleanPhone = '62' . $cleanPhone;
         }
-        
+
+        Log::debug('WhatsAppTemplate normalizePhoneNumber output', ['result' => $cleanPhone]);
+
         return $cleanPhone;
     }
 

@@ -78,7 +78,37 @@ class ApplicantController extends Controller
 
     public function show(Applicant $applicant)
     {
-        $applicant->load(['applications.jobVacancy', 'applications.testSession']);
+        $applicant->load(['applications.jobVacancy', 'applications.testSession.answers.question', 'applications.testSession.package']);
+
+        // For each application, compute multiple-choice only score dynamically (no DB writes)
+        foreach ($applicant->applications as $application) {
+            $session = $application->testSession;
+            if ($session && $session->status === 'completed') {
+                $multipleChoiceScore = $session->answers()
+                    ->whereHas('question', function($query) {
+                        $query->where('question_type', 'multiple_choice');
+                    })
+                    ->sum('points_earned');
+
+                $multipleChoiceMax = $session->package->questions()
+                    ->where('question_type', 'multiple_choice')
+                    ->sum('points');
+
+                $multipleChoiceScorePercentage = null;
+                $multipleChoiceIsPassed = null;
+                if ($multipleChoiceMax > 0) {
+                    $multipleChoiceScorePercentage = round(($multipleChoiceScore / $multipleChoiceMax) * 100);
+                    $multipleChoiceIsPassed = $multipleChoiceScorePercentage >= $session->package->passing_score;
+                }
+
+                // attach as dynamic attributes to testSession for view usage
+                $session->multiple_choice_score = $multipleChoiceScorePercentage;
+                $session->multiple_choice_is_passed = $multipleChoiceIsPassed;
+                $session->multiple_choice_points = $multipleChoiceScore;
+                $session->multiple_choice_max = $multipleChoiceMax;
+            }
+        }
+
         return view('admin.applicants.show', compact('applicant'));
     }
 
@@ -169,6 +199,12 @@ class ApplicantController extends Controller
 
     public function nextStep(Request $request, Applicant $applicant)
     {
+        // Debug incoming request to trace WhatsApp template flow
+        \Log::debug('nextStep called', [
+            'applicant_id' => $applicant->id,
+            'request' => $request->all()
+        ]);
+
         $request->validate([
             'application_id' => 'required|exists:applications,id',
             'notes' => 'nullable|string|max:1000',
@@ -176,6 +212,7 @@ class ApplicantController extends Controller
         ]);
 
         $template = \App\Models\WhatsAppTemplate::findOrFail($request->template_id);
+        \Log::debug('nextStep template found', ['template_id' => $template->id, 'type' => $template->type]);
         
         // Get specific application
         $application = Application::findOrFail($request->application_id);
@@ -295,8 +332,8 @@ class ApplicantController extends Controller
                 ], 404);
             }
 
-            // Load job vacancy data
-            $application->load('jobVacancy');
+            // Load job vacancy and test session data
+            $application->load('jobVacancy', 'testSession');
 
             // Get templates based on current status
             $templateType = $this->getTemplateTypeForStatus($applicant->status);
@@ -321,6 +358,16 @@ class ApplicantController extends Controller
                 \Log::info('No talent data found for applicant ' . $applicant->id);
             }
 
+            // Prepare test session data if available
+            $testSessionData = null;
+            if ($application->testSession) {
+                $testSessionData = [
+                    'id' => $application->testSession->id,
+                    'access_token' => $application->testSession->access_token,
+                    'status' => $application->testSession->status
+                ];
+            }
+
             return response()->json([
                 'success' => true,
                 'applicant' => [
@@ -330,7 +377,8 @@ class ApplicantController extends Controller
                 ],
                 'application' => [
                     'id' => $application->id,
-                    'status' => $application->status
+                    'status' => $application->status,
+                    'testSession' => $testSessionData
                 ],
                 'job' => [
                     'id' => $application->jobVacancy->id,
@@ -1137,10 +1185,35 @@ class ApplicantController extends Controller
 
             \Log::info("Application {$application->id} rejected at stage: {$lastStage}");
 
-            return response()->json([
+            // If a template_id is provided, generate WhatsApp URL using the template
+            $whatsappUrl = null;
+            if ($request->filled('template_id')) {
+                try {
+                    $template = \App\Models\WhatsAppTemplate::findOrFail($request->template_id);
+                    $data = [
+                        'NAME' => $applicant->name,
+                        'POSITION' => $application->jobVacancy->position ?? '',
+                        'COMPANY' => $application->jobVacancy->company_name ?? '',
+                        'DATE' => now()->format('d M Y'),
+                        'REASON' => $request->reason ?? ''
+                    ];
+                    $whatsappUrl = $template->generateWhatsAppUrl($applicant->whatsapp, $data);
+                    \Log::debug('reject generated whatsapp_url', ['url' => $whatsappUrl, 'template_id' => $template->id]);
+                } catch (\Exception $e) {
+                    \Log::error('Error generating whatsapp url on reject: ' . $e->getMessage());
+                }
+            }
+
+            $response = [
                 'success' => true,
                 'message' => 'Application rejected successfully'
-            ]);
+            ];
+
+            if ($whatsappUrl) {
+                $response['whatsapp_url'] = $whatsappUrl;
+            }
+
+            return response()->json($response);
 
         } catch (\Exception $e) {
             \Log::error('Error in reject: ' . $e->getMessage());

@@ -142,11 +142,22 @@
                                                 </div>
                                                 <div class="col-md-6">
                                                     @if($application->testSession->status == 'completed')
-                                                        <p><strong>{{ __('Score') }}:</strong> 
-                                                            <span class="badge badge-{{ $application->testSession->score >= 70 ? 'success' : 'danger' }}">
-                                                                {{ $application->testSession->score }}%
-                                                            </span>
-                                                        </p>
+                                                        @if($application->testSession->score !== null)
+                                                            <p><strong>{{ __('Score') }}:</strong>
+                                                                <span class="badge badge-{{ $application->testSession->score >= 70 ? 'success' : 'danger' }}">
+                                                                    {{ $application->testSession->score }}%
+                                                                </span>
+                                                            </p>
+                                                        @elseif(isset($application->testSession->multiple_choice_score) && $application->testSession->multiple_choice_score !== null)
+                                                            <p><strong>{{ __('Score (Multiple Choice Only)') }}:</strong>
+                                                                <span class="badge badge-{{ $application->testSession->multiple_choice_is_passed ? 'success' : 'danger' }}">
+                                                                    {{ $application->testSession->multiple_choice_score }}%
+                                                                </span>
+                                                                <br>
+                                                                <small class="text-muted">({{ $application->testSession->multiple_choice_points ?? 0 }}/{{ $application->testSession->multiple_choice_max ?? 0 }} points)</small>
+                                                                <br><small class="text-muted text-small"><i class="fas fa-info-circle text-small ms-1"></i> {{ __('MC Only - overall score requires manual review') }}</small>
+                                                            </p>
+                                                        @endif
                                                         <p><strong>{{ __('Completed At') }}:</strong> {{ $application->testSession->updated_at->format('d M Y H:i') }}</p>
                                                     @endif
                                                     @if($application->testSession->status == 'pending')

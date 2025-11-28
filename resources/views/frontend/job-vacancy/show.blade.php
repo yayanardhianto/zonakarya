@@ -199,7 +199,7 @@
                             <p class="text-muted mb-3">{{ __('Tertarik dengan posisi ini? Hubungi perusahaan langsung menggunakan informasi yang tersedia.') }}</p>
                             
                             <div class="d-grid gap-2">
-                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal" 
+                                <button class="btn btn-primary" id="openApplyBtn"
                                         @if($hasExistingApplication) disabled @endif>
                                     <i class="fas fa-paper-plane me-2"></i>
                                     @if($hasExistingApplication)
@@ -267,7 +267,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="applyModalLabel">{{ __('Lamar untuk') }} {{ $jobVacancy->position }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     @if($hasExistingApplication && $existingApplication)
@@ -393,7 +393,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="socialLoginModalLabel">{{ __('Lengkapi Pendaftaran') }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <p class="text-center mb-4">{{ __('Silakan masuk dengan akun Anda untuk melengkapi pendaftaran') }}</p>
@@ -417,7 +417,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="successModalLabel">{{ __('Lamaran Terkirim') }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i>s</button>
                 </div>
                 <div class="modal-body text-center">
                     <div class="success-icon mb-3">
@@ -533,6 +533,27 @@
 document.addEventListener('DOMContentLoaded', function() {
     let currentApplicantId = null;
     let stream = null;
+
+    // Handle "Kirim Lamaran" button click
+    const openApplyBtn = document.getElementById('openApplyBtn');
+    if (openApplyBtn) {
+        openApplyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Check if user is logged in using a meta tag or checking page content
+            const isLoggedIn = @json(auth()->check());
+            
+            if (!isLoggedIn) {
+                // User not logged in, show social login modal first
+                const socialLoginModal = new bootstrap.Modal(document.getElementById('socialLoginModal'));
+                socialLoginModal.show();
+            } else {
+                // User logged in, show apply modal directly
+                const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
+                applyModal.show();
+            }
+        });
+    }
 
     // Notification function
     function showNotification(message, type = 'warning') {
@@ -996,13 +1017,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Social login
     document.getElementById('googleLoginBtn').addEventListener('click', function(e) {
         e.preventDefault();
-        window.location.href = '{{ route("auth.google") }}?applicant_id=' + currentApplicantId;
+        // Set flag to show apply modal after login
+        sessionStorage.setItem('showApplyModalAfterLogin', 'true');
+        window.location.href = '{{ route("auth.google") }}';
     });
 
     document.getElementById('linkedinLoginBtn').addEventListener('click', function(e) {
         e.preventDefault();
-        window.location.href = '{{ route("auth.linkedin") }}?applicant_id=' + currentApplicantId;
+        // Set flag to show apply modal after login
+        sessionStorage.setItem('showApplyModalAfterLogin', 'true');
+        window.location.href = '{{ route("auth.linkedin") }}';
     });
+
+    // Check if should show apply modal after login
+    if (sessionStorage.getItem('showApplyModalAfterLogin') === 'true') {
+        sessionStorage.removeItem('showApplyModalAfterLogin');
+        const isLoggedIn = @json(auth()->check());
+        if (isLoggedIn) {
+            // User just logged in, show apply modal
+            setTimeout(() => {
+                const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
+                applyModal.show();
+            }, 500);
+        }
+    }
 
     // Cleanup camera and reset form on modal close
     $('#applyModal').on('hidden.bs.modal', function() {

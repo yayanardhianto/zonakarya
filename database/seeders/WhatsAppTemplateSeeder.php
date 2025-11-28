@@ -93,6 +93,22 @@ class WhatsAppTemplateSeeder extends Seeder
                 'is_active' => true,
             ],
 
+            // Test Reminder Invitation Templates
+            [
+                'name' => 'Test Reminder - Standard',
+                'type' => 'test_reminder_invitation',
+                'template' => 'Halo {NAME}, ini adalah pengingat bahwa Anda masih memiliki test screening untuk posisi {POSITION} di {COMPANY} yang belum diselesaikan. Silakan kerjakan test Anda di sini: {TEST_LINK}. Terima kasih!',
+                'variables' => ['NAME', 'POSITION', 'COMPANY', 'TEST_LINK'],
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Test Reminder - Professional',
+                'type' => 'test_reminder_invitation',
+                'template' => 'Dear {NAME}, This is a friendly reminder that you still have a screening test to complete for the {POSITION} position at {COMPANY}. Please complete your test at: {TEST_LINK}. Thank you!',
+                'variables' => ['NAME', 'POSITION', 'COMPANY', 'TEST_LINK'],
+                'is_active' => true,
+            ],
+
             // Rejection Message Templates
             [
                 'name' => 'Rejection Message - Standard',

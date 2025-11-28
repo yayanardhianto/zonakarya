@@ -438,6 +438,17 @@
                                                                 <i class="fas fa-user-minus me-2"></i>{{ __('Reject + Save Talent') }}
                                                             </a>
                                                         </li>
+                                                @elseif($application->status == 'sent')
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" onclick="showSendTestReminderModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                            <i class="fas fa-bell me-2"></i>{{ __('Send WhatsApp Reminder') }}
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" onclick="showRejectModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                            <i class="fas fa-times me-2"></i>{{ __('Reject') }}
+                                                        </a>
+                                                    </li>
                                                 @elseif($application->status == 'onboard')
                                                     <span class="badge badge-success">{{ __('Onboarded') }}</span>
                                                 @endif
@@ -456,7 +467,7 @@
                     
                     <!-- Pagination -->
                     <div class="d-flex justify-content-center">
-                        {{ $applications->links() }}
+                        {{ $applications->appends(request()->query())->links() }}
                     </div>
                 </div>
             </div>
@@ -685,6 +696,60 @@
                     <button type="button" class="btn btn-secondary" onclick="closeGroupInterviewModal()">{{ __('Cancel') }}</button>
                     <button type="button" class="btn btn-success" onclick="sendGroupInterview()">
                         <i class="fab fa-whatsapp"></i> {{ __('Open WhatsApp & Process') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Send Test Reminder Modal -->
+<div id="sendTestReminderModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 50%; border-radius: 8px;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>{{ __('Send Test Reminder') }}</h3>
+            <span class="close" onclick="closeSendTestReminderModal()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form>
+                <input type="hidden" id="reminderApplicantId" value="">
+                <input type="hidden" id="reminderApplicationId" value="">
+                
+                <div class="mb-3">
+                    <label for="reminderTemplateSelect" class="form-label">{{ __('Select WhatsApp Template') }}</label>
+                    <select id="reminderTemplateSelect" class="form-select" required onchange="previewReminderTemplate()">
+                        <option value="">{{ __('Loading templates...') }}</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="reminderTemplatePreview" style="display: none;">
+                    <label class="form-label">{{ __('Template Preview') }}</label>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start">
+                                <div class="me-3">
+                                    <i class="fab fa-whatsapp text-success" style="font-size: 24px;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="bg-light p-3 rounded" style="max-width: 300px;">
+                                        <div id="reminderPreviewContent" class="text-dark"></div>
+                                    </div>
+                                    <small class="text-muted mt-2 d-block">{{ __('Variables will be replaced with actual data') }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="reminderNotes" class="form-label">{{ __('Additional Notes (Optional)') }}</label>
+                    <textarea id="reminderNotes" class="form-control" rows="3" placeholder="{{ __('Enter any additional notes...') }}"></textarea>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSendTestReminderModal()">{{ __('Cancel') }}</button>
+                    <button type="button" class="btn btn-success" onclick="sendTestReminder()">
+                        <i class="fab fa-whatsapp"></i> {{ __('Send Reminder via WhatsApp') }}
                     </button>
                 </div>
             </form>
@@ -1278,30 +1343,58 @@ function nextStep(applicantId, applicationId) {
     }
 }
 
-function rejectApplicant(applicantId) {
+function rejectApplicant(applicantId, applicationId) {
     const reason = prompt('{{ __("Enter reason for rejection:") }}');
     if (reason !== null) {
-        fetch(`/admin/applicants/${applicantId}/reject`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ notes: reason })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('{{ __("Applicant rejected successfully!") }}');
-                location.reload();
-            } else {
-                alert('{{ __("Error rejecting applicant") }}');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('{{ __("Error rejecting applicant") }}');
-        });
+        // Fetch templates first
+        fetch('/admin/whatsapp-templates/get')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.templates) {
+                    // Find rejection template (type: 'rejection')
+                    const rejectionTemplate = data.templates.find(t => t.type === 'rejection');
+                    if (rejectionTemplate) {
+                        // Send reject request with template_id
+                        fetch(`/admin/applicants/${applicantId}/reject`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                application_id: applicationId,
+                                template_id: rejectionTemplate.id,
+                                reason: reason
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // If WhatsApp URL is returned, open it
+                                if (data.whatsapp_url) {
+                                    window.open(data.whatsapp_url, '_blank');
+                                }
+                                alert('{{ __("Applicant rejected successfully!") }}');
+                                location.reload();
+                            } else {
+                                alert('{{ __("Error rejecting applicant") }}: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('{{ __("Error rejecting applicant") }}');
+                        });
+                    } else {
+                        alert('{{ __("No rejection template found") }}');
+                    }
+                } else {
+                    alert('{{ __("Error loading templates") }}');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('{{ __("Error loading templates") }}');
+            });
     }
 }
 
@@ -2210,6 +2303,8 @@ function processReject() {
     const templateId = document.getElementById('rejectTemplateSelect').value;
     const reason = document.getElementById('rejectReason').value;
     
+    console.log('processReject - Initial values:', {applicantId, applicationId, templateId, reason});
+    
     if (!templateId) {
         alert('Please select a template');
         return;
@@ -2225,36 +2320,9 @@ function processReject() {
     fetch(`/admin/applicants/${applicantId}/whatsapp-data`)
         .then(response => response.json())
         .then(data => {
+            console.log('whatsapp-data response:', data);
             if (data.success) {
-                // Replace template variables with actual data
-                let message = template.template;
-                const variables = {
-                    'NAME': data.applicant.name,
-                    'POSITION': data.job.position,
-                    'COMPANY': data.job.company_name,
-                    'DATE': new Date().toLocaleDateString('id-ID', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    }),
-                    'REASON': reason || 'Not meeting requirements'
-                };
-                
-                // Replace variables in template
-                Object.keys(variables).forEach(key => {
-                    const regex = new RegExp(`{${key}}`, 'g');
-                    message = message.replace(regex, variables[key]);
-                });
-                
-                // Create WhatsApp URL
-                const phoneNumber = data.applicant.whatsapp.replace(/[^0-9]/g, '');
-                const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
-                
-                // Open WhatsApp in new tab
-                window.open(whatsappUrl, '_blank');
-                
-                // Update status in background
+                // Update status in background and get normalized whatsapp_url from backend
                 updateApplicantReject(applicantId, applicationId, templateId, reason);
                 
             } else {
@@ -2268,6 +2336,8 @@ function processReject() {
 }
 
 function updateApplicantReject(applicantId, applicationId, templateId, reason) {
+    console.log('updateApplicantReject called:', {applicantId, applicationId, templateId, reason});
+    
     fetch(`/admin/applicants/${applicantId}/reject`, {
         method: 'POST',
         headers: {
@@ -2282,7 +2352,15 @@ function updateApplicantReject(applicantId, applicationId, templateId, reason) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('reject response:', data);
         if (data.success) {
+            // If whatsapp_url is returned from backend, open it with normalized number
+            if (data.whatsapp_url) {
+                console.log('Opening whatsapp_url:', data.whatsapp_url);
+                window.open(data.whatsapp_url, '_blank');
+            } else {
+                console.warn('No whatsapp_url in response');
+            }
             closeRejectModal();
             location.reload();
         } else {
@@ -3051,6 +3129,155 @@ window.onclick = function(event) {
     if (event.target == modal) {
         closeTestResultModal();
     }
+}
+
+// Send Test Reminder Functions
+function showSendTestReminderModal(applicantId, applicationId) {
+    const modal = document.getElementById('sendTestReminderModal');
+    document.getElementById('reminderApplicantId').value = applicantId;
+    document.getElementById('reminderApplicationId').value = applicationId;
+    modal.style.display = 'block';
+    
+    // Load WhatsApp templates for reminder
+    loadReminderTemplates();
+}
+
+function closeSendTestReminderModal() {
+    document.getElementById('sendTestReminderModal').style.display = 'none';
+}
+
+function loadReminderTemplates() {
+    fetch('/admin/whatsapp-templates/get')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('reminderTemplateSelect');
+            select.innerHTML = '<option value="">{{ __("Select Template") }}</option>';
+            if (data.success && data.templates) {
+                templatesData = data.templates;
+                data.templates.forEach(template => {
+                    if (template.type === 'test_reminder_invitation') {
+                        const option = document.createElement('option');
+                        option.value = template.id;
+                        option.textContent = template.name;
+                        select.appendChild(option);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error loading templates:', error);
+        });
+}
+
+function previewReminderTemplate() {
+    const select = document.getElementById('reminderTemplateSelect');
+    const templateId = select.value;
+    const previewDiv = document.getElementById('reminderTemplatePreview');
+    const previewContent = document.getElementById('reminderPreviewContent');
+    
+    if (!templateId) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+    
+    // Find template data
+    const template = templatesData.find(t => t.id == templateId);
+    if (!template) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+    
+    // Replace variables with sample data
+    let previewText = template.template;
+    const sampleData = {
+        'NAME': 'John Doe',
+        'POSITION': 'Senior Developer',
+        'COMPANY': 'PT. Example Company',
+        'TEST_LINK': 'https://example.com/test/session/123/token'
+    };
+    
+    // Replace variables
+    Object.keys(sampleData).forEach(key => {
+        const regex = new RegExp(`{${key}}`, 'g');
+        previewText = previewText.replace(regex, sampleData[key]);
+    });
+    
+    // Display preview
+    previewContent.innerHTML = previewText.replace(/\n/g, '<br>');
+    previewDiv.style.display = 'block';
+}
+
+function sendTestReminder() {
+    const applicantId = document.getElementById('reminderApplicantId').value;
+    const applicationId = document.getElementById('reminderApplicationId').value;
+    const templateId = document.getElementById('reminderTemplateSelect').value;
+    const notes = document.getElementById('reminderNotes').value;
+
+    if (!templateId) {
+        alert('{{ __("Please select a template") }}');
+        return;
+    }
+
+    // Find selected template
+    const template = templatesData.find(t => t.id == templateId);
+    if (!template) {
+        alert('{{ __("Template not found") }}');
+        return;
+    }
+    
+    // Get applicant data and test link
+    fetch(`/admin/applicants/${applicantId}/whatsapp-data`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Get test session and generate test link
+                const testSession = data.application?.testSession;
+                if (!testSession || !testSession.access_token) {
+                    alert('{{ __("No test session found for this applicant") }}');
+                    return;
+                }
+
+                // Generate test URL
+                const testLink = `/test/${testSession.id}/${testSession.access_token}`;
+
+                // Replace template variables with actual data
+                let message = template.template;
+                const variables = {
+                    'NAME': data.applicant.name,
+                    'POSITION': data.job.position,
+                    'COMPANY': data.job.company_name,
+                    'TEST_LINK': window.location.origin + testLink
+                };
+
+                // Replace variables in template
+                Object.keys(variables).forEach(key => {
+                    const regex = new RegExp(`{${key}}`, 'g');
+                    message = message.replace(regex, variables[key]);
+                });
+                
+                // Add notes if provided
+                if (notes.trim()) {
+                    message += '\n\n' + notes.trim();
+                }
+                
+                // Create WhatsApp URL with normalized phone number
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
+                const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+                
+                // Open WhatsApp in new tab
+                window.open(whatsappUrl, '_blank');
+                
+                // Close modal
+                closeSendTestReminderModal();
+                
+            } else {
+                alert('{{ __("Error getting applicant data") }}: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('{{ __("Error getting applicant data") }}');
+        });
 }
 
 // Export function
