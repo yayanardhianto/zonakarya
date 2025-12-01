@@ -135,6 +135,11 @@ require __DIR__ . '/auth.php';
 require __DIR__ . '/user.php';
 require __DIR__ . '/admin.php';
 
+// Short URL Routes (must be after admin routes, use regex constraint to avoid catching admin paths)
+Route::get('{code}', [\App\Http\Controllers\ShortUrlRedirectController::class, 'redirect'])
+    ->where('code', '^[a-zA-Z0-9-]{3,50}$')
+    ->name('short-url.redirect');
+
 Route::fallback(function () {
     abort(404);
 });

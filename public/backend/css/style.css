@@ -531,7 +531,9 @@ select.form-control:not([size]):not([multiple]) {
   .alert code {
     background-color: #fff;
     border-radius: 3px;
-    padding: 1px 4px; }
+    padding: 6px 12px;
+    color: #191d21 ;
+  }
   .alert p {
     margin-bottom: 0; }
   .alert.alert-has-icon {

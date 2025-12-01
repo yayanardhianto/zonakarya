@@ -234,6 +234,12 @@
                         </a>
                     </li>
                 @endif
+                
+                <li class="{{ isRoute('admin.short-urls.*', 'active') }}">
+                    <a class="nav-link" href="{{ route('admin.short-urls.index') }}"><i class="fas fa-link"></i>
+                        <span>{{ __('Short URLs') }}</span>
+                    </a>
+                </li>
             @endif
         </ul>
         <div class="py-3 px-4">

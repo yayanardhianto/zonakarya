@@ -154,5 +154,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         Route::post('about-sections/{section}/toggle-status', [\App\Http\Controllers\Admin\AboutSectionController::class, 'toggleStatus'])->name('about-sections.toggle-status');
         Route::post('about-sections/update-title', [\App\Http\Controllers\Admin\AboutSectionController::class, 'updateTitle'])->name('about-sections.update-title');
         
+        // Short URL Routes
+        Route::resource('short-urls', \App\Http\Controllers\Admin\ShortUrlController::class);
+        
     });
 });
