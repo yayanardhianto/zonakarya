@@ -1262,11 +1262,11 @@ h6 .badge {
 
 .btn-light, .btn-light.disabled {
   box-shadow: 0 2px 6px #e6ecf1;
-  background-color: #e3eaef;
-  border-color: #e3eaef;
+  background-color: #f7f7f7 ;
+  border-color: #efefef;
   color: #191d21; }
   .btn-light:hover, .btn-light:focus, .btn-light:active, .btn-light.disabled:hover, .btn-light.disabled:focus, .btn-light.disabled:active {
-    background-color: #c3d2dc !important; }
+    background-color: #efefef !important; }
 
 .btn-outline-light, .btn-outline-light.disabled {
   border-color: #e3eaef;

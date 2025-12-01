@@ -435,6 +435,69 @@
             </div>
         </div>
     </div>
+
+    <!-- Finalize Modal (after test - only for screening tests with applicant) -->
+    <div class="modal fade" id="finalizeModal" tabindex="-1" aria-labelledby="finalizeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="finalizeModalLabel">{{ __('Selesaikan Lamaran Anda') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-success mb-3">
+                        <i class="fas fa-check-circle"></i> {{ __('Selamat! Tes screening Anda telah diselesaikan. Sekarang, mohon upload CV dan foto Anda untuk menyelesaikan proses lamaran.') }}
+                    </div>
+                    <form id="finalizeForm" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" id="finalize_application_id" name="application_id" value="">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="cv_finalize">{{ __('CV/Resume') }} <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="cv_finalize" name="cv" accept=".pdf,.doc,.docx" required>
+                                    <small class="form-text text-muted">{{ __('Format yang diterima: PDF, DOC, DOCX (Maks: 25MB)') }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="photo_finalize">{{ __('Foto') }} <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="photo_finalize" name="photo" accept="image/*" required>
+                                    <small class="form-text text-muted">{{ __('Format yang diterima: JPG, PNG (Maks: 1MB)') }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <div class="camera-section" id="cameraSectionFinalize" style="display: none;">
+                                <label>{{ __('Ambil Foto dengan Kamera') }}</label>
+                                <div class="camera-container">
+                                    <video id="cameraFinalize" width="320" height="240" autoplay></video>
+                                    <canvas id="canvasFinalize" width="320" height="240" style="display: none;"></canvas>
+                                </div>
+                                <div class="camera-controls mt-2">
+                                    <button type="button" class="btn btn-sm btn-primary" id="captureBtnFinalize">{{ __('Ambil') }}</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" id="retakeBtnFinalize" style="display: none;">{{ __('Ulang') }}</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="button" class="btn btn-outline-primary" id="useCameraBtnFinalize">
+                                <i class="fas fa-camera"></i> {{ __('Gunakan Kamera') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Batal') }}</button>
+                    <button type="button" class="btn btn-primary" id="submitFinalize">
+                        {{ __('Selesaikan Lamaran') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('styles')
@@ -497,5 +560,283 @@
     .scale-bar .progress-bar {
         border-radius: 10px;
     }
+
+    /* Finalize Modal Styles */
+    #cameraSectionFinalize {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background-color: #f9f9f9;
+        margin-bottom: 15px;
+    }
+
+    .camera-container {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    #cameraFinalize, #canvasFinalize {
+        max-width: 100%;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+
+    .camera-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
 </style>
+
+@push('js')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== Result page loaded ===');
+    // Only show finalize modal if redirected here right after completing the test
+    const urlParams = new URLSearchParams(window.location.search);
+    const finalize = urlParams.get('finalize');
+    console.log('URL finalize param:', finalize);
+    console.log('Full URL:', window.location.href);
+
+    // Check if this is a screening test with an applicant
+    const isScreeningTest = {{ $session->package->is_screening_test ? 'true' : 'false' }};
+    const applicantId = {{ $session->applicant_id ?? 'null' }};
+    // Server-side flash flag in case redirect lost the ?finalize param
+    const showFinalizeFlash = {{ session()->has('show_finalize') ? 'true' : 'false' }};
+    // Check sessionStorage flag set on first modal trigger (survives refresh)
+    const shouldShowFinalizeFromStorage = sessionStorage.getItem('show_finalize_modal_for_session_{{ $session->id }}') === 'true';
+    console.log('shouldShowFinalizeFromStorage:', shouldShowFinalizeFromStorage);
+    let applicationId = null;
+    
+    console.log('=== Modal trigger check ===');
+    console.log('isScreeningTest:', isScreeningTest);
+    console.log('applicantId:', applicantId);
+    console.log('showFinalizeFlash:', showFinalizeFlash);
+    console.log('finalize === "1":', finalize === '1');
+    console.log('Condition (finalize === "1" || showFinalizeFlash === "true" || shouldShowFinalizeFromStorage) && isScreeningTest:', (finalize === '1' || showFinalizeFlash === 'true' || shouldShowFinalizeFromStorage) && isScreeningTest);
+
+    if ((finalize === '1' || showFinalizeFlash === 'true' || shouldShowFinalizeFromStorage) && isScreeningTest) {
+        console.log('=== SHOWING FINALIZE MODAL ===');
+        // Mark that we should show finalize modal for this session (survives refresh)
+        sessionStorage.setItem('show_finalize_modal_for_session_{{ $session->id }}', 'true');
+        // If we have applicantId, fetch the latest application_id
+        if (applicantId) {
+            console.log('Has applicantId, fetching latest application...');
+            fetch(`/api/applicant/${applicantId}/latest-application`)
+                .then(response => {
+                    console.log('API response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API response data:', data);
+                    if (data.success && data.application_id) {
+                        applicationId = data.application_id;
+                        console.log('Got application_id from API:', applicationId);
+                        document.getElementById('finalize_application_id').value = applicationId;
+
+                        // Show the finalize modal
+                        console.log('Attempting to show modal...');
+                        const finalizeModal = document.getElementById('finalizeModal');
+                        console.log('finalizeModal element:', finalizeModal);
+                        if (finalizeModal) {
+                            const modal = new bootstrap.Modal(finalizeModal);
+                            modal.show();
+                            console.log('Modal shown successfully');
+                        } else {
+                            console.error('finalizeModal element not found!');
+                        }
+
+                        // Remove finalize param so modal doesn't auto-show on refresh or later visits
+                        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+                    } else {
+                        console.error('API returned unsuccessful or no application_id:', data);
+                    }
+                })
+                .catch(error => console.error('Error fetching application ID:', error));
+        } else {
+            console.log('No applicantId, checking sessionStorage or showing modal anyway...');
+            // Fallback: check sessionStorage for pending application id set during prelim apply
+            const pendingApp = sessionStorage.getItem('pending_application_id');
+            console.log('pending_application_id from sessionStorage:', pendingApp);
+            if (pendingApp) {
+                applicationId = pendingApp;
+                document.getElementById('finalize_application_id').value = applicationId;
+                console.log('Set application_id from sessionStorage:', applicationId);
+
+                const finalizeModal = document.getElementById('finalizeModal');
+                if (finalizeModal) {
+                    const modal = new bootstrap.Modal(finalizeModal);
+                    modal.show();
+                    console.log('Modal shown from sessionStorage fallback');
+                } else {
+                    console.error('finalizeModal element not found!');
+                }
+
+                // Remove finalize param if present
+                window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            } else {
+                // No applicantId and no pending application - still attempt to show modal (user can fill contact info)
+                console.log('No applicantId and no sessionStorage - showing modal anyway');
+                const finalizeModal = document.getElementById('finalizeModal');
+                if (finalizeModal) {
+                    const modal = new bootstrap.Modal(finalizeModal);
+                    modal.show();
+                    console.log('Modal shown (fallback)');
+                } else {
+                    console.error('finalizeModal element not found!');
+                }
+
+                window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+            }
+        }
+    } else {
+        console.log('Modal trigger condition NOT met:');
+        console.log('  finalize === "1":', finalize === '1');
+        console.log('  showFinalizeFlash === "true":', showFinalizeFlash === 'true');
+        console.log('  isScreeningTest:', isScreeningTest);
+    }
+
+    // Camera functionality for finalize modal
+    let cameraActiveFinalize = false;
+    let streamFinalize = null;
+
+    document.getElementById('useCameraBtnFinalize')?.addEventListener('click', function() {
+        const cameraSection = document.getElementById('cameraSectionFinalize');
+        
+        if (!cameraActiveFinalize) {
+            cameraSection.style.display = 'block';
+            cameraActiveFinalize = true;
+            
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    streamFinalize = stream;
+                    document.getElementById('cameraFinalize').srcObject = stream;
+                })
+                .catch(err => {
+                    console.error('Error accessing camera:', err);
+                    alert('{{ __('Tidak dapat mengakses kamera') }}');
+                    cameraSection.style.display = 'none';
+                    cameraActiveFinalize = false;
+                });
+        } else {
+            cameraSection.style.display = 'none';
+            if (streamFinalize) {
+                streamFinalize.getTracks().forEach(track => track.stop());
+            }
+            cameraActiveFinalize = false;
+        }
+    });
+
+    document.getElementById('captureBtnFinalize')?.addEventListener('click', function() {
+        const canvas = document.getElementById('canvasFinalize');
+        const context = canvas.getContext('2d');
+        const video = document.getElementById('cameraFinalize');
+        
+        context.drawImage(video, 0, 0, 320, 240);
+        canvas.toBlob(blob => {
+            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            document.getElementById('photo_finalize').files = dataTransfer.files;
+            
+            document.getElementById('cameraSectionFinalize').style.display = 'none';
+            document.getElementById('retakeBtnFinalize').style.display = 'inline-block';
+            if (streamFinalize) {
+                streamFinalize.getTracks().forEach(track => track.stop());
+            }
+            cameraActiveFinalize = false;
+        });
+    });
+
+    document.getElementById('retakeBtnFinalize')?.addEventListener('click', function() {
+        document.getElementById('photo_finalize').value = '';
+        document.getElementById('retakeBtnFinalize').style.display = 'none';
+        document.getElementById('cameraSectionFinalize').style.display = 'block';
+        
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                streamFinalize = stream;
+                document.getElementById('cameraFinalize').srcObject = stream;
+                cameraActiveFinalize = true;
+            });
+    });
+
+    // Form submission for finalize
+    document.getElementById('submitFinalize')?.addEventListener('click', async function() {
+        const cv = document.getElementById('cv_finalize').files[0];
+        const photo = document.getElementById('photo_finalize').files[0];
+        const appId = document.getElementById('finalize_application_id').value;
+
+        if (!cv || !photo) {
+            alert('{{ __('Mohon upload CV dan foto') }}');
+            return;
+        }
+
+        // Validate file sizes and types
+        if (!validateFileFinalize(cv, 'cv') || !validateFileFinalize(photo, 'photo')) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+        formData.append('cv', cv);
+        formData.append('photo', photo);
+
+        const submitBtn = document.getElementById('submitFinalize');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ __("Mengirim...") }}';
+
+        try {
+            const response = await fetch(`/applications/${appId}/finalize`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('{{ __('Terima kasih! Lamaran Anda telah diselesaikan.') }}');
+                window.location.href = data.redirect || '{{ route('applicant.status') }}';
+            } else {
+                alert(data.message || '{{ __('Terjadi kesalahan saat mengirim lamaran') }}');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('{{ __('Terjadi kesalahan saat mengirim lamaran') }}');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '{{ __("Selesaikan Lamaran") }}';
+        }
+    });
+
+    function validateFileFinalize(file, type) {
+        const cvMaxSize = 25 * 1024 * 1024; // 25MB
+        const photoMaxSize = 1 * 1024 * 1024; // 1MB
+        
+        if (type === 'cv') {
+            const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            if (!validTypes.includes(file.type)) {
+                alert('{{ __("CV harus berformat PDF, DOC, atau DOCX") }}');
+                return false;
+            }
+            if (file.size > cvMaxSize) {
+                alert('{{ __("Ukuran CV tidak boleh lebih dari 25MB") }}');
+                return false;
+            }
+        } else if (type === 'photo') {
+            const validTypes = ['image/jpeg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('{{ __("Foto harus berformat JPG atau PNG") }}');
+                return false;
+            }
+            if (file.size > photoMaxSize) {
+                alert('{{ __("Ukuran foto tidak boleh lebih dari 1MB") }}');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+});
+</script>
 @endpush

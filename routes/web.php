@@ -69,6 +69,10 @@ Route::get('jobs/thank-you/{applicant}', [\App\Http\Controllers\Frontend\JobVaca
 
 // Job Application Routes
 Route::post('jobs/{jobVacancy}/apply', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'storeApplication'])->name('jobs.apply.store');
+// Preliminary apply (step 1): create applicant+application and return start_test_url
+Route::post('jobs/{jobVacancy}/apply-prelim', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'applyPrelim'])->name('jobs.apply.prelim');
+// Finalize application (step 2): upload CV and photo after test
+Route::post('applications/{application}/finalize', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'finalizeApplication'])->name('applications.finalize');
 Route::post('applications/complete-registration', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'completeRegistration'])->name('applications.complete-registration');
 
 // Applicant Status Routes

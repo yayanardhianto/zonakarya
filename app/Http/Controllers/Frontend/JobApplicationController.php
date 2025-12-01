@@ -873,4 +873,167 @@ class JobApplicationController extends Controller
             return false;
         }
     }
+
+    // Preliminary apply endpoint: create applicant + application, create a test session and return start_test_url
+    public function applyPrelim(Request $request, JobVacancy $jobVacancy)
+    {
+        \Log::info('Job Application: applyPrelim called', [
+            'job_vacancy_id' => $jobVacancy->id ?? null,
+            'ip' => $request->ip(),
+            'user_id' => Auth::id(),
+        ]);
+
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'whatsapp' => 'required|string|max:20',
+            ]);
+
+            $isLoggedIn = Auth::check();
+            $user = $isLoggedIn ? Auth::user() : null;
+
+            // Normalize whatsapp number (basic)
+            $whatsapp = preg_replace('/[^0-9]/', '', $request->whatsapp);
+            if (substr($whatsapp, 0, 1) === '0') {
+                $whatsapp = '62' . substr($whatsapp, 1);
+            } elseif (substr($whatsapp, 0, 2) !== '62') {
+                $whatsapp = '62' . $whatsapp;
+            }
+
+            // Find or create applicant
+            $applicant = null;
+            if ($isLoggedIn && $user) {
+                $applicant = Applicant::firstOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'name' => $request->name,
+                        'email' => $user->email ?? null,
+                        'whatsapp' => $whatsapp,
+                        'status' => 'pending',
+                    ]
+                );
+            } else {
+                $applicant = Applicant::firstOrCreate(
+                    ['whatsapp' => $whatsapp],
+                    [
+                        'name' => $request->name,
+                        'whatsapp' => $whatsapp,
+                        'status' => 'pending',
+                    ]
+                );
+            }
+
+            // Create application with status 'check' (preliminary)
+            $application = Application::create([
+                'user_id' => $user ? $user->id : null,
+                'applicant_id' => $applicant->id,
+                'job_vacancy_id' => $jobVacancy->id,
+                'status' => 'pending',
+            ]);
+
+            \Log::info('Job Application: Preliminary application created', [
+                'application_id' => $application->id,
+                'applicant_id' => $applicant->id,
+            ]);
+
+            // Create test session (use screening package)
+            $testPackage = TestPackage::where('is_screening_test', true)->where('is_active', true)->first();
+            if ($testPackage) {
+                $testSession = TestSession::create([
+                    'user_id' => $applicant->user_id,
+                    'package_id' => $testPackage->id,
+                    'applicant_id' => $applicant->id,
+                    'status' => 'pending',
+                    'access_token' => Str::random(60),
+                    'expires_at' => now()->addDay(),
+                ]);
+
+                // Attach test session to application (but keep status as 'check' per request)
+                $application->update(['test_session_id' => $testSession->id]);
+
+                \Log::info('Job Application: Test session created (prelim)', [
+                    'test_session_id' => $testSession->id,
+                    'application_id' => $application->id,
+                ]);
+
+                // Send WhatsApp invitation (uses existing helper that builds test.take URL)
+                try {
+                    $this->sendWhatsAppNotification($applicant, $testSession);
+                } catch (\Exception $e) {
+                    \Log::error('Job Application: Failed to send WhatsApp in applyPrelim', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                        'applicant_id' => $applicant->id,
+                        'test_session_id' => $testSession->id,
+                    ]);
+                }
+
+                $startTestUrl = route('test.take', ['session' => $testSession, 'token' => $testSession->access_token]);
+            } else {
+                $startTestUrl = null;
+                \Log::warning('Job Application: No screening test package found during applyPrelim');
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Preliminary application saved',
+                'application_id' => $application->id,
+                'applicant_id' => $applicant->id,
+                'start_test_url' => $startTestUrl,
+                'is_logged_in' => $isLoggedIn,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors(), 'message' => 'Validation error'], 422);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: applyPrelim error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['success' => false, 'message' => 'Error saving preliminary application'], 500);
+        }
+    }
+
+    // Finalize application: upload CV and photo and set final status
+    public function finalizeApplication(Request $request, Application $application)
+    {
+        \Log::info('Job Application: finalizeApplication called', ['application_id' => $application->id, 'ip' => $request->ip()]);
+
+        try {
+            $request->validate([
+                'cv' => 'required|file|mimes:pdf,doc,docx|max:25600',
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024',
+            ]);
+
+            $applicant = $application->applicant;
+            if (!$applicant) {
+                return response()->json(['success' => false, 'message' => 'Applicant not found'], 404);
+            }
+
+            // Handle uploads
+            if ($request->hasFile('cv')) {
+                $cvPath = $request->file('cv')->store('applications/cv', 'public');
+                // delete old
+                if ($applicant->cv_path) {
+                    Storage::disk('public')->delete($applicant->cv_path);
+                }
+                $applicant->cv_path = $cvPath;
+            }
+
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('applications/photos', 'public');
+                if ($applicant->photo_path) {
+                    Storage::disk('public')->delete($applicant->photo_path);
+                }
+                $applicant->photo_path = $photoPath;
+            }
+
+            $applicant->save(); 
+
+            $application->update(['status' => 'check']);
+
+            return response()->json(['success' => true, 'message' => 'Application finalized', 'applicant_id' => $applicant->id]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors(), 'message' => 'Validation error'], 422);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: finalizeApplication error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'application_id' => $application->id]);
+            return response()->json(['success' => false, 'message' => 'Error finalizing application'], 500);
+        }
+    }
 }

@@ -486,12 +486,40 @@ class TestController extends Controller
         }
 
         if ($session->isCompleted()) {
-            return response()->json(['success' => true, 'redirect' => route('test.result', ['session' => $session, 'token' => $token])]);
+            $redirect = route('test.result', ['session' => $session, 'token' => $token]);
+            \Log::info('Test already completed', [
+                'session_id' => $session->id,
+                'applicant_id' => $session->applicant_id,
+                'is_screening_test' => $session->package->is_screening_test,
+                'base_redirect' => $redirect
+            ]);
+            if ($session->applicant_id && $session->package->is_screening_test) {
+                // flash a server-side flag so the result page can show the finalize modal
+                session()->flash('show_finalize', true);
+                $redirect .= '&finalize=1';
+                \Log::info('Adding finalize=1 to redirect (already completed)', ['final_redirect' => $redirect]);
+            }
+            \Log::info('Returning complete response (already completed)', ['redirect' => $redirect]);
+            return response()->json(['success' => true, 'redirect' => $redirect]);
         }
 
         $this->completeTest($session);
         
-        return response()->json(['success' => true, 'redirect' => route('test.result', ['session' => $session, 'token' => $token])]);
+        $redirect = route('test.result', ['session' => $session, 'token' => $token]);
+        \Log::info('Test just completed', [
+            'session_id' => $session->id,
+            'applicant_id' => $session->applicant_id,
+            'is_screening_test' => $session->package->is_screening_test,
+            'base_redirect' => $redirect
+        ]);
+        if ($session->applicant_id && $session->package->is_screening_test) {
+            // flash a server-side flag so the result page can show the finalize modal
+            session()->flash('show_finalize', true);
+            $redirect .= '&finalize=1';
+            \Log::info('Adding finalize=1 to redirect (just completed)', ['final_redirect' => $redirect]);
+        }
+        \Log::info('Returning complete response', ['redirect' => $redirect]);
+        return response()->json(['success' => true, 'redirect' => $redirect]);
     }
 
     private function completeTest(TestSession $session)
@@ -612,11 +640,11 @@ class TestController extends Controller
             // Generate unique filename
             $filename = 'testimonial_' . time() . '_' . uniqid() . '.webm';
             
-            // Store video file
-            $path = $request->file('video')->storeAs('public/test_videos', $filename);
-            
+            // Store video file on the public disk (will be available under /storage/test_videos/...)
+            $path = $request->file('video')->storeAs('test_videos', $filename, 'public');
+
             // Get public URL
-            $videoUrl = Storage::url($path);
+            $videoUrl = Storage::disk('public')->url($path);
             
             // Log successful upload for debugging
             \Log::info('Video uploaded successfully', [

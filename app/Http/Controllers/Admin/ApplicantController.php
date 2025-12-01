@@ -55,23 +55,22 @@ class ApplicantController extends Controller
         $applications = $query->latest()->paginate(20);
         $jobVacancies = JobVacancy::where('status', 'active')->get();
 
-        // Get status counts if job_vacancy_id filter is applied
-        $statusCounts = [];
+        // Compute status counts (overall or per job if filter provided)
+        $allStatuses = ['pending', 'sent', 'check', 'short_call', 'individual_interview', 'group_interview', 'test_psychology', 'ojt', 'final_interview', 'sent_offering_letter', 'rejected', 'rejected_by_applicant'];
+
+        $countsQuery = Application::query();
         if ($request->filled('job_vacancy_id')) {
-            // Get all possible statuses
-            $allStatuses = ['pending', 'sent', 'check', 'short_call', 'individual_interview', 'group_interview', 'test_psychology', 'ojt', 'final_interview', 'sent_offering_letter', 'rejected', 'rejected_by_applicant'];
-            
-            // Get counts for existing statuses
-            $existingCounts = Application::where('job_vacancy_id', $request->job_vacancy_id)
-                ->selectRaw('status, COUNT(*) as count')
-                ->groupBy('status')
-                ->pluck('count', 'status')
-                ->toArray();
-            
-            // Initialize all statuses with 0, then merge with existing counts
-            $statusCounts = array_fill_keys($allStatuses, 0);
-            $statusCounts = array_merge($statusCounts, $existingCounts);
+            $countsQuery->where('job_vacancy_id', $request->job_vacancy_id);
         }
+
+        $existingCounts = $countsQuery->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // Initialize all statuses with 0, then merge with existing counts
+        $statusCounts = array_fill_keys($allStatuses, 0);
+        $statusCounts = array_merge($statusCounts, $existingCounts);
 
         return view('admin.applicants.index', compact('applications', 'jobVacancies', 'statusCounts'));
     }
@@ -429,7 +428,6 @@ class ApplicantController extends Controller
             'DATE' => now()->format('d M Y'),
             'REASON' => $reason ?? 'Not meeting requirements'
         ];
-
         return $template->generateWhatsAppUrl($applicant->whatsapp, $data);
     }
 
@@ -718,6 +716,18 @@ class ApplicantController extends Controller
                 'new_status' => $applicant->fresh()->status
             ]);
 
+            // Normalize phone number for talent
+            $normalizedPhone = null;
+            if (!empty($applicant->whatsapp)) {
+                $cleanPhone = preg_replace('/[^0-9]/', '', $applicant->whatsapp);
+                if (substr($cleanPhone, 0, 1) === '0') {
+                    $cleanPhone = '62' . substr($cleanPhone, 1);
+                } elseif (substr($cleanPhone, 0, 2) !== '62') {
+                    $cleanPhone = '62' . $cleanPhone;
+                }
+                $normalizedPhone = $cleanPhone;
+            }
+
             // Create talent record with flexible data
             $talentData = [
                 'name' => $request->name,
@@ -731,7 +741,8 @@ class ApplicantController extends Controller
                 'leadership' => $request->leadership,
                 'notes' => $request->notes,
                 'applicant_id' => $applicant->id,
-                'user_id' => $applicant->user_id
+                'user_id' => $applicant->user_id,
+                'whatsapp' => $normalizedPhone,
             ];
 
             // Remove null values to keep database clean

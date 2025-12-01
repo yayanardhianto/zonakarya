@@ -261,7 +261,7 @@
         </div>
     </div>
 
-    <!-- Apply Modal -->
+    <!-- Apply Modal (Step 1: Prelim) -->
     <div class="modal fade" id="applyModal" tabindex="-1" aria-labelledby="applyModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -295,82 +295,88 @@
                         @endif
                     @endauth
                     
-                    <form id="applyForm" enctype="multipart/form-data" @if($hasExistingApplication) style="pointer-events: none; opacity: 0.6;" @endif>
+                    <form id="applyFormPrelim" @if($hasExistingApplication) style="pointer-events: none; opacity: 0.6;" @endif>
                         @csrf
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="name">{{ __('Nama Lengkap') }} <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="name" name="name" 
-                                               value="{{ $user->name ?? ($applicant->name ?? '') }}" required>
-                                        <!-- @auth
-                                            @if($user->name || ($applicant && $applicant->name))
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text text-success" title="{{ __('Pre-filled from your profile') }}">
-                                                        <i class="fas fa-check-circle"></i>
-                                                    </span>
-                                                </div>
-                                            @endif
-                                        @endauth -->
-                                    </div>
+                                    <input type="text" class="form-control" id="name" name="name" 
+                                           value="{{ $user->name ?? ($applicant->name ?? '') }}" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="whatsapp">{{ __('Nomor WhatsApp') }} <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <input type="tel" class="form-control" id="whatsapp" name="whatsapp" 
-                                               placeholder="+628123456789" 
-                                               value="{{ $applicant->whatsapp ?? '' }}" required>
-                                        <!-- @auth
-                                            @if($applicant && $applicant->whatsapp)
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text text-success" title="{{ __('Pre-filled from your previous application') }}">
-                                                        <i class="fas fa-check-circle"></i>
-                                                    </span>
-                                                </div>
-                                            @endif
-                                        @endauth -->
-                                    </div>
+                                    <input type="tel" class="form-control" id="whatsapp" name="whatsapp" 
+                                           placeholder="+628123456789" 
+                                           value="{{ $applicant->whatsapp ?? '' }}" required>
                                     <small class="form-text text-muted">{{ __('Kami akan menghubungi Anda via WhatsApp untuk langkah selanjutnya') }}</small>
                                 </div>
                             </div>
                         </div>
 
+                        <div class="form-group mt-3">
+                            <small class="text-muted">{{ __('Setelah menyimpan data awal, Anda akan diarahkan untuk mengikuti tes screening. Setelah tes selesai, Anda akan diminta mengunggah CV dan foto untuk menyelesaikan lamaran.') }}</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Batal') }}</button>
+                    <button type="button" class="btn btn-primary" id="submitPrelim" 
+                            @if($hasExistingApplication) disabled @endif>
+                        {{ __('Mulai Test Screening') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finalize Modal (Step 2: after test - upload CV & Photo) -->
+    <div class="modal fade" id="finalizeModal" tabindex="-1" aria-labelledby="finalizeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="finalizeModalLabel">{{ __('Selesaikan Lamaran Anda') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <form id="finalizeForm" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" id="finalize_application_id" name="application_id" value="">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="cv">{{ __('CV/Resume') }} <span class="text-danger">*</span></label>
-                                    <input type="file" class="form-control" id="cv" name="cv" accept=".pdf,.doc,.docx" required>
+                                    <label for="cv_finalize">{{ __('CV/Resume') }} <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="cv_finalize" name="cv" accept=".pdf,.doc,.docx" required>
                                     <small class="form-text text-muted">{{ __('Format yang diterima: PDF, DOC, DOCX (Maks: 25MB)') }}</small>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="photo">{{ __('Foto') }} <span class="text-danger">*</span></label>
-                                    <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
+                                    <label for="photo_finalize">{{ __('Foto') }} <span class="text-danger">*</span></label>
+                                    <input type="file" class="form-control" id="photo_finalize" name="photo" accept="image/*" required>
                                     <small class="form-text text-muted">{{ __('Format yang diterima: JPG, PNG (Maks: 1MB)') }}</small>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <div class="camera-section" id="cameraSection" style="display: none;">
+                        <div class="form-group mt-3">
+                            <div class="camera-section" id="cameraSectionFinalize" style="display: none;">
                                 <label>{{ __('Ambil Foto dengan Kamera') }}</label>
                                 <div class="camera-container">
-                                    <video id="camera" width="320" height="240" autoplay></video>
-                                    <canvas id="canvas" width="320" height="240" style="display: none;"></canvas>
+                                    <video id="cameraFinalize" width="320" height="240" autoplay></video>
+                                    <canvas id="canvasFinalize" width="320" height="240" style="display: none;"></canvas>
                                 </div>
                                 <div class="camera-controls mt-2">
-                                    <button type="button" class="btn btn-sm btn-primary" id="captureBtn">{{ __('Ambil') }}</button>
-                                    <button type="button" class="btn btn-sm btn-secondary" id="retakeBtn" style="display: none;">{{ __('Ulang') }}</button>
+                                    <button type="button" class="btn btn-sm btn-primary" id="captureBtnFinalize">{{ __('Ambil') }}</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" id="retakeBtnFinalize" style="display: none;">{{ __('Ulang') }}</button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <button type="button" class="btn btn-outline-primary" id="useCameraBtn">
+                            <button type="button" class="btn btn-outline-primary" id="useCameraBtnFinalize">
                                 <i class="fas fa-camera"></i> {{ __('Gunakan Kamera') }}
                             </button>
                         </div>
@@ -378,9 +384,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Batal') }}</button>
-                    <button type="button" class="btn btn-primary" id="submitApplication" 
-                            @if($hasExistingApplication) disabled @endif>
-                        {{ __('Kirim Lamaran') }}
+                    <button type="button" class="btn btn-primary" id="submitFinalize">
+                        {{ __('Selesaikan Lamaran') }}
                     </button>
                 </div>
             </div>
@@ -534,563 +539,312 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentApplicantId = null;
     let stream = null;
 
-    // Handle "Kirim Lamaran" button click
+    // Handle "Mulai Test Screening" button click
     const openApplyBtn = document.getElementById('openApplyBtn');
     if (openApplyBtn) {
         openApplyBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            
-            // Check if user is logged in using a meta tag or checking page content
             const isLoggedIn = @json(auth()->check());
-            
             if (!isLoggedIn) {
-                // User not logged in, show social login modal first
                 const socialLoginModal = new bootstrap.Modal(document.getElementById('socialLoginModal'));
                 socialLoginModal.show();
             } else {
-                // User logged in, show apply modal directly
                 const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
                 applyModal.show();
             }
         });
     }
 
-    // Notification function
+    // Notification helpers
     function showNotification(message, type = 'warning') {
-        // Remove existing notifications
-        const existingNotifications = document.querySelectorAll('.form-notification');
-        existingNotifications.forEach(notif => notif.remove());
-
-        // Create notification element
+        const existing = document.querySelectorAll('.form-notification');
+        existing.forEach(e => e.remove());
         const notification = document.createElement('div');
         notification.className = `alert alert-${type} form-notification alert-dismissible fade show`;
         notification.setAttribute('role', 'alert');
         notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
-        
         const icon = type === 'warning' ? 'fa-exclamation-triangle' : (type === 'success' ? 'fa-check-circle' : 'fa-times-circle');
-        notification.innerHTML = `
-            <i class="fas ${icon} me-2"></i>
-            <span>${message}</span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-
+        notification.innerHTML = `<i class="fas ${icon} me-2"></i><span>${message}</span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`;
         document.body.appendChild(notification);
-
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 150);
-        }, 5000);
+        setTimeout(() => { notification.classList.remove('show'); setTimeout(() => notification.remove(), 150); }, 5000);
     }
 
-    // Show field error
     function showFieldError(fieldId, message) {
         const field = document.getElementById(fieldId);
         if (!field) return;
-
-        // Remove existing error
-        const existingError = field.parentElement.querySelector('.field-error');
-        if (existingError) existingError.remove();
-
-        // Add error class
+        const existing = field.parentElement.querySelector('.field-error');
+        if (existing) existing.remove();
         field.classList.add('is-invalid');
-
-        // Add error message
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'field-error text-danger small mt-1';
-        errorDiv.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i>${message}`;
-        field.parentElement.appendChild(errorDiv);
+        const div = document.createElement('div');
+        div.className = 'field-error text-danger small mt-1';
+        div.innerHTML = `<i class="fas fa-exclamation-circle me-1"></i>${message}`;
+        field.parentElement.appendChild(div);
     }
 
-    // Remove field error
     function removeFieldError(fieldId) {
         const field = document.getElementById(fieldId);
         if (!field) return;
-
         field.classList.remove('is-invalid');
-        const existingError = field.parentElement.querySelector('.field-error');
-        if (existingError) existingError.remove();
+        const existing = field.parentElement.querySelector('.field-error');
+        if (existing) existing.remove();
     }
 
-    // Validate file size and format
     function validateFile(input, maxSizeMB, allowedTypes, typeName) {
-        if (!input.files || input.files.length === 0) {
+        if (!input || !input.files || input.files.length === 0) {
             return { valid: false, message: `${typeName} harus diisi` };
         }
-
         const file = input.files[0];
         const fileSizeMB = file.size / (1024 * 1024);
-        
-        // Get file extension more robustly (handle files with special characters)
         const fileName = file.name || '';
-        const lastDotIndex = fileName.lastIndexOf('.');
-        const fileExtension = lastDotIndex > 0 ? fileName.substring(lastDotIndex + 1).toLowerCase() : '';
-
-        // Check if file is empty or too small (might be corrupt)
-        if (file.size === 0) {
-            return { 
-                valid: false, 
-                message: `${typeName} kosong atau corrupt. Silakan pilih file lain.` 
-            };
+        const lastDot = fileName.lastIndexOf('.');
+        const ext = lastDot > 0 ? fileName.substring(lastDot + 1).toLowerCase() : '';
+        if (file.size === 0) return { valid: false, message: `${typeName} kosong atau corrupt.` };
+        if (fileSizeMB > maxSizeMB) return { valid: false, message: `${typeName} terlalu besar (${fileSizeMB.toFixed(2)} MB). Maks ${maxSizeMB} MB` };
+        let isValid = false;
+        const allowedExt = allowedTypes.filter(t => !t.includes('/'));
+        const allowedMime = allowedTypes.filter(t => t.includes('/'));
+        if (ext && allowedExt.length) isValid = allowedExt.includes(ext.toLowerCase());
+        if (!isValid && file.type && allowedMime.length) {
+            isValid = allowedMime.some(m => file.type === m || file.type.includes(m.split('/')[1]));
         }
-
-        // Check file size
-        if (fileSizeMB > maxSizeMB) {
-            return { 
-                valid: false, 
-                message: `${typeName} terlalu besar (${fileSizeMB.toFixed(2)} MB). Maksimal ${maxSizeMB} MB` 
-            };
-        }
-
-        // Check file type by extension first (more reliable)
-        let isValidType = false;
-        const allowedExtensions = allowedTypes.filter(type => !type.includes('/'));
-        const allowedMimeTypes = allowedTypes.filter(type => type.includes('/'));
-
-        // Check by extension
-        if (fileExtension && allowedExtensions.length > 0) {
-            isValidType = allowedExtensions.some(ext => fileExtension === ext.toLowerCase());
-        }
-
-        // If extension check fails, check by MIME type
-        if (!isValidType && file.type && allowedMimeTypes.length > 0) {
-            isValidType = allowedMimeTypes.some(mimeType => {
-                // Handle partial MIME type matches (e.g., "application/pdf" matches "pdf")
-                if (file.type === mimeType) return true;
-                // Also check if MIME type contains the type (e.g., "application/pdf" contains "pdf")
-                const mimeBase = mimeType.split('/')[1];
-                return file.type.includes(mimeBase);
-            });
-        }
-
-        // If still not valid, check if file extension exists
-        if (!isValidType && !fileExtension) {
-            return { 
-                valid: false, 
-                message: `${typeName} tidak memiliki ekstensi file. Pastikan file memiliki ekstensi yang benar (${allowedExtensions.join(', ').toUpperCase()})` 
-            };
-        }
-
-        if (!isValidType) {
-            const formatList = allowedExtensions.length > 0 
-                ? allowedExtensions.join(', ').toUpperCase() 
-                : allowedTypes.join(', ').toUpperCase();
-            return { 
-                valid: false, 
-                message: `Format ${typeName} tidak valid (${fileExtension || 'tidak diketahui'}). Format yang diterima: ${formatList}` 
-            };
-        }
-
+        if (!isValid && !ext) return { valid: false, message: `${typeName} tidak memiliki ekstensi.` };
+        if (!isValid) return { valid: false, message: `Format ${typeName} tidak valid (${ext || 'tidak diketahui'})` };
         return { valid: true, message: '' };
     }
 
-    // Camera functionality
-    const useCameraBtn = document.getElementById('useCameraBtn');
-    const cameraSection = document.getElementById('cameraSection');
-    const camera = document.getElementById('camera');
-    const canvas = document.getElementById('canvas');
-    const captureBtn = document.getElementById('captureBtn');
-    const retakeBtn = document.getElementById('retakeBtn');
-    const photoInput = document.getElementById('photo');
-    const cvInput = document.getElementById('cv');
+    // Finalize modal camera & inputs (use finalize IDs)
+    const useCameraBtnFinalize = document.getElementById('useCameraBtnFinalize');
+    const cameraSectionFinalize = document.getElementById('cameraSectionFinalize');
+    const cameraFinalize = document.getElementById('cameraFinalize');
+    const canvasFinalize = document.getElementById('canvasFinalize');
+    const captureBtnFinalize = document.getElementById('captureBtnFinalize');
+    const retakeBtnFinalize = document.getElementById('retakeBtnFinalize');
+    const photoInput = document.getElementById('photo_finalize');
+    const cvInput = document.getElementById('cv_finalize');
     const nameInput = document.getElementById('name');
     const whatsappInput = document.getElementById('whatsapp');
 
-    useCameraBtn.addEventListener('click', function() {
-        if (cameraSection.style.display === 'none') {
-            startCamera();
-        } else {
-            stopCamera();
-        }
-    });
-
-    function startCamera() {
+    function startCameraFinalize() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return alert('{{ __('Akses kamera tidak tersedia') }}');
         navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(mediaStream) {
+            .then(mediaStream => {
                 stream = mediaStream;
-                camera.srcObject = stream;
-                cameraSection.style.display = 'block';
-                useCameraBtn.textContent = '{{ __("Sembunyikan Kamera") }}';
+                cameraFinalize.srcObject = stream;
+                cameraSectionFinalize.style.display = 'block';
+                useCameraBtnFinalize.textContent = '{{ __('Sembunyikan Kamera') }}';
             })
-            .catch(function(err) {
-                alert('{{ __("Akses kamera ditolak atau tidak tersedia") }}');
-                console.error('Camera error:', err);
-            });
+            .catch(err => { console.error('Camera error:', err); alert('{{ __('Akses kamera ditolak atau tidak tersedia') }}'); });
     }
 
-    function stopCamera() {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
-        }
-        cameraSection.style.display = 'none';
-        useCameraBtn.textContent = '{{ __("Gunakan Kamera") }}';
+    function stopCameraFinalize() {
+        if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+        cameraSectionFinalize.style.display = 'none';
+        useCameraBtnFinalize.textContent = '{{ __('Gunakan Kamera') }}';
     }
 
-    captureBtn.addEventListener('click', function() {
-        const context = canvas.getContext('2d');
-        context.drawImage(camera, 0, 0, 320, 240);
-        
-        canvas.toBlob(function(blob) {
-            const fileSizeMB = blob.size / (1024 * 1024);
-            
-            // Check file size (max 1MB)
-            if (fileSizeMB > 1) {
-                showFieldError('photo', `Foto terlalu besar (${fileSizeMB.toFixed(2)} MB). Maksimal 1 MB`);
-                showNotification('Foto terlalu besar. Silakan gunakan foto dengan ukuran lebih kecil.', 'warning');
+    if (useCameraBtnFinalize) {
+        useCameraBtnFinalize.addEventListener('click', function() {
+            if (cameraSectionFinalize.style.display === 'none') startCameraFinalize(); else stopCameraFinalize();
+        });
+    }
+
+    if (captureBtnFinalize) {
+        captureBtnFinalize.addEventListener('click', function() {
+            const ctx = canvasFinalize.getContext('2d');
+            ctx.drawImage(cameraFinalize, 0, 0, 320, 240);
+            canvasFinalize.toBlob(function(blob) {
+                const sizeMB = blob.size / (1024*1024);
+                if (sizeMB > 1) { showFieldError('photo_finalize', `Foto terlalu besar (${sizeMB.toFixed(2)} MB)`); showNotification('Foto terlalu besar','warning'); return; }
+                const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+                const dt = new DataTransfer(); dt.items.add(file); photoInput.files = dt.files;
+                removeFieldError('photo_finalize'); showNotification('Foto berhasil diambil dari kamera', 'success');
+            }, 'image/jpeg', 0.8);
+            captureBtnFinalize.style.display = 'none'; retakeBtnFinalize.style.display = 'inline-block';
+        });
+
+        retakeBtnFinalize.addEventListener('click', function() {
+            captureBtnFinalize.style.display = 'inline-block'; retakeBtnFinalize.style.display = 'none'; photoInput.value = ''; removeFieldError('photo_finalize');
+        });
+    }
+
+    // CV/Photo change handlers for finalize
+    if (cvInput) cvInput.addEventListener('change', function() {
+        const v = validateFile(this, 25, ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','pdf','doc','docx'], 'CV/Resume');
+        if (!v.valid) { showFieldError('cv_finalize', v.message); showNotification(v.message,'warning'); this.value = ''; } else removeFieldError('cv_finalize');
+    });
+    if (photoInput) photoInput.addEventListener('change', function() {
+        const v = validateFile(this, 1, ['image/jpeg','image/png','image/jpg','jpg','jpeg','png'], 'Foto');
+        if (!v.valid) { showFieldError('photo_finalize', v.message); showNotification(v.message,'warning'); this.value = ''; } else removeFieldError('photo_finalize');
+    });
+
+    // Simple prelim validation
+    function validatePrelim() {
+        let ok = true; const errs = [];
+        if (!nameInput.value.trim()) { showFieldError('name','Nama lengkap harus diisi'); errs.push('Nama lengkap harus diisi'); ok=false; }
+        else removeFieldError('name');
+        const cleaned = whatsappInput.value.replace(/\s+/g,'');
+        const regex = /^(\+62|62|0)[0-9]{9,12}$/;
+        if (!whatsappInput.value.trim() || /^(\+62|62|0)$/.test(cleaned) || cleaned.length<10 || !regex.test(cleaned)) { showFieldError('whatsapp','Nomor WhatsApp tidak valid'); errs.push('Nomor WhatsApp tidak valid'); ok=false; } else removeFieldError('whatsapp');
+        return { isValid: ok, errors: errs };
+    }
+
+    // Prelim submit
+    const submitPrelimBtn = document.getElementById('submitPrelim');
+    if (submitPrelimBtn) {
+        submitPrelimBtn.addEventListener('click', function() {
+            const btn = this;
+            @if($hasExistingApplication && $existingApplication)
+                showNotification('{{ __("Anda sudah pernah melamar untuk lowongan ini sebelumnya pada") }} {{ $existingApplication->created_at->format("d M Y H:i") }}. {{ __("Status lamaran Anda saat ini:") }} {{ ucfirst(str_replace("_", " ", $existingApplication->status)) }}.', 'warning');
                 return;
-            }
-            
-            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            photoInput.files = dataTransfer.files;
-            
-            // Photo from camera is always valid JPEG
-            removeFieldError('photo');
-            showNotification('Foto berhasil diambil dari kamera', 'success');
-        }, 'image/jpeg', 0.8);
-        
-        captureBtn.style.display = 'none';
-        retakeBtn.style.display = 'inline-block';
-    });
+            @endif
 
-    retakeBtn.addEventListener('click', function() {
-        captureBtn.style.display = 'inline-block';
-        retakeBtn.style.display = 'none';
-        photoInput.value = '';
-        removeFieldError('photo');
-    });
+            const v = validatePrelim();
+            if (!v.isValid) { showNotification(v.errors[0] || 'Mohon lengkapi data', 'warning'); const fe = document.querySelector('.is-invalid'); if (fe) fe.scrollIntoView({behavior:'smooth', block:'center'}); return; }
 
-    // Real-time validation for CV file
-    cvInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (!file) return;
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Proses...") }}';
 
-        // First do basic validation
-        const validation = validateFile(this, 25, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
-        
-        if (!validation.valid) {
-            showFieldError('cv', validation.message);
-            showNotification(validation.message, 'warning');
-            return;
-        }
+            const payload = { name: nameInput.value.trim(), whatsapp: whatsappInput.value.trim(), _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content') };
 
-        // If it's a PDF file, check the header for corruption
-        if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const arrayBuffer = e.target.result;
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    const header = String.fromCharCode.apply(null, uint8Array.slice(0, 4));
-                    
-                    // PDF files should start with %PDF
-                    if (!header.startsWith('%PDF')) {
-                        showFieldError('cv', 'File PDF tidak valid atau corrupt. Pastikan file adalah PDF yang benar.');
-                        showNotification('File PDF tidak valid atau corrupt. Silakan pilih file PDF yang benar.', 'warning');
-                        cvInput.value = ''; // Clear the invalid file
-                        return;
+            fetch('/jobs/{{ $jobVacancy->unique_code }}/apply-prelim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // store pending ids so finalize step can pick them up
+                    sessionStorage.setItem('pending_application_id', data.application_id);
+                    sessionStorage.setItem('pending_applicant_id', data.applicant_id);
+
+                    showNotification('Data awal berhasil disimpan. Mengarahkan ke tes...', 'success');
+                    // redirect to existing test route provided by backend
+                    if (data.start_test_url) {
+                        setTimeout(() => { window.location.href = data.start_test_url; }, 600);
                     } else {
-                        // PDF header is valid
-                        removeFieldError('cv');
-                    }
-                } catch (error) {
-                    console.error('Error reading PDF header:', error);
-                    showFieldError('cv', 'Tidak dapat membaca file. Pastikan file tidak corrupt.');
-                    showNotification('Tidak dapat membaca file. Pastikan file tidak corrupt.', 'warning');
-                }
-            };
-            reader.onerror = function() {
-                showFieldError('cv', 'Error membaca file. Pastikan file tidak corrupt.');
-                showNotification('Error membaca file. Pastikan file tidak corrupt.', 'warning');
-            };
-            reader.readAsArrayBuffer(file.slice(0, 4)); // Only read first 4 bytes
-        } else {
-            // Not a PDF, just use normal validation
-            removeFieldError('cv');
-        }
-    });
-
-    // Real-time validation for Photo file
-    photoInput.addEventListener('change', function() {
-        const validation = validateFile(this, 1, ['image/jpeg', 'image/png', 'image/jpg', 'jpg', 'jpeg', 'png'], 'Foto');
-        if (validation.valid) {
-            removeFieldError('photo');
-        } else {
-            showFieldError('photo', validation.message);
-            showNotification(validation.message, 'warning');
-        }
-    });
-
-    // Real-time validation for Name field
-    nameInput.addEventListener('blur', function() {
-        if (!this.value.trim()) {
-            showFieldError('name', 'Nama lengkap harus diisi');
-        } else {
-            removeFieldError('name');
-        }
-    });
-
-    // Real-time validation for WhatsApp field
-    whatsappInput.addEventListener('blur', function() {
-        const cleanedValue = this.value.replace(/\s+/g, '');
-        const whatsappRegex = /^(\+62|62|0)[0-9]{9,12}$/;
-        
-        if (!this.value.trim()) {
-            showFieldError('whatsapp', 'Nomor WhatsApp harus diisi');
-        } else {
-            // Check if it's just a prefix without number
-            if (/^(\+62|62|0)$/.test(cleanedValue) || cleanedValue.length < 10) {
-                showFieldError('whatsapp', 'Nomor WhatsApp tidak lengkap. Contoh: 08123456789, 628123456789, atau +628123456789');
-            } else if (!whatsappRegex.test(cleanedValue)) {
-                showFieldError('whatsapp', 'Format nomor WhatsApp tidak valid. Gunakan format: 08123456789, 628123456789, atau +628123456789');
-            } else {
-                removeFieldError('whatsapp');
-            }
-        }
-    });
-
-    // Form validation before submission
-    function validateForm() {
-        let isValid = true;
-        const errors = [];
-
-        // Validate name
-        if (!nameInput.value.trim()) {
-            showFieldError('name', 'Nama lengkap harus diisi');
-            errors.push('Nama lengkap harus diisi');
-            isValid = false;
-        } else {
-            removeFieldError('name');
-        }
-
-        // Validate WhatsApp
-        const cleanedWhatsapp = whatsappInput.value.replace(/\s+/g, '');
-        const whatsappRegex = /^(\+62|62|0)[0-9]{9,12}$/;
-        if (!whatsappInput.value.trim()) {
-            showFieldError('whatsapp', 'Nomor WhatsApp harus diisi');
-            errors.push('Nomor WhatsApp harus diisi');
-            isValid = false;
-        } else if (/^(\+62|62|0)$/.test(cleanedWhatsapp) || cleanedWhatsapp.length < 10) {
-            showFieldError('whatsapp', 'Nomor WhatsApp tidak lengkap');
-            errors.push('Nomor WhatsApp tidak lengkap. Contoh: 08123456789, 628123456789, atau +628123456789');
-            isValid = false;
-        } else if (!whatsappRegex.test(cleanedWhatsapp)) {
-            showFieldError('whatsapp', 'Format nomor WhatsApp tidak valid');
-            errors.push('Format nomor WhatsApp tidak valid. Gunakan format: 08123456789, 628123456789, atau +628123456789');
-            isValid = false;
-        } else {
-            removeFieldError('whatsapp');
-        }
-
-        // Validate CV
-        const cvValidation = validateFile(cvInput, 25, ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'pdf', 'doc', 'docx'], 'CV/Resume');
-        if (!cvValidation.valid) {
-            showFieldError('cv', cvValidation.message);
-            errors.push(cvValidation.message);
-            isValid = false;
-        } else {
-            removeFieldError('cv');
-        }
-
-        // Validate Photo
-        const photoValidation = validateFile(photoInput, 1, ['image/jpeg', 'image/png', 'image/jpg', 'jpg', 'jpeg', 'png'], 'Foto');
-        if (!photoValidation.valid) {
-            showFieldError('photo', photoValidation.message);
-            errors.push(photoValidation.message);
-            isValid = false;
-        } else {
-            removeFieldError('photo');
-        }
-
-        return { isValid, errors };
-    }
-
-    // Form submission
-    document.getElementById('submitApplication').addEventListener('click', function() {
-        const submitBtn = this;
-        
-        // Check if already applied
-        @if($hasExistingApplication && $existingApplication)
-            showNotification('{{ __("Anda sudah pernah melamar untuk lowongan ini sebelumnya pada") }} {{ $existingApplication->created_at->format("d M Y H:i") }}. {{ __("Status lamaran Anda saat ini:") }} {{ ucfirst(str_replace("_", " ", $existingApplication->status)) }}.', 'warning');
-            return;
-        @endif
-        
-        // Validate form before submission
-        const validation = validateForm();
-        
-        if (!validation.isValid) {
-            // Show notification with all errors
-            const errorMessage = validation.errors.length > 0 
-                ? validation.errors[0] 
-                : 'Mohon lengkapi semua field yang wajib diisi';
-            showNotification(errorMessage, 'warning');
-            
-            // Scroll to first error field
-            const firstErrorField = document.querySelector('.is-invalid');
-            if (firstErrorField) {
-                firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                firstErrorField.focus();
-            }
-            return;
-        }
-
-        const form = document.getElementById('applyForm');
-        const formData = new FormData(form);
-        
-        // Show loading
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Mengirim...") }}';
-        
-        fetch('/jobs/{{ $jobVacancy->unique_code }}/apply', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => {
-            // Check if response is JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                return response.text().then(text => {
-                    throw new Error('Response is not JSON: ' + text);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                currentApplicantId = data.applicant_id;
-                showNotification('{{ __("Lamaran berhasil dikirim!") }}', 'success');
-                $('#applyModal').modal('hide');
-                
-                // Check if user is already logged in
-                @auth
-                    // User is logged in, redirect to thank you page directly
-                    setTimeout(() => {
-                        window.location.href = '{{ route("jobs.thank-you", ":applicant_id") }}'.replace(':applicant_id', currentApplicantId);
-                    }, 1000);
-                @else
-                    // User is not logged in, show social login modal
-                    setTimeout(() => {
-                        $('#socialLoginModal').modal('show');
-                    }, 1000);
-                @endauth
-            } else {
-                // Check if it's a duplicate application error
-                if (data.duplicate) {
-                    const duplicateMsg = data.message || '{{ __("Anda sudah pernah melamar untuk lowongan ini sebelumnya.") }}';
-                    if (data.existing_application) {
-                        showNotification(duplicateMsg + ' {{ __("Lamaran sebelumnya dibuat pada") }}: ' + data.existing_application.created_at + '. {{ __("Status") }}: ' + data.existing_application.status, 'warning');
-                    } else {
-                        showNotification(duplicateMsg, 'warning');
+                        // no test package available — show finalize modal directly
+                        setTimeout(() => {
+                            const finalizeModal = new bootstrap.Modal(document.getElementById('finalizeModal'));
+                            document.getElementById('finalize_application_id').value = data.application_id;
+                            finalizeModal.show();
+                        }, 600);
                     }
                 } else {
-                    const errorMsg = data.message || data.errors || '{{ __("Error mengirim lamaran") }}';
-                    showNotification(errorMsg, 'danger');
+                    showNotification(data.message || 'Error saat menyimpan data awal', 'danger');
                 }
-                
-                // Show field errors if any
-                if (data.errors) {
-                    Object.keys(data.errors).forEach(field => {
-                        const fieldId = field.replace('_', '');
-                        const fieldElement = document.getElementById(fieldId);
-                        if (fieldElement) {
-                            showFieldError(fieldId, data.errors[field][0]);
-                        }
-                    });
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('{{ __("Terjadi kesalahan saat mengirim lamaran. Silakan coba lagi.") }}', 'danger');
-        })
-        .finally(() => {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '{{ __("Kirim Lamaran") }}';
+            })
+            .catch(err => { console.error(err); showNotification('{{ __("Terjadi kesalahan. Silakan coba lagi.") }}', 'danger'); })
+            .finally(() => { btn.disabled = false; btn.innerHTML = '{{ __("Mulai Test Screening") }}'; });
         });
-    });
+    }
 
-    // Social login
+    // Check if page opened after test completion: look for query param after_test=1 and application_id
+    function getQueryParam(name) { const params = new URLSearchParams(window.location.search); return params.get(name); }
+    const afterTest = getQueryParam('after_test');
+    const returnedAppId = getQueryParam('application_id') || sessionStorage.getItem('pending_application_id');
+    if (afterTest === '1' && returnedAppId) {
+        // show finalize modal
+        setTimeout(() => {
+            const finalizeModal = new bootstrap.Modal(document.getElementById('finalizeModal'));
+            document.getElementById('finalize_application_id').value = returnedAppId;
+            finalizeModal.show();
+        }, 600);
+    }
+
+    // Finalize submit
+    const submitFinalizeBtn = document.getElementById('submitFinalize');
+    if (submitFinalizeBtn) {
+        submitFinalizeBtn.addEventListener('click', function() {
+            const btn = this;
+            const applicationId = document.getElementById('finalize_application_id').value || sessionStorage.getItem('pending_application_id');
+            if (!applicationId) { showNotification('Aplikasi tidak ditemukan. Mohon ulangi langkah sebelumnya.', 'warning'); return; }
+
+            // validate files
+            const cvEl = document.getElementById('cv_finalize');
+            const photoEl = document.getElementById('photo_finalize');
+            const cvV = validateFile(cvEl, 25, ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','pdf','doc','docx'], 'CV/Resume');
+            const photoV = validateFile(photoEl, 1, ['image/jpeg','image/png','image/jpg','jpg','jpeg','png'], 'Foto');
+            if (!cvV.valid) { showFieldError('cv_finalize', cvV.message); showNotification(cvV.message,'warning'); return; }
+            if (!photoV.valid) { showFieldError('photo_finalize', photoV.message); showNotification(photoV.message,'warning'); return; }
+
+            const form = new FormData();
+            form.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+            form.append('cv', cvEl.files[0]);
+            form.append('photo', photoEl.files[0]);
+
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Mengirim...") }}';
+
+            fetch('/applications/' + applicationId + '/finalize', {
+                method: 'POST',
+                body: form,
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('{{ __("Lamaran berhasil diselesaikan!") }}', 'success');
+                    // clear pending ids
+                    sessionStorage.removeItem('pending_application_id');
+                    sessionStorage.removeItem('pending_applicant_id');
+                    // hide finalize modal and show success
+                    const finalizeModalElem = document.getElementById('finalizeModal');
+                    const modal = bootstrap.Modal.getInstance(finalizeModalElem);
+                    if (modal) modal.hide();
+                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+                    successModal.show();
+                    // Optionally redirect to thank you with applicant
+                    if (data.applicant_id) {
+                        setTimeout(() => { window.location.href = '{{ route("jobs.thank-you", ":applicant_id") }}'.replace(':applicant_id', data.applicant_id); }, 1200);
+                    }
+                } else {
+                    showNotification(data.message || 'Error saat menyelesaikan lamaran', 'danger');
+                }
+            })
+            .catch(err => { console.error(err); showNotification('{{ __("Terjadi kesalahan. Silakan coba lagi.") }}', 'danger'); })
+            .finally(() => { btn.disabled = false; btn.innerHTML = '{{ __("Selesaikan Lamaran") }}'; });
+        });
+    }
+
+    // Social login buttons keep previous behaviour
     document.getElementById('googleLoginBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        // Set flag to show apply modal after login
-        sessionStorage.setItem('showApplyModalAfterLogin', 'true');
-        window.location.href = '{{ route("auth.google") }}';
+        e.preventDefault(); sessionStorage.setItem('showApplyModalAfterLogin', 'true'); window.location.href = '{{ route("auth.google") }}';
     });
-
     document.getElementById('linkedinLoginBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        // Set flag to show apply modal after login
-        sessionStorage.setItem('showApplyModalAfterLogin', 'true');
-        window.location.href = '{{ route("auth.linkedin") }}';
+        e.preventDefault(); sessionStorage.setItem('showApplyModalAfterLogin', 'true'); window.location.href = '{{ route("auth.linkedin") }}';
     });
 
-    // Check if should show apply modal after login
     if (sessionStorage.getItem('showApplyModalAfterLogin') === 'true') {
         sessionStorage.removeItem('showApplyModalAfterLogin');
         const isLoggedIn = @json(auth()->check());
-        if (isLoggedIn) {
-            // User just logged in, show apply modal
-            setTimeout(() => {
-                const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
-                applyModal.show();
-            }, 500);
-        }
+        if (isLoggedIn) { setTimeout(() => { const applyModal = new bootstrap.Modal(document.getElementById('applyModal')); applyModal.show(); }, 500); }
     }
 
-    // Cleanup camera and reset form on modal close
+    // Cleanup and reset handlers for modals
     $('#applyModal').on('hidden.bs.modal', function() {
-        stopCamera();
-        
-        // Reset form
-        document.getElementById('applyForm').reset();
-        
-        // Remove all field errors
-        document.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
-        });
-        document.querySelectorAll('.field-error').forEach(error => {
-            error.remove();
-        });
-        
-        // Remove notifications
-        document.querySelectorAll('.form-notification').forEach(notif => {
-            notif.remove();
-        });
+        // nothing special to cleanup for prelim
+        document.getElementById('applyFormPrelim').reset();
+        document.querySelectorAll('.is-invalid').forEach(f => f.classList.remove('is-invalid'));
+        document.querySelectorAll('.field-error').forEach(e => e.remove());
+        document.querySelectorAll('.form-notification').forEach(n => n.remove());
     });
 
-    // Reset form when modal opens
-    $('#applyModal').on('show.bs.modal', function() {
-        // Remove any existing errors
-        document.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
-        });
-        document.querySelectorAll('.field-error').forEach(error => {
-            error.remove();
-        });
+    $('#finalizeModal').on('hidden.bs.modal', function() {
+        stopCameraFinalize();
+        document.getElementById('finalizeForm').reset();
+        document.querySelectorAll('.is-invalid').forEach(f => f.classList.remove('is-invalid'));
+        document.querySelectorAll('.field-error').forEach(e => e.remove());
+        document.querySelectorAll('.form-notification').forEach(n => n.remove());
     });
 
-    // Highlight pre-filled fields
     @auth
         @if($applicant || $user)
-            document.addEventListener('DOMContentLoaded', function() {
-                const preFilledFields = ['name', 'whatsapp'];
-                preFilledFields.forEach(function(fieldId) {
-                    const field = document.getElementById(fieldId);
-                    if (field && field.value) {
-                        field.classList.add('pre-filled');
-                        // Add a subtle animation
-                        field.style.transition = 'all 0.3s ease';
-                        setTimeout(() => {
-                            field.style.backgroundColor = '#f8f9fa';
-                            field.style.borderColor = '#28a745';
-                        }, 100);
-                    }
-                });
+            const preFilledFields = ['name', 'whatsapp'];
+            preFilledFields.forEach(function(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (field && field.value) {
+                    field.classList.add('pre-filled');
+                    field.style.transition = 'all 0.3s ease';
+                    setTimeout(() => { field.style.backgroundColor = '#f8f9fa'; field.style.borderColor = '#28a745'; }, 100);
+                }
             });
         @endif
     @endauth

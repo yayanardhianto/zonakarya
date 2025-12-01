@@ -1155,32 +1155,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function completeTest() {
+        console.log('=== completeTest() called ===');
         // Save final answer first
         autoSave().then(() => {
+            console.log('=== autoSave complete, calling test.complete endpoint ===');
             // Submit completion after saving
-        fetch('{{ route("test.complete", $session) }}?token={{ request('token') }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-            })
+            const completeUrl = '{{ route("test.complete", $session) }}?token={{ request('token') }}';
+            console.log('complete() endpoint URL:', completeUrl);
+            return fetch(completeUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('=== test.complete response received ===', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('=== test.complete JSON parsed ===', data);
+            console.log('Response data.success:', data.success);
+            console.log('Response data.redirect:', data.redirect);
             if (data.success) {
                 if (data.redirect) {
+                    console.log('=== Redirecting to ===', data.redirect);
                     window.location.href = data.redirect;
                 } else {
-                    window.location.href = '{{ route("test.result", $session) }}?token={{ request('token') }}';
+                    console.log('=== No redirect in response, using fallback ===');
+                    const fallbackUrl = '{{ route("test.result", $session) }}?token={{ request('token') }}';
+                    console.log('=== Fallback redirect ===', fallbackUrl);
+                    window.location.href = fallbackUrl;
                 }
+            } else {
+                console.error('test.complete returned success: false', data.message);
             }
         })
         .catch(error => {
-            console.error('Complete test error:', error);
+            console.error('=== Complete test error ===:', error);
             // Fallback redirect
-            window.location.href = '{{ route("test.result", $session) }}?token={{ request('token') }}';
+            const errorFallback = '{{ route("test.result", $session) }}?token={{ request('token') }}';
+            console.log('=== Error fallback redirect ===', errorFallback);
+            window.location.href = errorFallback;
         });
     }
     

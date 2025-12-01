@@ -30,12 +30,24 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label>{{ __('Status') }}</label>
+                                    <select name="status" id="quickStatusSelect" class="form-select" onchange="onQuickStatusChange(this)">
+                                        <option value="" {{ request('status') == '' ? 'selected' : '' }}>{{ __('All') }}</option>
+                                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>{{ __('Pending') }}</option>
+                                        <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>{{ __('Rejected') }}</option>
+                                    </select>
+                                </div>  
+                            </div>  
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>{{ __('Search') }}</label>
-                                    <input type="text" name="search" class="form-control" 
-                                           value="{{ request('search') }}" 
-                                           placeholder="{{ __('Search by name, email, or phone') }}">
+                                    <div class="d-flex" style="gap:8px; align-items:center;">
+                                        <input type="text" name="search" class="form-control" 
+                                               value="{{ request('search') }}" 
+                                               placeholder="{{ __('Search by name, email, or phone') }}">
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-2">
@@ -48,10 +60,98 @@
                             </div>
                         </div>
                     </form>
+
+                    @php
+                        $allCount = isset($applications) && method_exists($applications, 'total') ? $applications->total() : (isset($statusCounts) ? array_sum($statusCounts) : 0);
+                        $pendingCount = $statusCounts['pending'] ?? 0;
+                        $rejectedCount = $statusCounts['rejected'] ?? 0;
+                    @endphp
+
                 </div>
             </div>
 
+            @php
+            @endphp
+            @if(isset($statusCounts) || isset($applications))
+                @if(!request('status') || request('status') == '')
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm p-2 rounded mw-220">
+                                <div class="card-body d-flex p-2">
+                                    <div class="me-3">
+                                        <i class="ki-solid ki-document text-success fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-normal fs-7">{{ __('Total Applications') }}</h6>
+                                        <div class="fs-4 fw-bold text-success">{{ $allCount }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @elseif(request('status') == 'pending')
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm p-2 rounded mw-220">
+                                <div class="card-body d-flex p-2">
+                                    <div class="me-3">
+                                        <i class="ki-solid ki-cloud-download text-warning fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-normal fs-7">{{ __('Pending') }}</h6>
+                                        <div class="fs-4 fw-bold text-warning">{{ $pendingCount }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @elseif(request('status') == 'rejected')
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <div class="card border-0 shadow-sm p-2 rounded mw-220">
+                                <div class="card-body d-flex p-2">
+                                    <div class="me-3">
+                                        <i class="ki-solid ki-cross-circle text-danger fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1 fw-normal fs-7">{{ __('Rejected') }}</h6>
+                                        <div class="fs-4 fw-bold text-danger">{{ $rejectedCount }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @endif
+
             <!-- Applicants Table -->
+
+            <script>
+                function onQuickStatusChange(el){
+                    try{
+                        var val = el.value;
+                        var url = new URL(window.location.href);
+                        if(!val){
+                            url.searchParams.delete('status');
+                        } else {
+                            url.searchParams.set('status', val);
+                        }
+                        // keep other params (search, job_vacancy_id)
+                        window.location.href = url.toString();
+                    } catch(e){
+                        // fallback: submit the current form with status param
+                        var form = document.querySelector('form[action="{{ route('admin.applicants.index') }}"]');
+                        if(form){
+                            var input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'status';
+                            input.value = el.value;
+                            form.appendChild(input);
+                            form.submit();
+                        }
+                    }
+                }
+            </script>
             <div class="card">
                 <div class="card-header">
                     <div class="w-100">
@@ -70,96 +170,84 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="btn-group status-filter-tabs" role="group" aria-label="Status Filter">
-                                <a href="{{ request()->fullUrlWithQuery(['status' => '']) }}" 
-                                class="btn {{ !request('status') ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
-                                    {{ __('All') }}
-                                </a>
-                                <a href="{{ request()->fullUrlWithQuery(['status' => 'pending']) }}" 
-                                class="btn {{ request('status') == 'pending' ? 'btn-warning' : 'btn-outline-warning' }} btn-sm">
-                                    {{ __('Pending') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['pending'] ?? 0 }}</span>
-                                    @endif
-                                </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'sent']) }}" 
-                                class="btn {{ request('status') == 'sent' ? 'btn-info' : 'btn-outline-info' }} btn-sm">
+                                class="btn {{ request('status') == 'sent' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Test Screening') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['sent'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'sent' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['sent'] ?? 0 }}</span>
                                     @endif
                                 </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'check']) }}" 
-                                class="btn {{ request('status') == 'check' ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
+                                class="btn {{ request('status') == 'check' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Check') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['check'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'check' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['check'] ?? 0 }}</span>
                                     @endif
                                 </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'short_call']) }}" 
-                                class="btn {{ request('status') == 'short_call' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
+                                class="btn {{ request('status') == 'short_call' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Short Call') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['short_call'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'short_call' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['short_call'] ?? 0 }}</span>
                                     @endif
                                 </a>
-                                <a href="{{ request()->fullUrlWithQuery(['status' => 'individual_interview']) }}" 
-                                class="btn {{ request('status') == 'individual_interview' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
-                                    {{ __('Individual Interview') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['individual_interview'] ?? 0 }}</span>
-                                    @endif
-                                </a>
-                                <a href="{{ request()->fullUrlWithQuery(['status' => 'group_interview']) }}" 
-                                class="btn {{ request('status') == 'group_interview' ? 'btn-info' : 'btn-outline-info' }} btn-sm">
-                                    {{ __('Group Interview') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['group_interview'] ?? 0 }}</span>
+                                @php
+                                    $individualCount = $statusCounts['individual_interview'] ?? 0;
+                                    $groupCount = $statusCounts['group_interview'] ?? 0;
+                                    $interviewTotal = $individualCount + $groupCount;
+                                    $isInterviewActive = request('status') == 'individual_interview' || request('status') == 'group_interview';
+                                @endphp
+                                <a href="{{ request()->fullUrlWithQuery(['status' => 'individual_interview']) }}"
+                                   class="btn {{ $isInterviewActive ? 'btn-danger' : 'btn-light' }} btn-sm">
+                                    {{ __('Interview') }}
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ $isInterviewActive ? 'badge-white' : 'badge-dark' }} ml-1">{{ $interviewTotal }}</span>
                                     @endif
                                 </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'test_psychology']) }}" 
-                                class="btn {{ request('status') == 'test_psychology' ? 'btn-secondary' : 'btn-outline-secondary' }} btn-sm">
+                                class="btn {{ request('status') == 'test_psychology' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Test Psychology') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['test_psychology'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'test_psychology' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['test_psychology'] ?? 0 }}</span>
                                     @endif
                                 </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'ojt']) }}" 
-                                class="btn {{ request('status') == 'ojt' ? 'btn-dark' : 'btn-outline-dark' }} btn-sm">
+                                class="btn {{ request('status') == 'ojt' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('OJT') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['ojt'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'ojt' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['ojt'] ?? 0 }}</span>
                                     @endif
                                 </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'final_interview']) }}" 
-                                class="btn {{ request('status') == 'final_interview' ? 'btn-primary' : 'btn-outline-primary' }} btn-sm">
+                                class="btn {{ request('status') == 'final_interview' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Final Interview') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['final_interview'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'final_interview' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['final_interview'] ?? 0 }}</span>
                                     @endif
                                 </a>
                                 <a href="{{ request()->fullUrlWithQuery(['status' => 'sent_offering_letter']) }}" 
-                                class="btn {{ request('status') == 'sent_offering_letter' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
+                                class="btn {{ request('status') == 'sent_offering_letter' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Sent Offering Letter') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['sent_offering_letter'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'sent_offering_letter' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['sent_offering_letter'] ?? 0 }}</span>
                                     @endif
                                 </a>
                                 <!-- <a href="{{ request()->fullUrlWithQuery(['status' => 'onboard']) }}" 
-                                class="btn {{ request('status') == 'onboard' ? 'btn-success' : 'btn-outline-success' }} btn-sm">
+                                class="btn {{ request('status') == 'onboard' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Onboard') }}
                                 </a> -->
-                                <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected']) }}" 
-                               class="btn {{ request('status') == 'rejected' ? 'btn-danger' : 'btn-outline-danger' }} btn-sm">
+                                <!-- <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected']) }}" 
+                               class="btn {{ request('status') == 'rejected' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Rejected/Recycle Bin') }}
-                                    @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['rejected'] ?? 0 }}</span>
+                                    @if(isset($statusCounts) || isset($applications))
+                                        <span class="badge {{ request('status') == 'rejected' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['rejected'] ?? 0 }}</span>
                                     @endif
-                                </a>
+                                </a> -->
                                 <!-- <a href="{{ request()->fullUrlWithQuery(['status' => 'rejected_by_applicant']) }}" 
-                                class="btn {{ request('status') == 'rejected_by_applicant' ? 'btn-danger' : 'btn-outline-danger' }} btn-sm">
+                                class="btn {{ request('status') == 'rejected_by_applicant' ? 'btn-danger' : 'btn-light' }} btn-sm">
                                     {{ __('Rejected by Applicant') }}
                                     @if(request('job_vacancy_id') && isset($statusCounts))
-                                        <span class="badge badge-light ml-1">{{ $statusCounts['rejected_by_applicant'] ?? 0 }}</span>
+                                        <span class="badge {{ request('status') == 'rejected_by_applicant' ? 'badge-white' : 'badge-dark' }} ml-1">{{ $statusCounts['rejected_by_applicant'] ?? 0 }}</span>
                                     @endif
                                 </a> -->
                             </div>
@@ -208,7 +296,7 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>{{ $application->user->email ?? $application->applicant->email }}</td>
+                                        <td style="max-width:240px;">{{ $application->user->email ?? $application->applicant->email }}</td>
                                         <td>
                                             {{ $application->applicant->phone }}
                                             @if($application->applicant->whatsapp && $application->applicant->whatsapp != $application->applicant->phone)
@@ -259,11 +347,21 @@
                                                                     <i class="fas fa-chart-line me-2"></i>{{ __('View Screening Test Result') }}
                                                                 </a>
                                                             </li>
-                                                @endif
+                                                        @endif
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li>
                                                             <a class="dropdown-item" href="#" onclick="showNextStepModal({{ $application->applicant->id }}, {{ $application->id }})">
-                                                                <i class="fas fa-arrow-right me-2"></i>{{ __('Next Step') }}
+                                                                <i class="fas fa-phone me-2"></i>{{ __('Next Step - Short Call') }}
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="#" onclick="showIndividualInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                <i class="fas fa-user me-2"></i>{{ __('Next Step - Individual Interview') }}
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="#" onclick="showGroupInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
+                                                                <i class="fas fa-users me-2"></i>{{ __('Next Step - Group Interview') }}
                                                             </a>
                                                         </li>
                                                         <li>
@@ -299,19 +397,6 @@
                                                             </a>
                                                         </li>
                                                     @elseif($application->status == 'individual_interview')
-                                                        @php
-                                                            $hasGroupInterview = $application->applicant->applications()
-                                                                ->where('status', 'group_interview')
-                                                                ->where('id', '!=', $application->id)
-                                                                ->exists();
-                                                        @endphp
-                                                        @if(!$hasGroupInterview)
-                                                            <li>
-                                                                <a class="dropdown-item" href="#" onclick="showGroupInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
-                                                                    <i class="fas fa-users me-2"></i>{{ __('Next Step - Group Interview') }}
-                                                                </a>
-                                                            </li>
-                                                        @endif
                                                         <li>
                                                             <a class="dropdown-item" href="#" onclick="showTestPsychologyModal({{ $application->applicant->id }}, {{ $application->id }})">
                                                                 <i class="fas fa-brain me-2"></i>{{ __('Next Step - Test Psychology') }}
@@ -328,19 +413,6 @@
                                                             </a>
                                                         </li>
                                                     @elseif($application->status == 'group_interview')
-                                                        @php
-                                                            $hasIndividualInterview = $application->applicant->applications()
-                                                                ->where('status', 'individual_interview')
-                                                                ->where('id', '!=', $application->id)
-                                                                ->exists();
-                                                        @endphp
-                                                        @if(!$hasIndividualInterview)
-                                                            <li>
-                                                                <a class="dropdown-item" href="#" onclick="showIndividualInterviewModal({{ $application->applicant->id }}, {{ $application->id }})">
-                                                                    <i class="fas fa-user me-2"></i>{{ __('Next Step - Individual Interview') }}
-                                                                </a>
-                                                            </li>
-                                                        @endif
                                                         <li>
                                                             <a class="dropdown-item" href="#" onclick="showTestPsychologyModal({{ $application->applicant->id }}, {{ $application->id }})">
                                                                 <i class="fas fa-brain me-2"></i>{{ __('Next Step - Test Psychology') }}
@@ -1157,7 +1229,9 @@
 .badge {
     font-size: 0.75rem;
 }
-
+.mw-220 {
+    max-width: 220px;
+}
 .badge-light {
     background-color: #f8f9fa;
     color: #495057;
@@ -1195,7 +1269,7 @@
 .status-filter-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 6px;
 }
 
 .status-filter-tabs .btn {
@@ -1963,7 +2037,7 @@ function sendGroupInterview() {
                 }
                 
                 // Create WhatsApp URL
-                const phoneNumber = data.applicant.whatsapp.replace(/[^0-9]/g, '');
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
                 const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
                 
                 // Open WhatsApp in new tab
@@ -2165,7 +2239,7 @@ function processRejectSaveTalent() {
                 });
                 
                 // Create WhatsApp URL
-                const phoneNumber = data.applicant.whatsapp.replace(/[^0-9]/g, '');
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
                 const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
                 
                 // Open WhatsApp in new tab
@@ -2716,7 +2790,7 @@ function sendOjt() {
                 }
                 
                 // Create WhatsApp URL
-                const phoneNumber = data.applicant.whatsapp.replace(/[^0-9]/g, '');
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
                 const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
                 
                 // Open WhatsApp in new tab
@@ -2933,7 +3007,7 @@ function sendFinalInterview() {
                 }
                 
                 // Create WhatsApp URL
-                const phoneNumber = data.applicant.whatsapp.replace(/[^0-9]/g, '');
+                const phoneNumber = normalizePhoneNumber(data.applicant.whatsapp);
                 const whatsappUrl = `https://api.whatsapp.com/send/?phone=${phoneNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
                 
                 // Open WhatsApp in new tab
