@@ -811,7 +811,7 @@
 
     function validateFileFinalize(file, type) {
         const cvMaxSize = 25 * 1024 * 1024; // 25MB
-        const photoMaxSize = 1 * 1024 * 1024; // 1MB
+        const photoMaxSize = 5 * 1024 * 1024; // 5MB
         
         if (type === 'cv') {
             const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -830,7 +830,7 @@
                 return false;
             }
             if (file.size > photoMaxSize) {
-                alert('{{ __("Ukuran foto tidak boleh lebih dari 1MB") }}');
+                alert('{{ __("Ukuran foto tidak boleh lebih dari 5MB") }}');
                 return false;
             }
         }
