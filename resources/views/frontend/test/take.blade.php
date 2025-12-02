@@ -1291,10 +1291,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Prevent right-click and copy-paste
-    // document.addEventListener('contextmenu', function(e) {
-    //     e.preventDefault();
-    // });
+    document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+    });
     
     // document.addEventListener('keydown', function(e) {
     //     // Disable F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
