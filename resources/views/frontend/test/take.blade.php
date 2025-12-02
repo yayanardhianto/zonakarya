@@ -11,8 +11,18 @@
         <div id="start-screen" class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header text-center bg-primary text-white">
-                        <h3 class="mb-0 text-white">{{ __('Siap Memulai Tes?') }}</h3>
+                    <div class="card-header text-center bg-primary text-white p-5 mb-3">
+                            @if(isset($session) && ($session->applicant || ($session->package && ($session->package->is_applicant_flow ?? false) || ($session->package->is_screening_test ?? false))))
+                            <h4 class="mb-0 text-white">
+
+                                {{ __('Hi, Selamat Datang di Test Screening General, PT Zona Karya Nusantara. Sebelum melanjutkan mengisi Profile dan mengupload CV, silahkan lakukan terlebih dahulu test ini sampai selesai. Semangat, Semoga Sukses!') }}
+                            </h4>
+                            @else
+                            <h3 class="mb-0 text-white">
+                                {{ __('Siap Memulai Tes?') }}
+                            </h3>
+                            @endif
+                        </h3>
                     </div>
                     <div class="card-body text-center">
                         <div class="mb-4">
