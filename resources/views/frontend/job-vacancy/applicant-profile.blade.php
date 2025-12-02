@@ -46,7 +46,7 @@
                         <div class="mb-3">
                             <label for="photo" class="form-label">{{ __('Foto') }} <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
-                            <small class="form-text text-muted">{{ __('Format yang diterima: JPG, PNG (Maks: 1MB)') }}</small>
+                            <small class="form-text text-muted">{{ __('Format yang diterima: JPG, PNG (Maks: 5MB)') }}</small>
                         </div>
 
                         <div class="d-flex justify-content-end align-items-center">
