@@ -463,6 +463,84 @@
 @push('js')
 <script>
 console.log('Script loaded');
+
+// ===== BACK PREVENTION WITH TOAST ALERT (Run Immediately) =====
+// Strategy: Keep pushing state to make history buffer full, preventing back navigation
+(function() {
+    console.log('Initializing back prevention...');
+    
+    // Toast notification function for test page
+    function showTestToast(message, type = 'warning') {
+        console.log('Showing toast:', message);
+        // Remove existing toast if any
+        const existing = document.querySelector('.test-toast-notification');
+        if (existing) existing.remove();
+
+        // Wait for DOM to be ready before creating element
+        if (!document.body) {
+            setTimeout(() => createToast(), 100);
+            return;
+        }
+        createToast();
+        
+        function createToast() {
+            try {
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type} test-toast-notification alert-dismissible fade show`;
+                toast.setAttribute('role', 'alert');
+                toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+                
+                const icon = type === 'warning' ? 'fa-exclamation-triangle' : (type === 'success' ? 'fa-check-circle' : 'fa-times-circle');
+                toast.innerHTML = `
+                    <i class="fas ${icon} me-2"></i>
+                    <span>${message}</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                document.body.appendChild(toast);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.classList.remove('show');
+                        setTimeout(() => {
+                            if (toast.parentNode) toast.remove();
+                        }, 150);
+                    }
+                }, 5000);
+            } catch (err) {
+                console.error('Error creating toast:', err);
+            }
+        }
+    }
+
+    // Store that we're on test page
+    window.isOnTestPage = true;
+    window.testSessionId = '{{ $session->id }}';
+    
+    // STRATEGY 1: Fill browser history with dummy entries
+    // This makes it impossible to back out by filling up the history stack
+    for (let i = 0; i < 10; i++) {
+        history.pushState({test: true, index: i}, null, window.location.href);
+    }
+    console.log('Filled history stack with 10 entries');
+
+    // STRATEGY 2: Listen for popstate and immediately push back
+    window.addEventListener('popstate', function(e) {
+        console.log('Popstate event detected');
+        
+        // Show toast warning
+        showTestToast('{{ __("Selesaikan terlebih dahulu Test Anda. Jika belum menyelesaikan test dan keluar dari halaman ini, maka Anda tidak bisa melamar kembali pada posisi yang sama.") }}', 'warning');
+        
+        // Immediately push state back to prevent navigation
+        history.pushState({test: true}, null, window.location.href);
+        console.log('Pushed state back to prevent back navigation');
+    }, false);
+
+    console.log('Back prevention initialized successfully');
+})();
+// ===== END BACK PREVENTION =====
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Test page loaded');
     let timeRemaining = {{ $session->package->getTotalDuration() }}; // Start with total duration (package or per-question)
@@ -498,7 +576,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Using full duration as fallback:', timeRemaining);
         }
     }
-    
+
+    // ===== VARIABLE DECLARATIONS =====
     const startScreen = document.getElementById('start-screen');
     const testInterface = document.getElementById('test-interface');
     const startTestBtn = document.getElementById('start-test-btn');

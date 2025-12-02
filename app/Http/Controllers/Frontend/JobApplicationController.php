@@ -884,35 +884,40 @@ class JobApplicationController extends Controller
         ]);
 
         try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'whatsapp' => 'required|string|max:20',
-            ]);
-
             $isLoggedIn = Auth::check();
             $user = $isLoggedIn ? Auth::user() : null;
 
-            // Normalize whatsapp number (basic)
-            $whatsapp = preg_replace('/[^0-9]/', '', $request->whatsapp);
-            if (substr($whatsapp, 0, 1) === '0') {
-                $whatsapp = '62' . substr($whatsapp, 1);
-            } elseif (substr($whatsapp, 0, 2) !== '62') {
-                $whatsapp = '62' . $whatsapp;
+            // Only validate name & whatsapp if not logged in
+            if (!$isLoggedIn) {
+                $request->validate([
+                    'name' => 'required|string|max:255',
+                    'whatsapp' => 'required|string|max:20',
+                ]);
             }
 
-            // Find or create applicant
+            // Create or get applicant
             $applicant = null;
+            
             if ($isLoggedIn && $user) {
+                // If logged in, create minimal applicant (name & whatsapp will be filled in profile page later)
                 $applicant = Applicant::firstOrCreate(
                     ['user_id' => $user->id],
                     [
-                        'name' => $request->name,
-                        'email' => $user->email ?? null,
-                        'whatsapp' => $whatsapp,
+                        'name' => $user->name ?? 'Applicant',
+                        'email' => $user->email,
+                        'whatsapp' => '',
                         'status' => 'pending',
                     ]
                 );
             } else {
+                // Not logged in - must provide name & whatsapp
+                $whatsapp = preg_replace('/[^0-9]/', '', $request->whatsapp);
+                if (substr($whatsapp, 0, 1) === '0') {
+                    $whatsapp = '62' . substr($whatsapp, 1);
+                } elseif (substr($whatsapp, 0, 2) !== '62') {
+                    $whatsapp = '62' . $whatsapp;
+                }
+
                 $applicant = Applicant::firstOrCreate(
                     ['whatsapp' => $whatsapp],
                     [
@@ -921,6 +926,27 @@ class JobApplicationController extends Controller
                         'status' => 'pending',
                     ]
                 );
+            }
+
+            // CHECK: Prevent duplicate application for same job vacancy
+            // Check if applicant already has an application for this job
+            $existingApplication = Application::where('applicant_id', $applicant->id)
+                ->where('job_vacancy_id', $jobVacancy->id)
+                ->first();
+
+            if ($existingApplication) {
+                \Log::warning('Job Application: Duplicate application attempt', [
+                    'applicant_id' => $applicant->id,
+                    'job_vacancy_id' => $jobVacancy->id,
+                    'existing_application_id' => $existingApplication->id,
+                ]);
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah melamar di posisi ini sebelumnya. Tidak boleh melamar lebih dari sekali untuk posisi yang sama.',
+                    'error' => 'duplicate_application',
+                    'existing_application_id' => $existingApplication->id,
+                ], 409);
             }
 
             // Create application with status 'check' (preliminary)
@@ -997,6 +1023,8 @@ class JobApplicationController extends Controller
 
         try {
             $request->validate([
+                'name' => 'required|string|max:255',
+                'whatsapp' => 'required|string|max:20',
                 'cv' => 'required|file|mimes:pdf,doc,docx|max:25600',
                 'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024',
             ]);
@@ -1004,6 +1032,22 @@ class JobApplicationController extends Controller
             $applicant = $application->applicant;
             if (!$applicant) {
                 return response()->json(['success' => false, 'message' => 'Applicant not found'], 404);
+            }
+
+            // Update name and whatsapp
+            if ($request->has('name') && $request->name) {
+                $applicant->name = $request->name;
+            }
+            
+            if ($request->has('whatsapp') && $request->whatsapp) {
+                // Normalize WhatsApp number
+                $whatsapp = preg_replace('/[^0-9]/', '', $request->whatsapp);
+                if (substr($whatsapp, 0, 1) === '0') {
+                    $whatsapp = '62' . substr($whatsapp, 1);
+                } elseif (substr($whatsapp, 0, 2) !== '62') {
+                    $whatsapp = '62' . $whatsapp;
+                }
+                $applicant->whatsapp = $whatsapp;
             }
 
             // Handle uploads
@@ -1028,12 +1072,72 @@ class JobApplicationController extends Controller
 
             $application->update(['status' => 'check']);
 
+            \Log::info('Job Application: Application finalized successfully', [
+                'application_id' => $application->id,
+                'applicant_id' => $applicant->id,
+                'applicant_name' => $applicant->name,
+                'applicant_whatsapp' => $applicant->whatsapp,
+            ]);
+
             return response()->json(['success' => true, 'message' => 'Application finalized', 'applicant_id' => $applicant->id]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['success' => false, 'errors' => $e->errors(), 'message' => 'Validation error'], 422);
         } catch (\Exception $e) {
             \Log::error('Job Application: finalizeApplication error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'application_id' => $application->id]);
             return response()->json(['success' => false, 'message' => 'Error finalizing application'], 500);
+        }
+    }
+
+    /**
+     * Show applicant profile page after completing test.
+     * This page replaces the previous finalize modal and prevents accidental back navigation.
+     */
+    public function showProfile(Application $application)
+    {
+        try {
+            $application->load(['applicant', 'jobVacancy']);
+            $job = $application->jobVacancy;
+            $applicant = $application->applicant;
+
+            return view('frontend.job-vacancy.applicant-profile', compact('application', 'job', 'applicant'));
+        } catch (\Exception $e) {
+            \Log::error('Job Application: showProfile error', ['error' => $e->getMessage(), 'application_id' => $application->id]);
+            abort(404);
+        }
+    }
+
+    /**
+     * Get latest application for an applicant (API endpoint)
+     */
+    public function getLatestApplicationForApplicant(Applicant $applicant)
+    {
+        try {
+            $application = Application::where('applicant_id', $applicant->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$application) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No application found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'application_id' => $application->id,
+                'status' => $application->status,
+                'created_at' => $application->created_at
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: getLatestApplicationForApplicant error', [
+                'error' => $e->getMessage(),
+                'applicant_id' => $applicant->id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error retrieving application'
+            ], 500);
         }
     }
 }

@@ -276,16 +276,16 @@
                                             <div class="d-flex align-items-center">
                                                 @if($application->user && $application->user->avatar)
                                                     <img src="{{ $application->user->avatar }}" 
-                                                         alt="{{ $application->user->name }}" 
+                                                         alt="{{ $application->applicant->name ?? $application->user->name }}" 
                                                          class="rounded-circle me-2" 
                                                          width="36" height="36">
                                                 @else
                                                     <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
-                                                        {{ substr($application->user->name ?? $application->applicant->name, 0, 1) }}
+                                                        {{ substr($application->applicant->name ?? $application->user->name, 0, 1) }}
                                                     </div>
                                                 @endif
                                                 <div>
-                                                    <strong>{{ $application->user->name ?? $application->applicant->name }}</strong>
+                                                    <strong>{{ $application->applicant->name ?? $application->user->name }}</strong>
                                                     @if($application->applicant->provider)
                                                         <br>
                                                         <small class="text-muted">

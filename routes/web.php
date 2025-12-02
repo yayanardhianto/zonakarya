@@ -75,6 +75,9 @@ Route::post('jobs/{jobVacancy}/apply-prelim', [\App\Http\Controllers\Frontend\Jo
 Route::post('applications/{application}/finalize', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'finalizeApplication'])->name('applications.finalize');
 Route::post('applications/complete-registration', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'completeRegistration'])->name('applications.complete-registration');
 
+// Applicant profile page (replaces finalize modal after test)
+Route::get('applications/{application}/profile', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'showProfile'])->name('applications.profile');
+
 // Applicant Status Routes
 Route::get('applicant/status', [\App\Http\Controllers\Frontend\ApplicantController::class, 'status'])->name('applicant.status');
 

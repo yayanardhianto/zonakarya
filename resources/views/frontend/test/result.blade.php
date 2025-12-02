@@ -592,251 +592,46 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
     console.log('=== Result page loaded ===');
-    // Only show finalize modal if redirected here right after completing the test
-    const urlParams = new URLSearchParams(window.location.search);
-    const finalize = urlParams.get('finalize');
-    console.log('URL finalize param:', finalize);
-    console.log('Full URL:', window.location.href);
-
     // Check if this is a screening test with an applicant
     const isScreeningTest = {{ $session->package->is_screening_test ? 'true' : 'false' }};
     const applicantId = {{ $session->applicant_id ?? 'null' }};
-    // Server-side flash flag in case redirect lost the ?finalize param
-    const showFinalizeFlash = {{ session()->has('show_finalize') ? 'true' : 'false' }};
-    // Check sessionStorage flag set on first modal trigger (survives refresh)
-    const shouldShowFinalizeFromStorage = sessionStorage.getItem('show_finalize_modal_for_session_{{ $session->id }}') === 'true';
-    console.log('shouldShowFinalizeFromStorage:', shouldShowFinalizeFromStorage);
-    let applicationId = null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const finalize = urlParams.get('finalize');
     
-    console.log('=== Modal trigger check ===');
+    console.log('=== Auto-redirect check ===');
     console.log('isScreeningTest:', isScreeningTest);
     console.log('applicantId:', applicantId);
-    console.log('showFinalizeFlash:', showFinalizeFlash);
-    console.log('finalize === "1":', finalize === '1');
-    console.log('Condition (finalize === "1" || showFinalizeFlash === "true" || shouldShowFinalizeFromStorage) && isScreeningTest:', (finalize === '1' || showFinalizeFlash === 'true' || shouldShowFinalizeFromStorage) && isScreeningTest);
+    console.log('finalize param:', finalize);
 
-    if ((finalize === '1' || showFinalizeFlash === 'true' || shouldShowFinalizeFromStorage) && isScreeningTest) {
-        console.log('=== SHOWING FINALIZE MODAL ===');
-        // Mark that we should show finalize modal for this session (survives refresh)
-        sessionStorage.setItem('show_finalize_modal_for_session_{{ $session->id }}', 'true');
-        // If we have applicantId, fetch the latest application_id
-        if (applicantId) {
-            console.log('Has applicantId, fetching latest application...');
-            fetch(`/api/applicant/${applicantId}/latest-application`)
-                .then(response => {
-                    console.log('API response status:', response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('API response data:', data);
-                    if (data.success && data.application_id) {
-                        applicationId = data.application_id;
-                        console.log('Got application_id from API:', applicationId);
-                        document.getElementById('finalize_application_id').value = applicationId;
-
-                        // Show the finalize modal
-                        console.log('Attempting to show modal...');
-                        const finalizeModal = document.getElementById('finalizeModal');
-                        console.log('finalizeModal element:', finalizeModal);
-                        if (finalizeModal) {
-                            const modal = new bootstrap.Modal(finalizeModal);
-                            modal.show();
-                            console.log('Modal shown successfully');
-                        } else {
-                            console.error('finalizeModal element not found!');
-                        }
-
-                        // Remove finalize param so modal doesn't auto-show on refresh or later visits
-                        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-                    } else {
-                        console.error('API returned unsuccessful or no application_id:', data);
-                    }
-                })
-                .catch(error => console.error('Error fetching application ID:', error));
-        } else {
-            console.log('No applicantId, checking sessionStorage or showing modal anyway...');
-            // Fallback: check sessionStorage for pending application id set during prelim apply
-            const pendingApp = sessionStorage.getItem('pending_application_id');
-            console.log('pending_application_id from sessionStorage:', pendingApp);
-            if (pendingApp) {
-                applicationId = pendingApp;
-                document.getElementById('finalize_application_id').value = applicationId;
-                console.log('Set application_id from sessionStorage:', applicationId);
-
-                const finalizeModal = document.getElementById('finalizeModal');
-                if (finalizeModal) {
-                    const modal = new bootstrap.Modal(finalizeModal);
-                    modal.show();
-                    console.log('Modal shown from sessionStorage fallback');
+    // If screening test and finalize param, redirect to applicant profile page
+    if (finalize === '1' && isScreeningTest && applicantId) {
+        console.log('=== REDIRECTING TO PROFILE PAGE ===');
+        
+        // Fetch latest application for this applicant
+        fetch(`/api/applicant/${applicantId}/latest-application`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('API response:', data);
+                if (data.success && data.application_id) {
+                    console.log('Redirecting to profile page with application_id:', data.application_id);
+                    window.location.href = `/applications/${data.application_id}/profile`;
                 } else {
-                    console.error('finalizeModal element not found!');
+                    console.error('Failed to get application_id from API:', data);
                 }
-
-                // Remove finalize param if present
-                window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-            } else {
-                // No applicantId and no pending application - still attempt to show modal (user can fill contact info)
-                console.log('No applicantId and no sessionStorage - showing modal anyway');
-                const finalizeModal = document.getElementById('finalizeModal');
-                if (finalizeModal) {
-                    const modal = new bootstrap.Modal(finalizeModal);
-                    modal.show();
-                    console.log('Modal shown (fallback)');
-                } else {
-                    console.error('finalizeModal element not found!');
+            })
+            .catch(error => {
+                console.error('Error fetching application ID:', error);
+                // Fallback: try sessionStorage
+                const pendingApp = sessionStorage.getItem('pending_application_id');
+                if (pendingApp) {
+                    console.log('Fallback: redirecting with pendingApp:', pendingApp);
+                    window.location.href = `/applications/${pendingApp}/profile`;
                 }
-
-                window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-            }
-        }
+            });
     } else {
-        console.log('Modal trigger condition NOT met:');
-        console.log('  finalize === "1":', finalize === '1');
-        console.log('  showFinalizeFlash === "true":', showFinalizeFlash === 'true');
-        console.log('  isScreeningTest:', isScreeningTest);
+        console.log('Not showing finalize - displaying test results instead');
+        // Test is complete, show results normally (no finalize needed)
     }
-
-    // Camera functionality for finalize modal
-    let cameraActiveFinalize = false;
-    let streamFinalize = null;
-
-    document.getElementById('useCameraBtnFinalize')?.addEventListener('click', function() {
-        const cameraSection = document.getElementById('cameraSectionFinalize');
-        
-        if (!cameraActiveFinalize) {
-            cameraSection.style.display = 'block';
-            cameraActiveFinalize = true;
-            
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    streamFinalize = stream;
-                    document.getElementById('cameraFinalize').srcObject = stream;
-                })
-                .catch(err => {
-                    console.error('Error accessing camera:', err);
-                    alert('{{ __('Tidak dapat mengakses kamera') }}');
-                    cameraSection.style.display = 'none';
-                    cameraActiveFinalize = false;
-                });
-        } else {
-            cameraSection.style.display = 'none';
-            if (streamFinalize) {
-                streamFinalize.getTracks().forEach(track => track.stop());
-            }
-            cameraActiveFinalize = false;
-        }
     });
-
-    document.getElementById('captureBtnFinalize')?.addEventListener('click', function() {
-        const canvas = document.getElementById('canvasFinalize');
-        const context = canvas.getContext('2d');
-        const video = document.getElementById('cameraFinalize');
-        
-        context.drawImage(video, 0, 0, 320, 240);
-        canvas.toBlob(blob => {
-            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            document.getElementById('photo_finalize').files = dataTransfer.files;
-            
-            document.getElementById('cameraSectionFinalize').style.display = 'none';
-            document.getElementById('retakeBtnFinalize').style.display = 'inline-block';
-            if (streamFinalize) {
-                streamFinalize.getTracks().forEach(track => track.stop());
-            }
-            cameraActiveFinalize = false;
-        });
-    });
-
-    document.getElementById('retakeBtnFinalize')?.addEventListener('click', function() {
-        document.getElementById('photo_finalize').value = '';
-        document.getElementById('retakeBtnFinalize').style.display = 'none';
-        document.getElementById('cameraSectionFinalize').style.display = 'block';
-        
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                streamFinalize = stream;
-                document.getElementById('cameraFinalize').srcObject = stream;
-                cameraActiveFinalize = true;
-            });
-    });
-
-    // Form submission for finalize
-    document.getElementById('submitFinalize')?.addEventListener('click', async function() {
-        const cv = document.getElementById('cv_finalize').files[0];
-        const photo = document.getElementById('photo_finalize').files[0];
-        const appId = document.getElementById('finalize_application_id').value;
-
-        if (!cv || !photo) {
-            alert('{{ __('Mohon upload CV dan foto') }}');
-            return;
-        }
-
-        // Validate file sizes and types
-        if (!validateFileFinalize(cv, 'cv') || !validateFileFinalize(photo, 'photo')) {
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-        formData.append('cv', cv);
-        formData.append('photo', photo);
-
-        const submitBtn = document.getElementById('submitFinalize');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>{{ __("Mengirim...") }}';
-
-        try {
-            const response = await fetch(`/applications/${appId}/finalize`, {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                alert('{{ __('Terima kasih! Lamaran Anda telah diselesaikan.') }}');
-                window.location.href = data.redirect || '{{ route('applicant.status') }}';
-            } else {
-                alert(data.message || '{{ __('Terjadi kesalahan saat mengirim lamaran') }}');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('{{ __('Terjadi kesalahan saat mengirim lamaran') }}');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '{{ __("Selesaikan Lamaran") }}';
-        }
-    });
-
-    function validateFileFinalize(file, type) {
-        const cvMaxSize = 25 * 1024 * 1024; // 25MB
-        const photoMaxSize = 5 * 1024 * 1024; // 5MB
-        
-        if (type === 'cv') {
-            const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-            if (!validTypes.includes(file.type)) {
-                alert('{{ __("CV harus berformat PDF, DOC, atau DOCX") }}');
-                return false;
-            }
-            if (file.size > cvMaxSize) {
-                alert('{{ __("Ukuran CV tidak boleh lebih dari 25MB") }}');
-                return false;
-            }
-        } else if (type === 'photo') {
-            const validTypes = ['image/jpeg', 'image/png'];
-            if (!validTypes.includes(file.type)) {
-                alert('{{ __("Foto harus berformat JPG atau PNG") }}');
-                return false;
-            }
-            if (file.size > photoMaxSize) {
-                alert('{{ __("Ukuran foto tidak boleh lebih dari 5MB") }}');
-                return false;
-            }
-        }
-        
-        return true;
-    }
-});
 </script>
 @endpush

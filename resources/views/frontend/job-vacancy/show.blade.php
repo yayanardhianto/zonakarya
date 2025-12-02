@@ -549,8 +549,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 const socialLoginModal = new bootstrap.Modal(document.getElementById('socialLoginModal'));
                 socialLoginModal.show();
             } else {
-                const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
-                applyModal.show();
+                // If logged in, go directly to test without modal
+                const btn = this;
+                btn.disabled = true;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {{ __("Proses...") }}';
+
+                const payload = { _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content') };
+
+                fetch('/jobs/{{ $jobVacancy->unique_code }}/apply-prelim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => {
+                    // Check HTTP status code
+                    if (!res.ok && res.status !== 409) {
+                        throw new Error(`HTTP Error ${res.status}`);
+                    }
+                    return res.json().then(data => ({ status: res.status, data: data }));
+                })
+                .then(({ status, data }) => {
+                    // Handle 409 Conflict (duplicate application)
+                    if (status === 409) {
+                        showNotification(data.message || 'Anda sudah melamar di posisi ini sebelumnya.', 'danger');
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        return;
+                    }
+
+                    if (data.success) {
+                        sessionStorage.setItem('pending_application_id', data.application_id);
+                        sessionStorage.setItem('pending_applicant_id', data.applicant_id);
+                        showNotification('Mengarahkan ke tes...', 'success');
+                        if (data.start_test_url) {
+                            setTimeout(() => { window.location.href = data.start_test_url; }, 600);
+                        }
+                    } else {
+                        showNotification(data.message || 'Error saat membuat application', 'danger');
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }
+                })
+                .catch(err => { console.error(err); showNotification('{{ __("Terjadi kesalahan. Silakan coba lagi.") }}', 'danger'); btn.disabled = false; btn.innerHTML = originalText; });
             }
         });
     }
@@ -682,9 +723,25 @@ document.addEventListener('DOMContentLoaded', function() {
         let ok = true; const errs = [];
         if (!nameInput.value.trim()) { showFieldError('name','Nama lengkap harus diisi'); errs.push('Nama lengkap harus diisi'); ok=false; }
         else removeFieldError('name');
-        const cleaned = whatsappInput.value.replace(/\s+/g,'');
-        const regex = /^(\+62|62|0)[0-9]{9,12}$/;
-        if (!whatsappInput.value.trim() || /^(\+62|62|0)$/.test(cleaned) || cleaned.length<10 || !regex.test(cleaned)) { showFieldError('whatsapp','Nomor WhatsApp tidak valid'); errs.push('Nomor WhatsApp tidak valid'); ok=false; } else removeFieldError('whatsapp');
+        
+        // Validate WhatsApp number - should be at least 10 digits
+        const whatsappValue = whatsappInput.value.trim();
+        const cleaned = whatsappValue.replace(/\D/g, ''); // Remove all non-digits
+        
+        let isValidWhatsapp = false;
+        if (cleaned.length >= 10 && cleaned.length <= 15) {
+            // Accept if: starts with 62 (country code), or 0 (local), or + prefix
+            isValidWhatsapp = /^(62|0|\+62)/.test(cleaned.replace(/\+/g, ''));
+        }
+        
+        if (!whatsappValue || !isValidWhatsapp) {
+            showFieldError('whatsapp','Nomor WhatsApp tidak valid (min. 10 digit)');
+            errs.push('Nomor WhatsApp tidak valid');
+            ok = false;
+        } else {
+            removeFieldError('whatsapp');
+        }
+        
         return { isValid: ok, errors: errs };
     }
 
@@ -710,8 +767,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                 body: JSON.stringify(payload)
             })
-            .then(res => res.json())
-            .then(data => {
+            .then(res => {
+                // Check HTTP status code
+                if (!res.ok && res.status !== 409) {
+                    throw new Error(`HTTP Error ${res.status}`);
+                }
+                return res.json().then(data => ({ status: res.status, data: data }));
+            })
+            .then(({ status, data }) => {
+                // Handle 409 Conflict (duplicate application)
+                if (status === 409) {
+                    showNotification(data.message || 'Anda sudah melamar di posisi ini sebelumnya.', 'danger');
+                    return;
+                }
+
                 if (data.success) {
                     // store pending ids so finalize step can pick them up
                     sessionStorage.setItem('pending_application_id', data.application_id);
@@ -743,11 +812,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const afterTest = getQueryParam('after_test');
     const returnedAppId = getQueryParam('application_id') || sessionStorage.getItem('pending_application_id');
     if (afterTest === '1' && returnedAppId) {
-        // show finalize modal
+        // Redirect to Applicant Profile page which replaces the previous finalize modal
         setTimeout(() => {
-            const finalizeModal = new bootstrap.Modal(document.getElementById('finalizeModal'));
-            document.getElementById('finalize_application_id').value = returnedAppId;
-            finalizeModal.show();
+            window.location.href = '/applications/' + returnedAppId + '/profile';
         }, 600);
     }
 
