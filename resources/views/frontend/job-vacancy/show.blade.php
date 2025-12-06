@@ -897,18 +897,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Social login buttons keep previous behaviour
+    // Social login buttons - store job vacancy info before redirecting
     document.getElementById('googleLoginBtn').addEventListener('click', function(e) {
-        e.preventDefault(); sessionStorage.setItem('showApplyModalAfterLogin', 'true'); window.location.href = '{{ route("auth.google") }}';
+        e.preventDefault();
+        const jobVacancyId = {{ $jobVacancy->id }};
+        sessionStorage.setItem('pendingJobVacancyId', jobVacancyId);
+        sessionStorage.setItem('showApplyModalAfterLogin', 'true');
+        window.location.href = '{{ route("auth.google") }}';
     });
     document.getElementById('linkedinLoginBtn').addEventListener('click', function(e) {
-        e.preventDefault(); sessionStorage.setItem('showApplyModalAfterLogin', 'true'); window.location.href = '{{ route("auth.linkedin") }}';
+        e.preventDefault();
+        const jobVacancyId = {{ $jobVacancy->id }};
+        sessionStorage.setItem('pendingJobVacancyId', jobVacancyId);
+        sessionStorage.setItem('showApplyModalAfterLogin', 'true');
+        window.location.href = '{{ route("auth.linkedin") }}';
     });
 
     if (sessionStorage.getItem('showApplyModalAfterLogin') === 'true') {
         sessionStorage.removeItem('showApplyModalAfterLogin');
         const isLoggedIn = @json(auth()->check());
-        if (isLoggedIn) { setTimeout(() => { const applyModal = new bootstrap.Modal(document.getElementById('applyModal')); applyModal.show(); }, 500); }
+        if (isLoggedIn) {
+            // After login, trigger apply flow
+            setTimeout(() => {
+                const applyBtn = document.getElementById('openApplyBtn');
+                if (applyBtn) {
+                    applyBtn.click(); // Trigger the apply button which will handle the routing
+                }
+            }, 500);
+        }
     }
 
     // Cleanup and reset handlers for modals
