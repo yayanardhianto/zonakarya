@@ -271,6 +271,7 @@ class ApplicantController extends Controller
             'check' => 'short_call',
             'short_call' => 'group_interview',
             'group_interview' => 'test_psychology',
+            'individual_interview' => 'test_psychology',
             'test_psychology' => 'ojt',
             'ojt' => 'final_interview',
             'final_interview' => 'sent_offering_letter',
