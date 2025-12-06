@@ -22,6 +22,13 @@
                                 {{ __('Lamaran Anda telah berhasil dikirim. Kami akan segera menghubungi Anda untuk langkah selanjutnya.') }}
                             </div>
                             
+                            @php
+                                $latestApplication = $applicant->applications()->latest()->first();
+                                $testSession = $latestApplication ? $latestApplication->testSession : null;
+                                $isSkipTest = !$testSession; // Jika tidak ada test session, berarti skip test
+                            @endphp
+                            
+                            @if(!$isSkipTest)
                             <div class="whatsapp-info mb-4">
                                 <h5 class="mb-3">{{ __('Langkah Selanjutnya') }}</h5>
                                 <div class="row">
@@ -37,10 +44,6 @@
                                             <i class="fas fa-clock text-warning mb-2" style="font-size: 2rem;"></i>
                                             <h6>{{ __('Validitas Link Tes') }}</h6>
                                             <p class="text-muted">{{ __('Link tes hanya berlaku untuk hari ini.') }}</p>
-                                            @php
-                                                $latestApplication = $applicant->applications()->latest()->first();
-                                                $testSession = $latestApplication ? $latestApplication->testSession : null;
-                                            @endphp
                                             @if($testSession && $testSession->status === 'pending')
                                                 <a href="{{ route('test.take', ['session' => $testSession, 'token' => $testSession->access_token]) }}" 
                                                    class="btn btn-sm btn-primary mt-2">
@@ -59,6 +62,13 @@
                                     </div>
                                 </div>
                             </div>
+                            @else
+                            <!-- <div class="alert alert-success mb-4">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>{{ __('Lamaran Anda telah diproses!') }}</strong>
+                                <p class="mb-0">{{ __('Tim kami akan segera menghubungi Anda melalui WhatsApp untuk langkah selanjutnya.') }}</p>
+                            </div> -->
+                            @endif
                             
                             <div class="application-details mb-4">
                                 <h5 class="mb-3">{{ __('Detail Lamaran') }}</h5>
@@ -89,11 +99,6 @@
                                     <p class="mb-0">{{ __('Anda sekarang dapat melamar pekerjaan lain tanpa perlu mendaftar ulang.') }}</p>
                                 </div>
                                 @endauth -->
-                                
-                                @php
-                                    $latestApplication = $applicant->applications()->latest()->first();
-                                    $testSession = $latestApplication ? $latestApplication->testSession : null;
-                                @endphp
                                 
                                 @if($testSession)
                                 <div class="test-info mt-3 bg-white">

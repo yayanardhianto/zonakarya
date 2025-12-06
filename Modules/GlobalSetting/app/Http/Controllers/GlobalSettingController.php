@@ -818,6 +818,7 @@ class GlobalSettingController extends Controller
             'label_views' => 'required|string|max:100',
             'label_posted' => 'required|string|max:100',
             'label_last_updated' => 'required|string|max:100',
+            'require_screening_test' => 'sometimes|in:0,1',
         ], [
             'job_listing_title.required' => __('Job listing title is required'),
             'job_listing_description.required' => __('Job listing description is required'),

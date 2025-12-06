@@ -71,12 +71,18 @@ Route::get('jobs/thank-you/{applicant}', [\App\Http\Controllers\Frontend\JobVaca
 Route::post('jobs/{jobVacancy}/apply', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'storeApplication'])->name('jobs.apply.store');
 // Preliminary apply (step 1): create applicant+application and return start_test_url
 Route::post('jobs/{jobVacancy}/apply-prelim', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'applyPrelim'])->name('jobs.apply.prelim');
+// Direct profile apply (skip test flow): create application and go to profile
+Route::post('jobs/{jobVacancy}/apply-direct-profile', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'applyDirectProfile'])->name('jobs.apply.direct-profile');
 // Finalize application (step 2): upload CV and photo after test
 Route::post('applications/{application}/finalize', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'finalizeApplication'])->name('applications.finalize');
 Route::post('applications/complete-registration', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'completeRegistration'])->name('applications.complete-registration');
 
 // Applicant profile page (replaces finalize modal after test)
 Route::get('applications/{application}/profile', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'showProfile'])->name('applications.profile');
+// Applicant profile page for skip test flow (no application yet)
+Route::get('jobs/{jobVacancy}/profile', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'showProfileSkipTest'])->name('jobs.profile.skip-test');
+// Submit profile for skip test flow (creates applicant and application)
+Route::post('jobs/{id}/submit-profile-skip-test', [\App\Http\Controllers\Frontend\JobApplicationController::class, 'submitProfileSkipTestById'])->name('jobs.profile.skip-test.submit.by-id')->middleware('auth:web');
 
 // Applicant Status Routes
 Route::get('applicant/status', [\App\Http\Controllers\Frontend\ApplicantController::class, 'status'])->name('applicant.status');

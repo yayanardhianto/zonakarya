@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const socialLoginModal = new bootstrap.Modal(document.getElementById('socialLoginModal'));
                 socialLoginModal.show();
             } else {
-                // If logged in, go directly to test without modal
+                // If logged in, go directly to profile (with skip test flow)
                 const btn = this;
                 btn.disabled = true;
                 const originalText = btn.innerHTML;
@@ -557,41 +557,67 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const payload = { _token: document.querySelector('meta[name="csrf-token"]').getAttribute('content') };
 
-                fetch('/jobs/{{ $jobVacancy->unique_code }}/apply-prelim', {
+                // Use applyDirectProfile endpoint which will check if screening is required
+                fetch('/jobs/{{ $jobVacancy->unique_code }}/apply-direct-profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                     body: JSON.stringify(payload)
                 })
                 .then(res => {
-                    // Check HTTP status code
-                    if (!res.ok && res.status !== 409) {
+                    if (!res.ok) {
                         throw new Error(`HTTP Error ${res.status}`);
                     }
-                    return res.json().then(data => ({ status: res.status, data: data }));
+                    return res.json();
                 })
-                .then(({ status, data }) => {
-                    // Handle 409 Conflict (duplicate application)
-                    if (status === 409) {
-                        showNotification(data.message || 'Anda sudah melamar di posisi ini sebelumnya.', 'danger');
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                        return;
-                    }
-
-                    if (data.success) {
+                .then(data => {
+                    if (data.success && data.skip_test) {
+                        // Skip test flow - go directly to profile page
+                        showNotification('{{ __("Mengarahkan ke profil...") }}', 'success');
+                        sessionStorage.setItem('pending_job_vacancy_id', data.job_vacancy_id);
+                        setTimeout(() => { window.location.href = '/jobs/{{ $jobVacancy->unique_code }}/profile'; }, 600);
+                    } else if (data.success) {
+                        // Normal test flow - go to test
+                        showNotification('{{ __("Mengarahkan ke tes...") }}', 'success');
                         sessionStorage.setItem('pending_application_id', data.application_id);
                         sessionStorage.setItem('pending_applicant_id', data.applicant_id);
-                        showNotification('Mengarahkan ke tes...', 'success');
                         if (data.start_test_url) {
                             setTimeout(() => { window.location.href = data.start_test_url; }, 600);
                         }
                     } else {
-                        showNotification(data.message || 'Error saat membuat application', 'danger');
+                        showNotification(data.message || 'Error saat memproses lamaran', 'danger');
                         btn.disabled = false;
                         btn.innerHTML = originalText;
                     }
                 })
-                .catch(err => { console.error(err); showNotification('{{ __("Terjadi kesalahan. Silakan coba lagi.") }}', 'danger'); btn.disabled = false; btn.innerHTML = originalText; });
+                .catch(err => { 
+                    console.error(err);
+                    // If endpoint doesn't exist, fallback to applyPrelim
+                    fetch('/jobs/{{ $jobVacancy->unique_code }}/apply-prelim', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            sessionStorage.setItem('pending_application_id', data.application_id);
+                            sessionStorage.setItem('pending_applicant_id', data.applicant_id);
+                            showNotification('{{ __("Mengarahkan ke tes...") }}', 'success');
+                            if (data.start_test_url) {
+                                setTimeout(() => { window.location.href = data.start_test_url; }, 600);
+                            }
+                        } else {
+                            showNotification(data.message || 'Error', 'danger');
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                        }
+                    })
+                    .catch(err2 => {
+                        showNotification('{{ __("Terjadi kesalahan. Silakan coba lagi.") }}', 'danger');
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    });
+                });
             }
         });
     }
@@ -786,7 +812,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.setItem('pending_application_id', data.application_id);
                     sessionStorage.setItem('pending_applicant_id', data.applicant_id);
 
-                    showNotification('Data awal berhasil disimpan. Mengarahkan ke tes...', 'success');
+                    showNotification('{{ __("Data awal berhasil disimpan. Mengarahkan ke tes...") }}', 'success');
                     // redirect to existing test route provided by backend
                     if (data.start_test_url) {
                         setTimeout(() => { window.location.href = data.start_test_url; }, 600);

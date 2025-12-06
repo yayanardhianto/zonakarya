@@ -178,7 +178,7 @@
                     </div>
 
                     <!-- Actions -->
-                    <div class="card mt-4">
+                    <!-- <div class="card mt-4">
                         <div class="card-header">
                             <h4>{{ __('Actions') }}</h4>
                         </div>
@@ -223,7 +223,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Notes -->
                     @if($applicant->notes)

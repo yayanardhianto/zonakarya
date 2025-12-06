@@ -362,6 +362,52 @@ class JobApplicationController extends Controller
                 throw $e;
             }
 
+            // Check if screening test is required (based on admin setting)
+            // Value dari database adalah string, perlu dikonversi ke boolean
+            $screeningTestSetting = \Modules\GlobalSetting\app\Models\Setting::where('key', 'require_screening_test')->first()?->value;
+            $requireScreeningTest = $screeningTestSetting === null ? true : (bool)($screeningTestSetting == 1 || $screeningTestSetting === 'true' || $screeningTestSetting === true);
+            
+            \Log::info('Job Application: Checking if screening test is required', [
+                'setting_value' => $screeningTestSetting,
+                'require_screening_test' => $requireScreeningTest,
+                'application_id' => $application->id,
+            ]);
+
+            // If screening test is NOT required, skip test and go directly to profile
+            if (!$requireScreeningTest) {
+                \Log::info('Job Application: Screening test disabled, skipping to profile page', [
+                    'application_id' => $application->id,
+                    'applicant_id' => $applicant->id,
+                ]);
+
+                // Update application status to 'check' (equivalent to completing screening)
+                $application->update(['status' => 'check']);
+
+                // Send notification that screening is skipped
+                try {
+                    $this->sendWaitingNotification($applicant);
+                } catch (\Exception $e) {
+                    \Log::error('Job Application: Failed to send waiting notification', [
+                        'error' => $e->getMessage(),
+                        'application_id' => $application->id,
+                    ]);
+                }
+
+                \Log::info('Job Application: Application ready for profile completion (screening bypassed)', [
+                    'application_id' => $application->id,
+                    'applicant_id' => $applicant->id,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Application submitted successfully! Please complete your profile.',
+                    'applicant_id' => $applicant->id,
+                    'application_id' => $application->id,
+                    'is_logged_in' => $isLoggedIn,
+                    'skip_test' => true,
+                ]);
+            }
+
             // Check if user has completed screening test
             \Log::info('Job Application: Checking screening test result', [
                 'is_logged_in' => $isLoggedIn,
@@ -875,6 +921,56 @@ class JobApplicationController extends Controller
     }
 
     // Preliminary apply endpoint: create applicant + application, create a test session and return start_test_url
+    public function applyDirectProfile(Request $request, JobVacancy $jobVacancy)
+    {
+        \Log::info('Job Application: applyDirectProfile called (skip test flow)', [
+            'job_vacancy_id' => $jobVacancy->id,
+            'job_position' => $jobVacancy->position,
+            'is_logged_in' => Auth::check(),
+        ]);
+
+        // Check if screening test is required (based on admin setting)
+        $screeningTestSetting = \Modules\GlobalSetting\app\Models\Setting::where('key', 'require_screening_test')->first()?->value;
+        $requireScreeningTest = $screeningTestSetting === null ? true : (bool)($screeningTestSetting == 1 || $screeningTestSetting === 'true' || $screeningTestSetting === true);
+        
+        \Log::info('Job Application: Checking if screening test is required (applyDirectProfile)', [
+            'setting_value' => $screeningTestSetting,
+            'require_screening_test' => $requireScreeningTest,
+        ]);
+
+        // If screening is REQUIRED, reject this endpoint
+        if ($requireScreeningTest) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Screening test is required for this application.',
+            ], 400);
+        }
+
+        $user = Auth::user();
+        $isLoggedIn = Auth::check();
+
+        if (!$isLoggedIn) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You must be logged in to use this flow.',
+            ], 401);
+        }
+
+        \Log::info('Job Application: Ready for direct profile (skip test)', [
+            'job_vacancy_id' => $jobVacancy->id,
+            'user_id' => $user->id,
+            'skip_test' => true,
+        ]);
+
+        // Return success - Applicant & Application will be created when submitting profile
+        return response()->json([
+            'success' => true,
+            'message' => 'Ready for profile completion',
+            'job_vacancy_id' => $jobVacancy->id,
+            'skip_test' => true,
+        ]);
+    }
+
     public function applyPrelim(Request $request, JobVacancy $jobVacancy)
     {
         \Log::info('Job Application: applyPrelim called', [
@@ -962,6 +1058,28 @@ class JobApplicationController extends Controller
                 'applicant_id' => $applicant->id,
             ]);
 
+            // Check if screening test is required (based on admin setting)
+            // Value dari database adalah string, perlu dikonversi ke boolean
+            $screeningTestSetting = \Modules\GlobalSetting\app\Models\Setting::where('key', 'require_screening_test')->first()?->value;
+            $requireScreeningTest = $screeningTestSetting === null ? true : (bool)($screeningTestSetting == 1 || $screeningTestSetting === 'true' || $screeningTestSetting === true);
+            
+            \Log::info('Job Application: Checking if screening test is required (applyPrelim)', [
+                'setting_value' => $screeningTestSetting,
+                'require_screening_test' => $requireScreeningTest,
+                'application_id' => $application->id,
+            ]);
+
+            // If screening test is NOT required, reject this flow
+            if (!$requireScreeningTest) {
+                \Log::info('Job Application: Screening test disabled - should use applyDirectProfile instead', [
+                    'application_id' => $application->id,
+                    'applicant_id' => $applicant->id,
+                ]);
+
+                // Still create application & test session for backward compatibility
+                // But this should not happen in normal flow
+            }
+
             // Create test session (use screening package)
             $testPackage = TestPackage::where('is_screening_test', true)->where('is_active', true)->first();
             if ($testPackage) {
@@ -1014,6 +1132,126 @@ class JobApplicationController extends Controller
             \Log::error('Job Application: applyPrelim error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['success' => false, 'message' => 'Error saving preliminary application'], 500);
         }
+    }
+
+    // Submit profile for skip test flow (creates applicant and application)
+    public function submitProfileSkipTest(Request $request, JobVacancy $jobVacancy)
+    {
+        \Log::info('Job Application: submitProfileSkipTest called', [
+            'job_vacancy_id' => $jobVacancy->id,
+            'ip' => $request->ip(),
+        ]);
+
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'whatsapp' => 'required|string|max:20',
+                'cv' => 'required|file|mimes:pdf,doc,docx|max:25600',
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024',
+            ]);
+
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'Not authenticated'], 401);
+            }
+
+            // Check if screening test is required
+            $screeningTestSetting = \Modules\GlobalSetting\app\Models\Setting::where('key', 'require_screening_test')->first()?->value;
+            $requireScreeningTest = $screeningTestSetting === null ? true : (bool)($screeningTestSetting == 1 || $screeningTestSetting === 'true' || $screeningTestSetting === true);
+            
+            if ($requireScreeningTest) {
+                return response()->json(['success' => false, 'message' => 'This endpoint is only for skip test flow'], 400);
+            }
+
+            // Get or create applicant
+            $applicant = Applicant::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'name' => $request->name,
+                    'email' => $user->email,
+                    'whatsapp' => '',
+                    'status' => 'pending',
+                ]
+            );
+
+            // Normalize WhatsApp number
+            $whatsapp = preg_replace('/[^0-9]/', '', $request->whatsapp);
+            if (substr($whatsapp, 0, 1) === '0') {
+                $whatsapp = '62' . substr($whatsapp, 1);
+            } elseif (substr($whatsapp, 0, 2) !== '62') {
+                $whatsapp = '62' . $whatsapp;
+            }
+
+            // Check if applicant already has an application for this job
+            $existingApplication = Application::where('applicant_id', $applicant->id)
+                ->where('job_vacancy_id', $jobVacancy->id)
+                ->first();
+
+            if ($existingApplication) {
+                \Log::warning('Job Application: Duplicate application in submitProfileSkipTest', [
+                    'applicant_id' => $applicant->id,
+                    'job_vacancy_id' => $jobVacancy->id,
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda sudah melamar di posisi ini sebelumnya.',
+                    'error' => 'duplicate_application',
+                ], 409);
+            }
+
+            // Handle file uploads
+            $cvPath = $request->file('cv')->store('applications/cv', 'public');
+            $photoPath = $request->file('photo')->store('applications/photos', 'public');
+
+            // Update applicant with full data
+            $applicant->update([
+                'name' => $request->name,
+                'whatsapp' => $whatsapp,
+                'cv_path' => $cvPath,
+                'photo_path' => $photoPath,
+                'status' => 'check', // Status check untuk skip test flow (no screening test)
+            ]);
+
+            // CREATE Application now (for skip test flow)
+            $application = Application::create([
+                'user_id' => $user->id,
+                'applicant_id' => $applicant->id,
+                'job_vacancy_id' => $jobVacancy->id,
+                'status' => 'check', // Status langsung check karena skip test
+            ]);
+
+            \Log::info('Job Application: submitProfileSkipTest completed', [
+                'application_id' => $application->id,
+                'applicant_id' => $applicant->id,
+                'job_vacancy_id' => $jobVacancy->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application submitted successfully',
+                'applicant_id' => $applicant->id,
+                'application_id' => $application->id,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors(), 'message' => 'Validation error'], 422);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: submitProfileSkipTest error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'job_vacancy_id' => $jobVacancy->id,
+            ]);
+            return response()->json(['success' => false, 'message' => 'Error submitting application'], 500);
+        }
+    }
+
+    // Submit profile for skip test flow - ID version (for JSON route)
+    public function submitProfileSkipTestById(Request $request, $id)
+    {
+        $jobVacancy = JobVacancy::find($id);
+        if (!$jobVacancy) {
+            return response()->json(['success' => false, 'message' => 'Job vacancy not found'], 404);
+        }
+        return $this->submitProfileSkipTest($request, $jobVacancy);
     }
 
     // Finalize application: upload CV and photo and set final status
@@ -1092,6 +1330,65 @@ class JobApplicationController extends Controller
      * Show applicant profile page after completing test.
      * This page replaces the previous finalize modal and prevents accidental back navigation.
      */
+    /**
+     * Show applicant profile page for skip test flow (no application created yet)
+     */
+    public function showProfileSkipTest(JobVacancy $jobVacancy)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                abort(401);
+            }
+
+            // Check if screening test is required
+            $screeningTestSetting = \Modules\GlobalSetting\app\Models\Setting::where('key', 'require_screening_test')->first()?->value;
+            $requireScreeningTest = $screeningTestSetting === null ? true : (bool)($screeningTestSetting == 1 || $screeningTestSetting === 'true' || $screeningTestSetting === true);
+            
+            if ($requireScreeningTest) {
+                abort(400, 'This endpoint is only for skip test flow');
+            }
+
+            // Get or create minimal applicant
+            $applicant = Applicant::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'name' => $user->name ?? 'Applicant',
+                    'email' => $user->email,
+                    'whatsapp' => '',
+                    'status' => 'pending',
+                ]
+            );
+
+            // Create a temporary application object for view (not persisted yet)
+            // This will be replaced with real application when profile is submitted
+            $application = new Application([
+                'job_vacancy_id' => $jobVacancy->id,
+                'applicant_id' => $applicant->id,
+                'status' => 'pending',
+            ]);
+            $application->jobVacancy = $jobVacancy;
+            
+            $job = $jobVacancy;
+
+            \Log::info('Job Application: showProfileSkipTest', [
+                'user_id' => $user->id,
+                'applicant_id' => $applicant->id,
+                'job_vacancy_id' => $jobVacancy->id,
+                'skip_test' => true,
+            ]);
+
+            // Pass a flag to indicate this is skip test flow
+            return view('frontend.job-vacancy.applicant-profile', compact('application', 'job', 'applicant'))->with('skip_test', true);
+        } catch (\Exception $e) {
+            \Log::error('Job Application: showProfileSkipTest error', [
+                'error' => $e->getMessage(),
+                'job_vacancy_id' => $jobVacancy->id,
+            ]);
+            abort(404);
+        }
+    }
+
     public function showProfile(Application $application)
     {
         try {

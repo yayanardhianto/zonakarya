@@ -18,14 +18,23 @@
                 <div class="card shadow-sm">
                 <div class="card-body">
                       <div class="card-header text-center bg-primary text-white pt-5 pb-4 mb-4">
-                    <h4 class="mb-3 text-white">{{ __('Terima kasih telah mengikuti Test Screening, Untuk menyelesaikan Proses Lamaran, silakan lengkapi profil Anda berikut ini terlebih dahulu.') }}</h4>
-                    <p class="text-white">{{ __('Hasil test Anda akan diperiksa setelah Anda mengisikan form berikut.') }}</p>
+                    @if($skip_test ?? false)
+                        <h4 class="mb-3 text-white">{{ __('Untuk menyelesaikan Proses Lamaran, silakan lengkapi profil Anda berikut ini terlebih dahulu.') }}</h4>
+                        <p class="text-white">{{ __('Informasi yang Anda isi akan diverifikasi oleh tim HR kami.') }}</p>
+                    @else
+                        <h4 class="mb-3 text-white">{{ __('Terima kasih telah mengikuti Test Screening, Untuk menyelesaikan Proses Lamaran, silakan lengkapi profil Anda berikut ini terlebih dahulu.') }}</h4>
+                        <p class="text-white">{{ __('Hasil test Anda akan diperiksa setelah Anda mengisikan form berikut.') }}</p>
+                    @endif
                     </div>
 
 
                     <form id="applicantProfileForm" enctype="multipart/form-data">
                         @csrf
-                        <input type="hidden" id="application_id" name="application_id" value="{{ $application->id }}">
+                        @if(!($skip_test ?? false))
+                            <input type="hidden" id="application_id" name="application_id" value="{{ $application->id }}">
+                        @else
+                            <input type="hidden" id="job_vacancy_id" name="job_vacancy_id" value="{{ $application->job_vacancy_id }}">
+                        @endif
 
                         <div class="mb-3">
                             <label for="name" class="form-label">{{ __('Nama Lengkap') }} <span class="text-danger">*</span></label>
@@ -149,20 +158,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const photoEl = document.getElementById('photo');
     const nameEl = document.getElementById('name');
     const whatsappEl = document.getElementById('whatsapp');
+    const isSkipTest = {{ $skip_test ?? false ? 'true' : 'false' }};
+    const applicationId = document.getElementById('application_id')?.value;
+    const jobVacancyId = parseInt(document.getElementById('job_vacancy_id')?.value || '0');
+    
     if (submitBtn) {
         submitBtn.addEventListener('click', function() {
-            const applicationId = document.getElementById('application_id').value;
-            if (!applicationId) { showNotification('{{ __('Aplikasi tidak ditemukan.') }}', 'warning'); return; }
+            
+            if (!isSkipTest && !applicationId) { 
+                showNotification('{{ __('Aplikasi tidak ditemukan.') }}', 'warning'); 
+                return; 
+            }
+            
+            if (isSkipTest && !jobVacancyId) {
+                console.error('jobVacancyId not found', document.getElementById('job_vacancy_id'));
+                showNotification('{{ __('Posisi tidak ditemukan.') }}', 'warning'); 
+                return;
+            }
 
             // Validate name
-            if (!nameEl.value.trim()) { showNotification('Nama lengkap harus diisi', 'warning'); return; }
+            if (!nameEl.value.trim()) { showNotification('{{ __('Nama lengkap harus diisi') }}', 'warning'); return; }
             
             // Validate WhatsApp
             const whatsappV = validateWhatsApp(whatsappEl.value);
             if (!whatsappV.valid) { showNotification(whatsappV.message, 'warning'); return; }
 
-            const cvV = validateFile(cvEl, 25, ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','pdf','doc','docx'], 'CV/Resume');
-            const photoV = validateFile(photoEl, 5, ['image/jpeg','image/png','image/jpg','jpg','jpeg','png'], 'Foto');
+            const cvV = validateFile(cvEl, 25, ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','pdf','doc','docx'], '{{ __('CV/Resume') }}');
+            const photoV = validateFile(photoEl, 5, ['image/jpeg','image/png','image/jpg','jpg','jpeg','png'], '{{ __('Foto') }}');
             if (!cvV.valid) { showNotification(cvV.message, 'warning'); return; }
             if (!photoV.valid) { showNotification(photoV.message, 'warning'); return; }
 
@@ -175,9 +197,21 @@ document.addEventListener('DOMContentLoaded', function() {
             form.append('cv', cvEl.files[0]);
             form.append('photo', photoEl.files[0]);
 
-            fetch('/applications/' + applicationId + '/finalize', {
+            // Determine endpoint and redirect based on flow
+            let url;
+            console.log('isSkipTest:', isSkipTest, 'jobVacancyId:', jobVacancyId, 'applicationId:', applicationId);
+            if (isSkipTest) {
+                url = '/jobs/' + jobVacancyId + '/submit-profile-skip-test';
+            } else {
+                url = '/applications/' + applicationId + '/finalize';
+            }
+            
+            console.log('Posting to URL:', url);
+
+            fetch(url, {
                 method: 'POST',
-                body: form
+                body: form,
+                credentials: 'same-origin'
             })
             .then(res => res.json())
             .then(data => {
@@ -195,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(err => { console.error(err); showNotification('{{ __('Terjadi kesalahan. Silakan coba lagi.') }}', 'danger'); })
-            .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = '{{ __('Kirim Hasil & Selesai') }}'; });
+            .finally(() => { submitBtn.disabled = false; submitBtn.innerHTML = '{{ __('Kirim') }}'; });
         });
     }
 });

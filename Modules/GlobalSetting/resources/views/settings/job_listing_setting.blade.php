@@ -18,7 +18,19 @@
                     <form action="{{ route('admin.update-job-listing-setting') }}" method="POST">
                         @csrf
                         @method('PUT')
-                        
+                        <div class="form-group">
+                            <div class="form-check">
+                                <input type="hidden" name="require_screening_test" value="0">
+                                <input class="form-check-input" type="checkbox" id="require_screening_test" name="require_screening_test" 
+                                    value="1" {{ ($setting->require_screening_test ?? true) ? 'checked' : '' }}>
+                                <label class="form-check-label" for="require_screening_test">
+                                    {{ __('Require Screening Test for Applicants') }}
+                                </label>
+                            </div>
+                            <small class="form-text text-muted d-block mt-2">
+                                {{ __('If checked: Applicants must complete screening test before filling profile. If unchecked: Applicants can directly fill profile.') }}
+                            </small>
+                        </div>
                         <div class="form-group">
                             <x-admin.form-input type="text" id="job_listing_title" name="job_listing_title"
                                 label="{{ __('Job Listing Title') }}" placeholder="{{ __('Enter Job Listing Title') }}"
@@ -125,6 +137,8 @@
 
                         <hr class="my-4">
                         <h5 class="mb-3">{{ __('Application Section') }}</h5>
+
+                        
 
                         <div class="row">
                             <div class="col-md-6">

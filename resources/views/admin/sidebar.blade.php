@@ -95,7 +95,7 @@
                 </li>
                 <li class="{{ Route::is('admin.job-listing-setting') ? 'active' : '' }}">
                     <a class="nav-link" href="{{ route('admin.job-listing-setting') }}"><i class="fas fa-briefcase"></i>
-                        <span>{{ __('Job Page Sections') }}</span>
+                        <span>{{ __('Job Page/Listing Setting') }}</span>
                     </a>
                 </li>
 
