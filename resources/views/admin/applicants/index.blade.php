@@ -1672,6 +1672,7 @@ function sendNextStep() {
 }
 
 function updateApplicantStatus(applicantId, applicationId, templateId, notes) {
+    console.log('Updating status for applicant:', applicantId, applicationId, templateId, notes);
     fetch(`/admin/applicants/${applicantId}/next-step`, {
         method: 'POST',
         headers: {

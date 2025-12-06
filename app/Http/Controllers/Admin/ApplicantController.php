@@ -235,7 +235,7 @@ class ApplicantController extends Controller
         }
 
         // Validate template type based on current status
-        $expectedTemplateType = $this->getExpectedTemplateType($application->status);
+        $expectedTemplateType = $this->getExpectedTemplateType(currentStatus: $application->status);
         if ($template->type !== $expectedTemplateType) {
             return response()->json([
                 'success' => false,
@@ -285,6 +285,7 @@ class ApplicantController extends Controller
             'check' => 'short_call_invitation',
             'short_call' => 'group_interview_invitation',
             'group_interview' => 'test_psychology_invitation',
+            'individual_interview' => 'test_psychology_invitation',
             'test_psychology' => 'ojt_invitation',
             'ojt' => 'final_interview_invitation',
             'final_interview' => 'offering_letter_invitation',
