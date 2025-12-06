@@ -903,14 +903,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const jobVacancyId = {{ $jobVacancy->id }};
         sessionStorage.setItem('pendingJobVacancyId', jobVacancyId);
         sessionStorage.setItem('showApplyModalAfterLogin', 'true');
-        window.location.href = '{{ route("auth.google") }}';
+        // Pass current page as intended URL so user comes back here after login
+        const intendedUrl = window.location.href;
+        window.location.href = '{{ route("auth.google") }}?intended=' + encodeURIComponent(intendedUrl);
     });
     document.getElementById('linkedinLoginBtn').addEventListener('click', function(e) {
         e.preventDefault();
         const jobVacancyId = {{ $jobVacancy->id }};
         sessionStorage.setItem('pendingJobVacancyId', jobVacancyId);
         sessionStorage.setItem('showApplyModalAfterLogin', 'true');
-        window.location.href = '{{ route("auth.linkedin") }}';
+        // Pass current page as intended URL so user comes back here after login
+        const intendedUrl = window.location.href;
+        window.location.href = '{{ route("auth.linkedin") }}?intended=' + encodeURIComponent(intendedUrl);
     });
 
     if (sessionStorage.getItem('showApplyModalAfterLogin') === 'true') {
