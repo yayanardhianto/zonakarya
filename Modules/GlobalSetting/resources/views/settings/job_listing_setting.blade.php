@@ -22,7 +22,7 @@
                             <div class="form-check">
                                 <input type="hidden" name="require_screening_test" value="0">
                                 <input class="form-check-input" type="checkbox" id="require_screening_test" name="require_screening_test" 
-                                    value="1" {{ ($setting->require_screening_test ?? true) ? 'checked' : '' }}>
+                                    value="1" {{ ($setting->require_screening_test == '1' || $setting->require_screening_test === 1 || ($setting->require_screening_test === null)) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="require_screening_test">
                                     {{ __('Require Screening Test for Applicants') }}
                                 </label>

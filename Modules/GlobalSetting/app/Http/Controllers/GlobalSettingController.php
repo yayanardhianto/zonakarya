@@ -824,10 +824,19 @@ class GlobalSettingController extends Controller
             'job_listing_description.required' => __('Job listing description is required'),
         ]);
 
-        foreach ($request->except('_token') as $key => $value) {
+        foreach ($request->except('_token', '_method') as $key => $value) {
             Setting::updateOrCreate(
                 ['key' => $key],
                 ['value' => $value]
+            );
+        }
+        
+        // Explicitly handle require_screening_test if not in request
+        // This ensures the hidden input value is always saved
+        if (!$request->has('require_screening_test')) {
+            Setting::updateOrCreate(
+                ['key' => 'require_screening_test'],
+                ['value' => '0']
             );
         }
 
