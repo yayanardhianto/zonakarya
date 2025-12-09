@@ -995,8 +995,8 @@
                         <input type="date" id="ojtStartDate" class="form-control" placeholder="{{ __('Enter start date') }}">
                     </div>
                     <div class="mb-3">
-                        <label for="ojtEndDate" class="form-label">{{ __('End Date') }}</label>
-                        <input type="date" id="ojtEndDate" class="form-control" placeholder="{{ __('Enter end date') }}">
+                        <label for="ojtStartTime" class="form-label">{{ __('Start Time') }}</label>
+                        <input type="time" id="ojtStartTime" class="form-control" placeholder="{{ __('Enter start time') }}">
                     </div>
                     <div class="mb-3">
                         <label for="ojtLocation" class="form-label">{{ __('Location') }}</label>
@@ -2881,7 +2881,7 @@ function sendOjt() {
     const templateId = document.getElementById('ojtTemplateSelect').value;
     const notes = document.getElementById('ojtNotes').value;
     const startdate = document.getElementById('ojtStartDate').value || '';
-    const enddate = document.getElementById('ojtEndDate').value || '';
+    const starttime = document.getElementById('ojtStartTime').value || '';
     const location = document.getElementById('ojtLocation').value || '';
 
     
@@ -2913,12 +2913,7 @@ function sendOjt() {
                         month: 'long', 
                         day: 'numeric' 
                     }),
-                    'END_DATE': new Date(enddate).toLocaleDateString('id-ID', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                    }),
+                    'START_TIME': starttime,
                     'LOCATION' : location,
                 };
                 
@@ -2934,8 +2929,8 @@ function sendOjt() {
                 if (startdate) {
                     ojtInfo += 'Tanggal Mulai: ' + new Date(startdate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
                 }
-                if (enddate) {
-                    ojtInfo += 'Tanggal Selesai: ' + new Date(enddate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
+                if (starttime) {
+                    ojtInfo += 'Jam Mulai: ' + starttime + '\n';
                 }
                 if (location) {
                     ojtInfo += 'Lokasi: ' + location;
