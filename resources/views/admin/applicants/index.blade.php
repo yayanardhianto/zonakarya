@@ -254,9 +254,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0" style="overflow-y: scroll !important;margin: 0 25px;">
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table table-striped mb-0">
                             <thead>
                                 <tr>
                                     <th>{{ __('Name') }}</th>
@@ -265,6 +265,7 @@
                                     <th>{{ __('Position Applied') }}</th>
                                     <th>{{ __('Status') }}</th>
                                     <th>{{ __('Applied Date') }}</th>
+                                    <th>{{ __('Notes') }}</th>
                                     <th>{{ __('Actions') }}</th>
                                 </tr>
                             </thead>
@@ -315,6 +316,22 @@
                                             </span>
                                         </td>
                                         <td class="text-small px-0">{{ $application->created_at->format('d M Y H:i') }}</td>
+                                        <td style="max-width: 250px;" class="py-3">
+                                            <div class="d-flex gap-2 align-items-start" style="width: 180px;">
+                                                <div class="flex-grow-1" style="word-wrap: break-word;">
+                                                    @if($application->notes)
+                                                        <small class="text-muted text-small d-block" style="line-height: 1.3;">
+                                                            {!! nl2br(e(\Illuminate\Support\Str::limit($application->notes, 100, '...'))) !!}
+                                                        </small>
+                                                    @else
+                                                        <span class="text-secondary">-</span>
+                                                    @endif
+                                                </div>
+                                                <button class="btn btn-sm btn-secondary p-1 flex-shrink-0" style="display:flex;justify-content:center;align-items:center;width:26px;height:26px;" onclick="showEditNotesModal({{ $application->id }}, {{ json_encode($application->notes ?? '') }})" title="{{ __('Edit Notes') }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td>
                                             <div class="dropdown">
                                                 <button class="btn btn-sm btn-primary dropdown-toggle" type="button" 
@@ -538,7 +555,7 @@
                     </div>
                     
                     <!-- Pagination -->
-                    <div class="d-flex justify-content-center">
+                    <div class="d-flex justify-content-center pagination-wrapper">
                         {{ $applications->appends(request()->query())->links() }}
                     </div>
                 </div>
@@ -1222,6 +1239,34 @@
     </div>
 </div>
 
+<!-- Edit Notes Modal -->
+<div id="editNotesModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 50%; border-radius: 8px;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3>{{ __('Edit Notes') }}</h3>
+            <span class="close" onclick="closeEditNotesModal()" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="editNotesForm">
+                <input type="hidden" id="editNotesApplicationId" value="">
+                
+                <div class="mb-3">
+                    <label for="editNotesTextarea" class="form-label">{{ __('Notes') }}</label>
+                    <textarea id="editNotesTextarea" class="form-control" rows="6" placeholder="{{ __('Enter notes here...') }}"></textarea>
+                    <small class="text-muted">{{ __('Max 1000 characters') }}</small>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditNotesModal()">{{ __('Cancel') }}</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNotes()">
+                        <i class="fas fa-save"></i> {{ __('Save Notes') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('css')
@@ -1232,6 +1277,49 @@
 .mw-220 {
     max-width: 220px;
 }
+
+/* Prevent table from overflowing card and add horizontal scroll */
+.card {
+    overflow: hidden;
+}
+
+.card-body {
+    padding: 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    border: none;
+    max-width: 100%;
+}
+
+.table-responsive .table {
+    margin-bottom: 0;
+    min-width: 100%;
+    width: 100%;
+}
+
+.table td {
+    white-space: normal;
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+.table thead th {
+    white-space: nowrap;
+    vertical-align: middle;
+    border-bottom: 2px solid #dee2e6;
+    padding: 0.75rem;
+}
+
+.pagination-wrapper {
+    padding: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
 .badge-light {
     background-color: #f8f9fa;
     color: #495057;
@@ -1646,7 +1734,34 @@ function sendNextStep() {
                     message = message.replace(regex, variables[key]);
                 });
                 
-                // Add notes if provided
+                // Build auto notes with interview details
+                let autoNotes = '';
+                let interviewInfo = '';
+                
+                if (date || time || location) {
+                    interviewInfo = '--- Jadwal Wawancara ---\n';
+                    if (date) {
+                        interviewInfo += 'Tanggal: ' + new Date(date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
+                    }
+                    if (time) {
+                        interviewInfo += 'Waktu: ' + time + '\n';
+                    }
+                    if (location) {
+                        interviewInfo += 'Lokasi: ' + location + '\n';
+                    }
+                }
+                
+                // Combine notes and interview info
+                if (notes.trim()) {
+                    autoNotes = notes.trim();
+                    if (interviewInfo) {
+                        autoNotes += '\n\n' + interviewInfo;
+                    }
+                } else {
+                    autoNotes = interviewInfo || '';
+                }
+                
+                // Add notes if provided to WhatsApp message
                 if (notes.trim()) {
                     message += '\n\n' + notes.trim();
                 }
@@ -1658,8 +1773,8 @@ function sendNextStep() {
                 // Open WhatsApp in new tab
                 window.open(whatsappUrl, '_blank');
                 
-                // Update status in background
-                updateApplicantStatus(applicantId, applicationId, templateId, notes);
+                // Update status in background (with auto notes)
+                updateApplicantStatus(applicantId, applicationId, templateId, autoNotes);
                 
             } else {
                 alert('Error getting applicant data: ' + data.message);
@@ -1836,6 +1951,20 @@ function sendIndividualInterview() {
                     message = message.replace(regex, variables[key]);
                 });
                 
+                // Build auto notes with interview details
+                let autoNotes = '';
+                let interviewInfo = '--- Jadwal Wawancara Individu ---\n';
+                interviewInfo += 'Tanggal: ' + new Date(date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
+                interviewInfo += 'Waktu: ' + time + '\n';
+                interviewInfo += 'Lokasi: ' + location;
+                
+                // Combine notes and interview info
+                if (notes.trim()) {
+                    autoNotes = notes.trim() + '\n\n' + interviewInfo;
+                } else {
+                    autoNotes = interviewInfo;
+                }
+                
                 // Add notes if provided
                 if (notes.trim()) {
                     message += '\n\n' + notes.trim();
@@ -1848,7 +1977,7 @@ function sendIndividualInterview() {
                 // Open WhatsApp in new tab
                 window.open(whatsappUrl, '_blank');
                 
-                // Update status to individual interview
+                // Update status to individual interview (with auto notes)
                 fetch(`/admin/applicants/${applicantId}/individual-interview`, {
                     method: 'POST',
                     headers: {
@@ -1865,7 +1994,7 @@ function sendIndividualInterview() {
                         attitude: '',
                         initiative: '',
                         leadership: '',
-                        notes: notes
+                        notes: autoNotes
                     })
                 })
                 .then(response => response.json())
@@ -2032,6 +2161,20 @@ function sendGroupInterview() {
                     message = message.replace(regex, variables[key]);
                 });
                 
+                // Build auto notes with interview details
+                let autoNotes = '';
+                let interviewInfo = '--- Jadwal Wawancara Kelompok ---\n';
+                interviewInfo += 'Tanggal: ' + new Date(date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
+                interviewInfo += 'Waktu: ' + time + '\n';
+                interviewInfo += 'Lokasi: ' + location;
+                
+                // Combine notes and interview info
+                if (notes.trim()) {
+                    autoNotes = notes.trim() + '\n\n' + interviewInfo;
+                } else {
+                    autoNotes = interviewInfo;
+                }
+                
                 // Add notes if provided
                 if (notes.trim()) {
                     message += '\n\n' + notes.trim();
@@ -2044,7 +2187,7 @@ function sendGroupInterview() {
                 // Open WhatsApp in new tab
                 window.open(whatsappUrl, '_blank');
                 
-                // Update status to group interview
+                // Update status to group interview (with auto notes)
                 fetch(`/admin/applicants/${applicantId}/group-interview`, {
                     method: 'POST',
                     headers: {
@@ -2061,7 +2204,7 @@ function sendGroupInterview() {
                         attitude: '',
                         initiative: '',
                         leadership: '',
-                        notes: notes
+                        notes: autoNotes
                     })
                 })
                 .then(response => response.json())
@@ -2785,6 +2928,26 @@ function sendOjt() {
                     message = message.replace(regex, variables[key]);
                 });
                 
+                // Build auto notes with OJT details
+                let autoNotes = '';
+                let ojtInfo = '--- Jadwal OJT ---\n';
+                if (startdate) {
+                    ojtInfo += 'Tanggal Mulai: ' + new Date(startdate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
+                }
+                if (enddate) {
+                    ojtInfo += 'Tanggal Selesai: ' + new Date(enddate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
+                }
+                if (location) {
+                    ojtInfo += 'Lokasi: ' + location;
+                }
+                
+                // Combine notes and OJT info
+                if (notes.trim()) {
+                    autoNotes = notes.trim() + '\n\n' + ojtInfo;
+                } else {
+                    autoNotes = ojtInfo;
+                }
+                
                 // Add notes if provided
                 if (notes.trim()) {
                     message += '\n\n' + notes.trim();
@@ -2797,7 +2960,7 @@ function sendOjt() {
                 // Open WhatsApp in new tab
                 window.open(whatsappUrl, '_blank');
                 
-                // Update status to next step
+                // Update status to next step (with auto notes)
                 fetch(`/admin/applicants/${applicantId}/next-step`, {
                     method: 'POST',
                     headers: {
@@ -2807,7 +2970,7 @@ function sendOjt() {
                     body: JSON.stringify({
                         application_id: applicationId,
                         template_id: templateId,
-                        notes: notes
+                        notes: autoNotes
                     })
                 })
                 .then(response => response.json())
@@ -3002,6 +3165,26 @@ function sendFinalInterview() {
                     message = message.replace(regex, variables[key]);
                 });
                 
+                // Build auto notes with Final Interview details
+                let autoNotes = '';
+                let interviewInfo = '--- Jadwal Final Interview ---\n';
+                if (date) {
+                    interviewInfo += 'Tanggal: ' + new Date(date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '\n';
+                }
+                if (time) {
+                    interviewInfo += 'Waktu: ' + time + '\n';
+                }
+                if (location) {
+                    interviewInfo += 'Lokasi: ' + location;
+                }
+                
+                // Combine notes and interview info
+                if (notes.trim()) {
+                    autoNotes = notes.trim() + '\n\n' + interviewInfo;
+                } else {
+                    autoNotes = interviewInfo;
+                }
+                
                 // Add notes if provided
                 if (notes.trim()) {
                     message += '\n\n' + notes.trim();
@@ -3014,7 +3197,7 @@ function sendFinalInterview() {
                 // Open WhatsApp in new tab
                 window.open(whatsappUrl, '_blank');
                 
-                // Update status to next step
+                // Update status to next step (with auto notes)
                 fetch(`/admin/applicants/${applicantId}/next-step`, {
                     method: 'POST',
                     headers: {
@@ -3024,7 +3207,7 @@ function sendFinalInterview() {
                     body: JSON.stringify({
                         application_id: applicationId,
                         template_id: templateId,
-                        notes: notes
+                        notes: autoNotes
                     })
                 })
                 .then(response => response.json())
@@ -3353,6 +3536,76 @@ function sendTestReminder() {
             console.error('Error:', error);
             alert('{{ __("Error getting applicant data") }}');
         });
+}
+
+// Edit Notes Modal Functions
+function showEditNotesModal(applicationId, currentNotes) {
+    document.getElementById('editNotesApplicationId').value = applicationId;
+    document.getElementById('editNotesTextarea').value = currentNotes || '';
+    document.getElementById('editNotesModal').style.display = 'block';
+    document.getElementById('editNotesTextarea').focus();
+}
+
+function closeEditNotesModal() {
+    document.getElementById('editNotesModal').style.display = 'none';
+    document.getElementById('editNotesForm').reset();
+}
+
+function saveNotes() {
+    const applicationId = document.getElementById('editNotesApplicationId').value;
+    const notes = document.getElementById('editNotesTextarea').value;
+    
+    if (notes.length > 1000) {
+        alert('{{ __("Notes cannot exceed 1000 characters") }}');
+        return;
+    }
+    
+    fetch(`/admin/applicants/applications/${applicationId}/update-notes`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            notes: notes
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('{{ __("Notes updated successfully!") }}', 'success');
+            closeEditNotesModal();
+            // Reload page to show updated notes
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showNotification('{{ __("Error updating notes") }}: ' + (data.message || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('{{ __("Error updating notes") }}', 'danger');
+    });
+}
+
+// Notification helper
+function showNotification(message, type = 'info') {
+    // Create alert div
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Insert at top of page
+    const container = document.querySelector('.main-content') || document.body;
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-close after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
 }
 
 // Export function

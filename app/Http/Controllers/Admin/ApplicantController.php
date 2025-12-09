@@ -27,7 +27,13 @@ class ApplicantController extends Controller
 
         // Filter by status
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $status = $request->status;
+            // Special handling: if status is 'individual_interview', show both individual and group interview
+            if ($status === 'individual_interview') {
+                $query->whereIn('status', ['individual_interview', 'group_interview']);
+            } else {
+                $query->where('status', $status);
+            }
         }
 
         // Filter by job vacancy
@@ -130,6 +136,29 @@ class ApplicantController extends Controller
             'success' => true,
             'message' => 'Status updated successfully'
         ]);
+    }
+
+    public function updateNotes(Request $request, Application $application)
+    {
+        try {
+            $request->validate([
+                'notes' => 'nullable|string|max:1000'
+            ]);
+
+            $application->update([
+                'notes' => $request->notes ?? ''
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notes updated successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating notes: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function sendTest(Request $request, Applicant $applicant)
@@ -473,8 +502,11 @@ class ApplicantController extends Controller
             
             $city = $application->jobVacancy ? $application->jobVacancy->location : 'Unknown';
             
-            // Update application status to group_interview
-            $application->update(['status' => 'group_interview']);
+            // Update application status to group_interview and save notes
+            $application->update([
+                'status' => 'group_interview',
+                'notes' => $request->notes ?? ''
+            ]);
             
             // Update applicant status to match the latest application status
             $latestApplication = $applicant->applications()->latest()->first();
@@ -582,8 +614,11 @@ class ApplicantController extends Controller
             
             $city = $application->jobVacancy ? $application->jobVacancy->location : 'Unknown';
             
-            // Update application status to individual_interview
-            $application->update(['status' => 'individual_interview']);
+            // Update application status to individual_interview and save notes
+            $application->update([
+                'status' => 'individual_interview',
+                'notes' => $request->notes ?? ''
+            ]);
             
             // Update applicant status to match the latest application status
             $latestApplication = $applicant->applications()->latest()->first();
@@ -906,8 +941,10 @@ class ApplicantController extends Controller
             
             $city = $application->jobVacancy ? $application->jobVacancy->location : 'Unknown';
             
-            // Don't update status here - it should be updated by nextStep method
-            // $applicant->update(['status' => 'ojt']);
+            // Update application notes
+            $application->update([
+                'notes' => $request->notes ?? ''
+            ]);
 
             // Create or update talent record
             $talentData = [
@@ -980,8 +1017,10 @@ class ApplicantController extends Controller
             
             $city = $application->jobVacancy ? $application->jobVacancy->location : 'Unknown';
             
-            // Don't update status here - it should be updated by nextStep method
-            // $applicant->update(['status' => 'final_interview']);
+            // Update application notes
+            $application->update([
+                'notes' => $request->notes ?? ''
+            ]);
 
             // Create or update talent record
             $talentData = [

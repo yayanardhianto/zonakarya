@@ -225,7 +225,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(() => { window.location.href = '{{ route("jobs.thank-you", ":applicant_id") }}'.replace(':applicant_id', data.applicant_id); }, 900);
                     }
                 } else {
-                    showNotification(data.message || '{{ __('Error saat menyelesaikan lamaran') }}', 'danger');
+                    // Handle validation errors
+                    if (data.errors) {
+                        let errorMessages = [];
+                        for (let field in data.errors) {
+                            if (Array.isArray(data.errors[field])) {
+                                errorMessages.push(...data.errors[field]);
+                            } else {
+                                errorMessages.push(data.errors[field]);
+                            }
+                        }
+                        const errorText = errorMessages.length > 0 ? errorMessages.join('\n') : (data.message || '{{ __('Kesalahan Validasi') }}');
+                        showNotification(errorText, 'danger');
+                    } else {
+                        showNotification(data.message || '{{ __('Error saat menyelesaikan lamaran') }}', 'danger');
+                    }
                 }
             })
             .catch(err => { console.error(err); showNotification('{{ __('Terjadi kesalahan. Silakan coba lagi.') }}', 'danger'); })

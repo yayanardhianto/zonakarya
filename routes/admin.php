@@ -135,6 +135,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         Route::post('applicants/{applicant}/reject-by-applicant', [\App\Http\Controllers\Admin\ApplicantController::class, 'rejectByApplicant'])->name('applicants.reject-by-applicant');
         Route::post('applicants/{applicant}/resend-offering-letter', [\App\Http\Controllers\Admin\ApplicantController::class, 'resendOfferingLetter'])->name('applicants.resend-offering-letter');
         Route::post('applicants/{applicant}/reject', [\App\Http\Controllers\Admin\ApplicantController::class, 'reject'])->name('applicants.reject');
+        Route::post('applicants/applications/{application}/update-notes', [\App\Http\Controllers\Admin\ApplicantController::class, 'updateNotes'])->name('applicants.applications.update-notes');
         
         // Talents Routes
         Route::resource('talents', \App\Http\Controllers\Admin\TalentController::class);
