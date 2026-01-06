@@ -18,6 +18,7 @@ class Application extends Model
         'status',
         'last_stage',
         'notes',
+        'interviewer_id',
         'test_sent_at',
         'test_completed_at',
         'test_score',
@@ -47,6 +48,11 @@ class Application extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function interviewer(): BelongsTo
+    {
+        return $this->belongsTo(Interviewer::class, 'interviewer_id');
     }
 
     public function getStatusBadgeAttribute(): string

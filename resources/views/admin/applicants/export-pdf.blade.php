@@ -265,6 +265,8 @@
                     <th style="width: 8%;">Status</th>
                     <th style="width: 10%;">Applied Date</th>
                     <th style="width: 7%;">Provider</th>
+                    <th style="width: 10%;">Interviewer</th>
+                    <th style="width: 12%;">Notes</th>
                 </tr>
             </thead>
             <tbody>
@@ -295,6 +297,16 @@
                                 {{ ucfirst($application->applicant->provider) }}
                             @else
                                 <span style="color: #999;">N/A</span>
+                            @endif
+                        </td>
+                        <td>
+                            {{ $application->interviewer->name ?? 'N/A' }}
+                        </td>
+                        <td>
+                            @if($application->notes)
+                                {{ \Illuminate\Support\Str::limit($application->notes, 200) }}
+                            @else
+                                <span style="color: #999;">-</span>
                             @endif
                         </td>
                     </tr>

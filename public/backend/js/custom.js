@@ -8,29 +8,35 @@
 
     $(document).ready(function () {
         // without image upload
-        tinymce.init({
-            selector: ".summernote",
-            menubar: false,
-            plugins:
-                "anchor autolink charmap link lists searchreplace visualblocks wordcount table",
-            toolbar:
-                "blocks fontsize | bold italic underline | link | align lineheight | numlist bullist | table",
-            tinycomments_mode: "embedded",
-            tinycomments_author: "Author name",
-            mergetags_list: [
-                {
-                    value: "First.Name",
-                    title: "First Name",
-                },
-                {
-                    value: "Email",
-                    title: "Email",
-                },
-            ],
-        });
+        try {
+            tinymce.init({
+                selector: ".summernote",
+                menubar: false,
+                plugins:
+                    "anchor autolink charmap link lists searchreplace visualblocks wordcount table",
+                toolbar:
+                    "blocks fontsize | bold italic underline | link | align lineheight | numlist bullist | table",
+                tinycomments_mode: "embedded",
+                tinycomments_author: "Author name",
+                mergetags_list: [
+                    {
+                        value: "First.Name",
+                        title: "First Name",
+                    },
+                    {
+                        value: "Email",
+                        title: "Email",
+                    },
+                ],
+            });
+        } catch (error) {
+            console.warn('TinyMCE initialization failed for .summernote:', error);
+        }
+
         // with image upload
         var removedImages = [];
-        tinymce.init({
+        try {
+            tinymce.init({
             selector: ".summernote-img",
             plugins:
                 "anchor autolink charmap link image lists searchreplace visualblocks fullscreen table",
@@ -118,6 +124,9 @@
                 input.click();
             },
         });
+        } catch (error) {
+            console.warn('TinyMCE initialization failed for .summernote-img:', error);
+        }
 
         $(".select2").select2();
         $(".sub_cat_one").select2();

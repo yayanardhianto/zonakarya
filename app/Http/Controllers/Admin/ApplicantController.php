@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use App\Models\Applicant;
 use App\Models\Application;
+use App\Models\Interviewer;
 use App\Models\JobVacancy;
 use App\Models\Talent;
 use App\Services\WhatsAppService;
@@ -23,7 +25,7 @@ class ApplicantController extends Controller
     public function index(Request $request)
     {
         // Get all applications with their related data
-        $query = Application::with(['user', 'applicant', 'jobVacancy', 'testSession.package']);
+        $query = Application::with(['user', 'applicant', 'jobVacancy', 'testSession.package', 'interviewer']);
 
         // Filter by status
         if ($request->filled('status')) {
@@ -60,6 +62,7 @@ class ApplicantController extends Controller
 
         $applications = $query->latest()->paginate(20);
         $jobVacancies = JobVacancy::where('status', 'active')->get();
+        $interviewers = Interviewer::orderBy('name')->get();
 
         // Compute status counts (overall or per job if filter provided)
         $allStatuses = ['pending', 'sent', 'check', 'short_call', 'individual_interview', 'group_interview', 'test_psychology', 'ojt', 'final_interview', 'sent_offering_letter', 'rejected', 'rejected_by_applicant'];
@@ -78,7 +81,7 @@ class ApplicantController extends Controller
         $statusCounts = array_fill_keys($allStatuses, 0);
         $statusCounts = array_merge($statusCounts, $existingCounts);
 
-        return view('admin.applicants.index', compact('applications', 'jobVacancies', 'statusCounts'));
+        return view('admin.applicants.index', compact('applications', 'jobVacancies', 'statusCounts', 'interviewers'));
     }
 
     public function show(Applicant $applicant)
@@ -159,6 +162,102 @@ class ApplicantController extends Controller
                 'message' => 'Error updating notes: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function updateInterviewer(Request $request, Application $application)
+    {
+        try {
+            $request->validate([
+                'interviewer_id' => 'nullable|integer|exists:interviewers,id',
+                'interviewer_name' => 'nullable|string|max:255' // For backward compatibility
+            ]);
+
+            $interviewerId = $request->interviewer_id;
+            $interviewerName = $request->interviewer_name;
+
+            if ($interviewerId) {
+                // Update with ID
+                $interviewer = Interviewer::findOrFail($interviewerId);
+                $application->update([
+                    'interviewer_id' => $interviewer->id
+                ]);
+            } elseif ($interviewerName) {
+                // Backward compatibility: handle by name
+                $interviewerName = trim($interviewerName);
+                $interviewer = Interviewer::where('name', $interviewerName)->first();
+
+                if (!$interviewer) {
+                    // Create new interviewer if doesn't exist
+                    $interviewer = Interviewer::create([
+                        'name' => $interviewerName
+                    ]);
+                }
+
+                $application->update([
+                    'interviewer_id' => $interviewer->id
+                ]);
+            } else {
+                // Clear interviewer
+                $application->update([
+                    'interviewer_id' => null
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Interviewer updated successfully',
+                'interviewer' => $application->interviewer ?? null
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating interviewer: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function storeInterviewer(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255|unique:interviewers,name',
+                'email' => 'nullable|sometimes|email|max:255',
+                'phone' => 'nullable|sometimes|string|max:20'
+            ]);
+
+            $interviewer = Interviewer::create([
+                'name' => $request->name,
+                'email' => $request->input('email') ?? null,
+                'phone' => $request->input('phone') ?? null
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Interviewer created successfully',
+                'interviewer' => $interviewer
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating interviewer: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating interviewer: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getApplicationNotes(Request $request)
+    {
+        $request->validate([
+            'application_id' => 'required|exists:applications,id'
+        ]);
+
+        $application = Application::findOrFail($request->application_id);
+        \Log::info("Getting notes for application ID: {$application->id}, notes: {$application->notes}");
+
+        return response()->json([
+            'success' => true,
+            'notes' => $application->notes
+        ]);
     }
 
     public function sendTest(Request $request, Applicant $applicant)
@@ -273,9 +372,12 @@ class ApplicantController extends Controller
         }
 
         // Update application status
+        // IMPORTANT: For Next Step modal we want notes to be REPLACED, not appended.
+        // Frontend already sends the full, final notes (including any auto-generated schedule text),
+        // so we just persist exactly what comes from the request.
         $application->update([
             'status' => $nextStatus,
-            'notes' => $request->notes
+            'notes' => $request->notes ?? ''
         ]);
 
         // Update applicant status to match the latest application status
@@ -505,7 +607,7 @@ class ApplicantController extends Controller
             // Update application status to group_interview and save notes
             $application->update([
                 'status' => 'group_interview',
-                'notes' => $request->notes ?? ''
+                'notes' => $request->notes ? ($application->notes ? $application->notes . "\n\n" . $request->notes : $request->notes) : $application->notes
             ]);
             
             // Update applicant status to match the latest application status
@@ -617,7 +719,7 @@ class ApplicantController extends Controller
             // Update application status to individual_interview and save notes
             $application->update([
                 'status' => 'individual_interview',
-                'notes' => $request->notes ?? ''
+                'notes' => $request->notes ? ($application->notes ? $application->notes . "\n\n" . $request->notes : $request->notes) : $application->notes
             ]);
             
             // Update applicant status to match the latest application status
@@ -861,8 +963,11 @@ class ApplicantController extends Controller
             
             $city = $application->jobVacancy ? $application->jobVacancy->location : 'Unknown';
             
-            // Update application status to test_psychology
-            $application->update(['status' => 'test_psychology']);
+            // Update application status to test_psychology and save notes
+            $application->update([
+                'status' => 'test_psychology',
+                'notes' => $request->notes ? ($application->notes ? $application->notes . "\n\n" . $request->notes : $request->notes) : $application->notes
+            ]);
             
             // Update applicant status to match the latest application status
             $latestApplication = $applicant->applications()->latest()->first();
@@ -1285,7 +1390,7 @@ class ApplicantController extends Controller
             $search = $request->get('search');
 
             // Build query with filters
-            $query = Application::with(['user', 'applicant', 'jobVacancy']);
+            $query = Application::with(['user', 'applicant', 'jobVacancy', 'interviewer']);
 
             if ($request->filled('status')) {
                 $query->where('status', $status);
@@ -1330,6 +1435,8 @@ class ApplicantController extends Controller
                 'Applied Date',
                 'CV Link',
                 'Photo Link',
+                'Interviewer',
+                'Notes',
             ];
 
             $col = 1;
@@ -1405,6 +1512,13 @@ class ApplicantController extends Controller
                     $photoLink = url(route('admin.applicants.view-photo', $application->applicant, false));
                 }
                 $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $photoLink);
+
+                // Interviewer name
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $application->interviewer->name ?? 'N/A');
+
+                // Notes (limited length for readability)
+                $notes = $application->notes ? \Illuminate\Support\Str::limit($application->notes, 200) : '';
+                $sheet->setCellValue(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col++) . $row, $notes);
                 
                 $row++;
             }
@@ -1528,6 +1642,150 @@ class ApplicantController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error exporting PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(Request $request, Applicant $applicant)
+    {
+        $request->validate([
+            'application_id' => 'required|exists:applications,id'
+        ]);
+
+        try {
+            // Get specific application
+            $application = Application::findOrFail($request->application_id);
+            
+            // Verify application belongs to this applicant
+            if ($application->applicant_id !== $applicant->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Application does not belong to this applicant'
+                ], 400);
+            }
+
+            // Delete related test session if exists
+            if ($application->test_session_id) {
+                $testSession = \App\Models\TestSession::find($application->test_session_id);
+                if ($testSession) {
+                    $testSession->delete();
+                    \Log::info("Test session {$application->test_session_id} deleted for application {$application->id}");
+                }
+            }
+
+            // Delete the application
+            $application->delete();
+
+            \Log::info("Application {$application->id} deleted successfully");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Application deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error deleting application: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting application: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'application_ids' => 'required|array|min:1',
+            'application_ids.*' => 'exists:applications,id'
+        ]);
+
+        try {
+            $applicationIds = $request->application_ids;
+            $deletedCount = 0;
+
+            foreach ($applicationIds as $applicationId) {
+                $application = Application::findOrFail($applicationId);
+                
+                // Delete related test session if exists
+                if ($application->test_session_id) {
+                    $testSession = \App\Models\TestSession::find($application->test_session_id);
+                    if ($testSession) {
+                        $testSession->delete();
+                        \Log::info("Test session {$application->test_session_id} deleted for application {$application->id}");
+                    }
+                }
+
+                // Delete the application
+                $application->delete();
+                $deletedCount++;
+            }
+
+            \Log::info("Bulk deleted {$deletedCount} applications");
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$deletedCount} applications deleted successfully"
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in bulk delete: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting applications: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkReject(Request $request)
+    {
+        $request->validate([
+            'application_ids' => 'required|array|min:1',
+            'application_ids.*' => 'exists:applications,id',
+            'reason' => 'nullable|string|max:1000'
+        ]);
+
+        try {
+            $applicationIds = $request->application_ids;
+            $reason = $request->reason;
+            $rejectedCount = 0;
+
+            foreach ($applicationIds as $applicationId) {
+                $application = Application::findOrFail($applicationId);
+                $applicant = $application->applicant;
+                
+                if (!$applicant) {
+                    continue;
+                }
+
+                // Get current status as last stage
+                $lastStage = $application->status;
+                
+                // Update application status to rejected and save last stage
+                $application->update([
+                    'status' => 'rejected',
+                    'last_stage' => $lastStage
+                ]);
+                
+                // Update applicant status to match the latest application status
+                $latestApplication = $applicant->applications()->latest()->first();
+                if ($latestApplication) {
+                    $applicant->update(['status' => $latestApplication->status]);
+                }
+
+                \Log::info("Application {$application->id} rejected at stage: {$lastStage} via bulk reject");
+                $rejectedCount++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$rejectedCount} applications rejected successfully"
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in bulk reject: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error rejecting applications: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

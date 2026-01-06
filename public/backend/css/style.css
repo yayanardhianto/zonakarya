@@ -534,6 +534,12 @@ select.form-control:not([size]):not([multiple]) {
     padding: 6px 12px;
     color: #191d21 ;
   }
+  .interviewer-col .select2-results__option {
+    font-size: 14px !important;
+  }
+  .interviewer-col .select2-container .select2-selection--single {
+    min-height: 36px !important;
+  }
   .alert p {
     margin-bottom: 0; }
   .alert.alert-has-icon {

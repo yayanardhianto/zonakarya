@@ -136,6 +136,13 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => 'translatio
         Route::post('applicants/{applicant}/resend-offering-letter', [\App\Http\Controllers\Admin\ApplicantController::class, 'resendOfferingLetter'])->name('applicants.resend-offering-letter');
         Route::post('applicants/{applicant}/reject', [\App\Http\Controllers\Admin\ApplicantController::class, 'reject'])->name('applicants.reject');
         Route::post('applicants/applications/{application}/update-notes', [\App\Http\Controllers\Admin\ApplicantController::class, 'updateNotes'])->name('applicants.applications.update-notes');
+        Route::post('applicants/applications/{application}/update-interviewer', [\App\Http\Controllers\Admin\ApplicantController::class, 'updateInterviewer'])->name('applicants.applications.update-interviewer');
+        Route::post('interviewers', [\App\Http\Controllers\Admin\ApplicantController::class, 'storeInterviewer'])->name('interviewers.store');
+        Route::resource('interviewers', \App\Http\Controllers\Admin\InterviewerController::class)->except(['store']);
+        Route::get('applicants/applications/notes', [\App\Http\Controllers\Admin\ApplicantController::class, 'getApplicationNotes'])->name('applicants.applications.get-notes');
+        Route::delete('applicants/bulk-delete', [\App\Http\Controllers\Admin\ApplicantController::class, 'bulkDelete'])->name('applicants.bulk-delete');
+        Route::post('applicants/bulk-reject', [\App\Http\Controllers\Admin\ApplicantController::class, 'bulkReject'])->name('applicants.bulk-reject');
+        Route::delete('applicants/{applicant}/applications/{application}', [\App\Http\Controllers\Admin\ApplicantController::class, 'destroy'])->name('applicants.applications.destroy');
         
         // Talents Routes
         Route::resource('talents', \App\Http\Controllers\Admin\TalentController::class);

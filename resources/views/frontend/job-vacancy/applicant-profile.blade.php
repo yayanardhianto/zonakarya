@@ -48,8 +48,8 @@
 
                         <div class="mb-3">
                             <label for="cv" class="form-label">{{ __('CV/Resume') }} <span class="text-danger">*</span></label>
-                            <input type="file" class="form-control" id="cv" name="cv" accept=".pdf,.doc,.docx" required>
-                            <small class="form-text text-muted">{{ __('Format yang diterima: PDF, DOC, DOCX (Maks: 25MB)') }}</small>
+                            <input type="file" class="form-control" id="cv" name="cv" accept=".pdf,.doc,.docx,.jpg,.jpeg" required>
+                            <small class="form-text text-muted">{{ __('Format yang diterima: PDF, DOC, DOCX, JPG, JPEG (Maks: 25MB)') }}</small>
                         </div>
 
                         <div class="mb-3">
@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const whatsappV = validateWhatsApp(whatsappEl.value);
             if (!whatsappV.valid) { showNotification(whatsappV.message, 'warning'); return; }
 
-            const cvV = validateFile(cvEl, 25, ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','pdf','doc','docx'], '{{ __('CV/Resume') }}');
+            const cvV = validateFile(cvEl, 25, ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','image/jpeg','image/jpg','pdf','doc','docx','jpg','jpeg'], '{{ __('CV/Resume') }}');
             const photoV = validateFile(photoEl, 5, ['image/jpeg','image/png','image/jpg','jpg','jpeg','png'], '{{ __('Foto') }}');
             if (!cvV.valid) { showNotification(cvV.message, 'warning'); return; }
             if (!photoV.valid) { showNotification(photoV.message, 'warning'); return; }

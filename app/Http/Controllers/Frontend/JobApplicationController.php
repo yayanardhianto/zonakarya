@@ -53,7 +53,7 @@ class JobApplicationController extends Controller
                 'name' => 'required|string|max:255',
                 'whatsapp' => 'required|string|max:20',
                 'cv' => 'required|file|mimes:pdf,doc,docx|max:25600', // 25MB = 25600 KB
-                'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024', // 1MB
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB = 5120 KB
             ]);
 
             \Log::info('Job Application: Validation passed');
@@ -1146,8 +1146,8 @@ class JobApplicationController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'whatsapp' => 'required|string|max:20',
-                'cv' => 'required|file|mimes:pdf,doc,docx|max:25600',
-                'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024',
+                'cv' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg|max:25600',
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120',
             ]);
 
             $user = Auth::user();
@@ -1263,8 +1263,8 @@ class JobApplicationController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'whatsapp' => 'required|string|max:20',
-                'cv' => 'required|file|mimes:pdf,doc,docx|max:25600',
-                'photo' => 'required|image|mimes:jpeg,png,jpg|max:1024',
+                'cv' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg|max:25600',
+                'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120',
             ]);
 
             $applicant = $application->applicant;

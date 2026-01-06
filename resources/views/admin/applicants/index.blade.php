@@ -255,10 +255,29 @@
                     </div>
                 </div>
                 <div class="card-body p-0" style="overflow-y: scroll !important;margin: 0 25px;">
+                    <!-- Bulk Actions -->
+                    <div class="d-flex justify-content-between align-items-center p-3 border-bottom" id="bulkActions" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <span id="selectedCount" class="text-muted me-3">0 {{ __('items selected') }}</span>
+                                <button type="button" class="btn btn-outline-danger btn-sm me-2" onclick="bulkDelete()">
+                                    <i class="fas fa-trash me-1"></i>{{ __('Delete Selected') }}
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm me-2" onclick="bulkReject()">
+                                    <i class="fas fa-times me-1"></i>{{ __('Reject Selected') }}
+                                </button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                            <i class="fas fa-times"></i>
+                        </button>
+
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-striped mb-0">
                             <thead>
                                 <tr>
+                                    <th width="40">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
                                     <th>{{ __('Name') }}</th>
                                     <th>{{ __('Email') }}</th>
                                     <th>{{ __('Phone') }}</th>
@@ -266,6 +285,7 @@
                                     <th>{{ __('Status') }}</th>
                                     <th>{{ __('Applied Date') }}</th>
                                     <th>{{ __('Notes') }}</th>
+                                    <th>{{ __('Interviewer') }}</th>
                                     <th>{{ __('Actions') }}</th>
                                 </tr>
                             </thead>
@@ -273,6 +293,9 @@
                                 @forelse($applications as $application)
                                 @if($application->status != 'onboard' && $application->status != 'rejected_by_applicant')
                                     <tr>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input row-checkbox" value="{{ $application->id }}" data-application-id="{{ $application->id }}">
+                                        </td>
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 @if($application->user && $application->user->avatar)
@@ -329,6 +352,27 @@
                                                 </div>
                                                 <button class="btn btn-sm btn-secondary p-1 flex-shrink-0" style="display:flex;justify-content:center;align-items:center;width:26px;height:26px;" onclick="showEditNotesModal({{ $application->id }}, {{ json_encode($application->notes ?? '') }})" title="{{ __('Edit Notes') }}">
                                                     <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td style="min-width: 200px;" class="interviewer-col">
+                                            <div class="d-flex align-items-center" style="gap: 6px;">
+                                                <select class="form-select form-select-sm interviewer-select" 
+                                                        data-application-id="{{ $application->id }}" 
+                                                        style="flex: 1 1 auto;">
+                                                    <option value="">{{ __('Select Interviewer') }}</option>
+                                                    @foreach($interviewers as $interviewer)
+                                                        <option value="{{ $interviewer->name }}" 
+                                                                {{ $application->interviewer && $application->interviewer->name == $interviewer->name ? 'selected' : '' }}>
+                                                            {{ $interviewer->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        title="{{ __('Add New Interviewer') }}"
+                                                        onclick="openAddInterviewerModal({{ $application->id }})">
+                                                    <i class="fas fa-plus"></i>
                                                 </button>
                                             </div>
                                         </td>
@@ -541,6 +585,12 @@
                                                 @elseif($application->status == 'onboard')
                                                     <span class="badge badge-success">{{ __('Onboarded') }}</span>
                                                 @endif
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#" onclick="deleteApplication({{ $application->applicant->id }}, {{ $application->id }})">
+                                                        <i class="fas fa-trash me-2"></i>{{ __('Delete Application') }}
+                                                    </a>
+                                                </li>
                                             </div>
                                         </td>
                                     </tr>
@@ -1267,6 +1317,30 @@
     </div>
 </div>
 
+<!-- Add Interviewer Modal -->
+<div id="addInterviewerModal" class="modal" style="display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 400px; max-width: 95%; border-radius: 8px;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0;">{{ __('Add New Interviewer') }}</h3>
+            <span class="close" onclick="closeAddInterviewerModal()" style="color: #aaa; font-size: 24px; font-weight: bold; cursor: pointer;">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="addInterviewerForm" onsubmit="event.preventDefault(); submitAddInterviewerForm();">
+                <div class="mb-3">
+                    <label for="newInterviewerName" class="form-label">{{ __('Interviewer Name') }}</label>
+                    <input type="text" id="newInterviewerName" class="form-control" placeholder="{{ __('Enter interviewer name') }}" required>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddInterviewerModal()">{{ __('Cancel') }}</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> {{ __('Save') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('css')
@@ -1492,15 +1566,15 @@ function nextStep(applicantId, applicationId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('{{ __("Moved to next step successfully!") }}');
+                alert('Moved to next step successfully!');
                 location.reload();
             } else {
-                alert('{{ __("Error moving to next step") }}');
+                alert('Error moving to next step');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('{{ __("Error moving to next step") }}');
+            alert('Error moving to next step');
         });
     }
 }
@@ -1536,26 +1610,26 @@ function rejectApplicant(applicantId, applicationId) {
                                 if (data.whatsapp_url) {
                                     window.open(data.whatsapp_url, '_blank');
                                 }
-                                alert('{{ __("Applicant rejected successfully!") }}');
+                                alert('Applicant rejected successfully!');
                                 location.reload();
                             } else {
-                                alert('{{ __("Error rejecting applicant") }}: ' + data.message);
+                                alert('Error rejecting applicant: ' + data.message);
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            alert('{{ __("Error rejecting applicant") }}');
+                            alert('Error rejecting applicant');
                         });
                     } else {
-                        alert('{{ __("No rejection template found") }}');
+                        alert('No rejection template found');
                     }
                 } else {
-                    alert('{{ __("Error loading templates") }}');
+                    alert('Error loading templates');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('{{ __("Error loading templates") }}');
+                alert('Error loading templates');
             });
     }
 }
@@ -1578,8 +1652,31 @@ function showNextStepModal(applicantId, applicationId) {
     const modal = document.getElementById('nextStepModal');
     document.getElementById('applicantId').value = applicantId;
     document.getElementById('applicationId').value = applicationId;
+
+    // Load existing notes for this application
+    fetch(`/admin/applicants/applications/notes?application_id=${applicationId}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Loaded existing notes:', data.notes);
+                document.getElementById('notes').value = data.notes || '';
+            } else {
+                console.error('Failed to load notes:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading existing notes:', error);
+        });
+
     modal.style.display = 'block';
-    
+
     // Load WhatsApp templates
     loadWhatsAppTemplates();
 }
@@ -1819,8 +1916,21 @@ function showIndividualInterviewModal(applicantId, applicationId) {
     const modal = document.getElementById('individualInterviewModal');
     document.getElementById('individualInterviewApplicantId').value = applicantId;
     document.getElementById('individualInterviewApplicationId').value = applicationId;
+
+    // Load existing notes for this application
+    fetch(`/admin/applicants/applications/notes?application_id=${applicationId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('individualInterviewNotes').value = data.notes || '';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading existing notes:', error);
+        });
+
     modal.style.display = 'block';
-    
+
     // Load WhatsApp templates for individual interview
     loadIndividualInterviewTemplates();
 }
@@ -2029,8 +2139,21 @@ function showGroupInterviewModal(applicantId, applicationId) {
     const modal = document.getElementById('groupInterviewModal');
     document.getElementById('groupInterviewApplicantId').value = applicantId;
     document.getElementById('groupInterviewApplicationId').value = applicationId;
+
+    // Load existing notes for this application
+    fetch(`/admin/applicants/applications/notes?application_id=${applicationId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('groupInterviewNotes').value = data.notes || '';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading existing notes:', error);
+        });
+
     modal.style.display = 'block';
-    
+
     // Load WhatsApp templates for group interview
     loadGroupInterviewTemplates();
 }
@@ -2793,8 +2916,21 @@ function showOjtModal(applicantId, applicationId) {
     const modal = document.getElementById('ojtModal');
     document.getElementById('ojtApplicantId').value = applicantId;
     document.getElementById('ojtApplicationId').value = applicationId;
+
+    // Load existing notes for this application
+    fetch(`/admin/applicants/applications/notes?application_id=${applicationId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('ojtNotes').value = data.notes || '';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading existing notes:', error);
+        });
+
     modal.style.display = 'block';
-    
+
     // Load WhatsApp templates for OJT
     loadOjtTemplates();
 }
@@ -3003,6 +3139,18 @@ function showFinalInterviewModal(applicantId, applicationId, currentStatus = 'oj
     
     document.getElementById('finalInterviewApplicantId').value = applicantId;
     document.getElementById('finalInterviewApplicationId').value = applicationId;
+    
+    // Load existing notes for this application
+    fetch(`/admin/applicants/applications/notes?application_id=${applicationId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('finalInterviewNotes').value = data.notes || '';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading existing notes:', error);
+        });
     
     // Set title and template based on current status
     if (currentStatus === 'final_interview') {
@@ -3368,7 +3516,7 @@ function viewTestResult(applicantId, testType) {
         })
         .catch(error => {
             console.error('Error:', error);
-            modalContent.innerHTML = '<div class="alert alert-danger">{{ __("Error loading test result. Please try again.") }}</div>';
+            modalContent.innerHTML = '<div class="alert alert-danger">Error loading test result. Please try again.</div>';
         });
 }
 
@@ -3467,14 +3615,14 @@ function sendTestReminder() {
     const notes = document.getElementById('reminderNotes').value;
 
     if (!templateId) {
-        alert('{{ __("Please select a template") }}');
+        alert('Please select a template');
         return;
     }
 
     // Find selected template
     const template = templatesData.find(t => t.id == templateId);
     if (!template) {
-        alert('{{ __("Template not found") }}');
+        alert('Template not found');
         return;
     }
     
@@ -3486,7 +3634,7 @@ function sendTestReminder() {
                 // Get test session and generate test link
                 const testSession = data.application?.testSession;
                 if (!testSession || !testSession.access_token) {
-                    alert('{{ __("No test session found for this applicant") }}');
+                    alert('No test session found for this applicant');
                     return;
                 }
 
@@ -3524,12 +3672,12 @@ function sendTestReminder() {
                 closeSendTestReminderModal();
                 
             } else {
-                alert('{{ __("Error getting applicant data") }}: ' + data.message);
+                alert('Error getting applicant data: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('{{ __("Error getting applicant data") }}');
+            alert('Error getting applicant data');
         });
 }
 
@@ -3551,7 +3699,7 @@ function saveNotes() {
     const notes = document.getElementById('editNotesTextarea').value;
     
     if (notes.length > 1000) {
-        alert('{{ __("Notes cannot exceed 1000 characters") }}');
+        alert('Notes cannot exceed 1000 characters');
         return;
     }
     
@@ -3641,7 +3789,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.dropdown').forEach(function(dropdown) {
         const button = dropdown.querySelector('.dropdown-toggle');
         const menu = dropdown.querySelector('.dropdown-menu');
-        
         if (button && menu) {
             button.addEventListener('show.bs.dropdown', function() {
                 // Position dropdown
@@ -3663,6 +3810,355 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // Handle interviewer change
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('interviewer-select')) {
+            const selectElement = e.target;
+            const applicationId = selectElement.dataset.applicationId;
+            const interviewerName = selectElement.value;
+
+            // Store current value for potential reset
+            selectElement.dataset.previousValue = interviewerName;
+
+            console.log('Interviewer changed:', applicationId, interviewerName);
+
+            updateApplicationInterviewer(applicationId, interviewerName, true);
+        }
+    });
+
+    // Track which application triggered the Add Interviewer modal (optional)
+    let currentApplicationIdForInterviewer = null;
+
+    window.openAddInterviewerModal = function(applicationId = null) {
+        currentApplicationIdForInterviewer = applicationId;
+        const modal = document.getElementById('addInterviewerModal');
+        const input = document.getElementById('newInterviewerName');
+        const form = document.getElementById('addInterviewerForm');
+
+        if (form) {
+            form.reset();
+        }
+        if (modal) {
+            modal.style.display = 'block';
+        }
+        if (input) {
+            setTimeout(() => input.focus(), 10);
+        }
+    };
+
+    window.closeAddInterviewerModal = function() {
+        const modal = document.getElementById('addInterviewerModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        currentApplicationIdForInterviewer = null;
+    };
+
+    window.submitAddInterviewerForm = function() {
+        const input = document.getElementById('newInterviewerName');
+        const name = input ? input.value.trim() : '';
+        if (!name) {
+            if (typeof showNotification === 'function') {
+                showNotification('{{ __("Interviewer name is required") }}', 'warning');
+            }
+            return;
+        }
+        // Use first application ID as fallback if none provided
+        const allSelects = document.querySelectorAll('.interviewer-select');
+        const fallbackApplicationId = allSelects.length ? allSelects[0].dataset.applicationId : null;
+        const applicationId = currentApplicationIdForInterviewer || fallbackApplicationId;
+
+        addNewInterviewer(name, applicationId);
+    };
+
+    // Function to add new interviewer
+    function addNewInterviewer(interviewerName, applicationId, selectElement = null) {
+        console.log('Adding new interviewer:', interviewerName);
+
+        // Create new interviewer
+        fetch('/admin/interviewers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                name: interviewerName
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelectorAll('.interviewer-select').forEach(function(select) {
+                    const option = document.createElement('option');
+                    option.value = interviewerName;
+                    option.text = interviewerName;
+                    select.appendChild(option);
+                });
+
+                if (applicationId) {
+                    const targetSelect = document.querySelector(`.interviewer-select[data-application-id="${applicationId}"]`);
+                    if (targetSelect) {
+                        // Set the value to select the new interviewer
+                        targetSelect.value = interviewerName;
+                        targetSelect.dataset.previousValue = interviewerName;
+                        
+                        const changeEvent = new Event('change', { bubbles: true });
+                        targetSelect.dispatchEvent(changeEvent);
+                    }
+                }
+
+                closeAddInterviewerModal();
+
+                if (typeof showNotification === 'function') {
+                    showNotification('Interviewer added and assigned successfully', 'success');
+                }
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification('Error adding interviewer: ' + (data.message || 'Unknown error'), 'danger');
+                } else {
+                    alert('Error adding interviewer: ' + (data.message || 'Unknown error'));
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('Network error occurred while adding interviewer', 'danger');
+            } else {
+                alert('Network error occurred while adding interviewer');
+            }
+        });
+    }
+
+    function updateApplicationInterviewer(applicationId, interviewerName, showToast = false) {
+        fetch(`/admin/applicants/applications/${applicationId}/update-interviewer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                interviewer_name: interviewerName
+            })
+        })
+        .then(response => {
+            console.log('Update response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Update response data:', data);
+            if (data.success) {
+                console.log('Application updated successfully');
+                if (showToast && typeof showNotification === 'function') {
+                    showNotification('Interviewer updated successfully', 'success');
+                }
+            } else {
+                console.error('Error updating application:', data.message);
+                if (showToast && typeof showNotification === 'function') {
+                    showNotification('Error updating interviewer: ' + (data.message || 'Unknown error'), 'danger');
+                } else if (!showToast) {
+                    alert('Error updating interviewer: ' + (data.message || 'Unknown error'));
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error updating application:', error);
+            if (showToast && typeof showNotification === 'function') {
+                showNotification('Network error occurred while updating interviewer', 'danger');
+            } else if (!showToast) {
+                alert('Network error occurred while updating interviewer');
+            }
+        });
+    }
+}); // Close DOMContentLoaded callback that started at line 3750
+
+function deleteApplication(applicantId, applicationId) {
+    if (confirm('Are you sure you want to delete this application? This action cannot be undone and will also delete any related test sessions.')) {
+        // Show loading state
+        const button = event.target.closest('.dropdown-item');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
+        button.disabled = true;
+
+        fetch(`/admin/applicants/${applicantId}/applications/${applicationId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                application_id: applicationId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the page to show updated data
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the application');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+}
+
+// Bulk Operations Functions
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+
+    // Handle select all checkbox
+    selectAllCheckbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.checked = isChecked;
+        });
+        updateBulkActions();
+    });
+
+    // Handle individual row checkboxes
+    rowCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateBulkActions();
+            // Update select all checkbox state
+            const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+            selectAllCheckbox.checked = checkedBoxes.length === rowCheckboxes.length;
+            selectAllCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < rowCheckboxes.length;
+        });
+    });
+
+    function updateBulkActions() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        const count = checkedBoxes.length;
+        
+        if (count > 0) {
+            bulkActions.style.display = 'flex';
+            selectedCount.textContent = count + ' {{ __("items selected") }}';
+        } else {
+            bulkActions.style.display = 'none';
+        }
+    }
+
+    // Clear selection function
+    window.clearSelection = function() {
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+        updateBulkActions();
+    };
 });
+
+// Bulk delete function
+function bulkDelete() {
+    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedIds.length === 0) {
+        alert('{{ __("Please select at least one application") }}');
+        return;
+    }
+
+    if (!confirm('{{ __("Are you sure you want to delete") }} ' + selectedIds.length + ' {{ __("selected applications? This action cannot be undone.") }}')) {
+        return;
+    }
+
+    // Show loading state
+    const deleteBtn = event.target.closest('button');
+    const originalText = deleteBtn.innerHTML;
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>{{ __("Deleting...") }}';
+
+    fetch('/admin/applicants/bulk-delete', {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            application_ids: selectedIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || '{{ __("Applications deleted successfully") }}');
+            location.reload();
+        } else {
+            alert('{{ __("Error:") }} ' + (data.message || '{{ __("Unknown error occurred") }}'));
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{{ __("An error occurred while deleting applications") }}');
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = originalText;
+    });
+}
+
+// Bulk reject function
+function bulkReject() {
+    const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedIds.length === 0) {
+        alert('{{ __("Please select at least one application") }}');
+        return;
+    }
+
+    const reason = prompt('{{ __("Enter rejection reason (optional):") }}');
+    
+    if (reason === null) {
+        return; // User cancelled
+    }
+
+    // Show loading state
+    const rejectBtn = event.target.closest('button');
+    const originalText = rejectBtn.innerHTML;
+    rejectBtn.disabled = true;
+    rejectBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>{{ __("Rejecting...") }}';
+
+    fetch('/admin/applicants/bulk-reject', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            application_ids: selectedIds,
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || '{{ __("Applications rejected successfully") }}');
+            location.reload();
+        } else {
+            alert('{{ __("Error:") }} ' + (data.message || '{{ __("Unknown error occurred") }}'));
+            rejectBtn.disabled = false;
+            rejectBtn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{{ __("An error occurred while rejecting applications") }}');
+        rejectBtn.disabled = false;
+        rejectBtn.innerHTML = originalText;
+    });
+}
 </script>
 @endpush
